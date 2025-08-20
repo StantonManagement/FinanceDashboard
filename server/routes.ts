@@ -303,6 +303,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Cell Comments Routes
+  app.get("/api/cell-comments", async (req, res) => {
+    try {
+      const { propertyId, commentType } = req.query;
+      
+      let comments;
+      if (propertyId) {
+        comments = await storage.getCellCommentsByProperty(propertyId as string);
+      } else if (commentType) {
+        comments = await storage.getCellCommentsByType(commentType as string);
+      } else {
+        comments = await storage.getAllCellComments();
+      }
+      
+      res.json(comments);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch cell comments" });
+    }
+  });
+
+  app.post("/api/cell-comments", async (req, res) => {
+    try {
+      const { propertyCode, cellReference, cellValue, tabSection, noteText, commentType, priority, actionRequired } = req.body;
+      
+      // Find property by code
+      const property = await storage.getPropertyByCode(propertyCode);
+      if (!property) {
+        return res.status(404).json({ message: "Property not found" });
+      }
+
+      // Generate comment number
+      const commentNumber = await storage.getNextCommentNumber(propertyCode);
+      
+      const comment = await storage.createCellComment({
+        commentNumber,
+        commentType: commentType || 'ACCOUNTING',
+        cellReference,
+        cellValue,
+        propertyId: property.id,
+        tabSection,
+        noteText,
+        actionRequired: actionRequired || false,
+        priority: priority || 'MEDIUM',
+        status: 'OPEN',
+        author: 'User'
+      });
+      
+      res.status(201).json(comment);
+    } catch (error) {
+      console.error("Cell comment creation error:", error);
+      res.status(500).json({ message: "Failed to create cell comment" });
+    }
+  });
+
+  app.patch("/api/cell-comments/:id", async (req, res) => {
+    try {
+      const updated = await storage.updateCellComment(req.params.id, req.body);
+      if (!updated) {
+        return res.status(404).json({ message: "Cell comment not found" });
+      }
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update cell comment" });
+    }
+  });
+
+  app.delete("/api/cell-comments/:id", async (req, res) => {
+    try {
+      const deleted = await storage.deleteCellComment(req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ message: "Cell comment not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete cell comment" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

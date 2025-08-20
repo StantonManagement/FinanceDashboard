@@ -8,10 +8,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { Upload, Download, FileText, RefreshCw, Flag, AlertTriangle } from 'lucide-react';
+import { Upload, Download, FileText, RefreshCw, Flag, AlertTriangle, MessageSquare } from 'lucide-react';
+import { Link } from 'wouter';
 import type { Portfolio, Property, GLAccount, Note, ActionItem } from '@shared/schema';
 import { ExportUtils } from '@/lib/export-utils';
 import { ExcelProcessor } from '@/lib/excel-processor';
+import ClickableCell from './clickable-cell';
 
 interface PropertyDashboardProps {}
 
@@ -66,6 +68,27 @@ export function PropertyDashboard({}: PropertyDashboardProps) {
     },
     enabled: !!hartfordProperty?.id,
   });
+
+  // Cell comments query
+  const { data: cellComments = [], refetch: refetchComments } = useQuery({
+    queryKey: ['/api/cell-comments'],
+    queryFn: async () => {
+      const response = await fetch(`/api/cell-comments${hartfordProperty?.id ? `?propertyId=${hartfordProperty.id}` : ''}`);
+      if (!response.ok) throw new Error('Failed to fetch cell comments');
+      return response.json();
+    },
+    enabled: !!hartfordProperty?.id,
+  });
+
+  // Helper function to get comments for a specific cell
+  const getCellComments = (cellReference: string) => {
+    return cellComments.filter((comment: any) => comment.cellReference === cellReference);
+  };
+
+  // Handle comment creation
+  const handleCommentAdded = () => {
+    refetchComments();
+  };
 
   // Mutations
   const createNoteMutation = useMutation({
@@ -243,6 +266,12 @@ export function PropertyDashboard({}: PropertyDashboardProps) {
               <RefreshCw className="w-4 h-4 mr-2" />
               REFRESH DATA
             </Button>
+            <Link href="/accounting-notes">
+              <Button className="btn-institutional" size="sm">
+                <MessageSquare className="w-4 h-4 mr-2" />
+                ACCOUNTING NOTES
+              </Button>
+            </Link>
           </div>
         </div>
       </div>
@@ -1167,7 +1196,17 @@ export function PropertyDashboard({}: PropertyDashboardProps) {
                     <tbody>
                       <tr>
                         <td>Debt Service Coverage Ratio</td>
-                        <td className="font-mono-data font-bold text-success-green">2.15x</td>
+                        <ClickableCell
+                          cellReference="Balance Sheet > DSCR > Current Ratio"
+                          cellValue="2.15x"
+                          tabSection="Balance Sheet"
+                          propertyCode="S0010"
+                          comments={getCellComments("Balance Sheet > DSCR > Current Ratio")}
+                          onCommentAdded={handleCommentAdded}
+                          className="font-mono-data font-bold text-success-green"
+                        >
+                          2.15x
+                        </ClickableCell>
                         <td className="font-mono-data">1.25x</td>
                         <td className="font-mono-data text-success-green">+72.0%</td>
                         <td className="font-mono-data text-success-green">↗ +8.5%</td>
@@ -1183,7 +1222,17 @@ export function PropertyDashboard({}: PropertyDashboardProps) {
                       </tr>
                       <tr>
                         <td>Minimum NOI (Covenant)</td>
-                        <td className="font-mono-data font-bold">$81,600</td>
+                        <ClickableCell
+                          cellReference="Balance Sheet > DSCR > NOI Current"
+                          cellValue="$81,600"
+                          tabSection="Balance Sheet"
+                          propertyCode="S0010"
+                          comments={getCellComments("Balance Sheet > DSCR > NOI Current")}
+                          onCommentAdded={handleCommentAdded}
+                          className="font-mono-data font-bold"
+                        >
+                          $81,600
+                        </ClickableCell>
                         <td className="font-mono-data">$65,000</td>
                         <td className="font-mono-data text-success-green">+25.5%</td>
                         <td className="font-mono-data text-success-green">↗ +12.8%</td>

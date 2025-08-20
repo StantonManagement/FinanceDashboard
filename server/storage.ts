@@ -2,7 +2,7 @@ import {
   type User, type InsertUser, type Portfolio, type InsertPortfolio,
   type Property, type InsertProperty, type GLAccount, type InsertGLAccount,
   type Note, type InsertNote, type ActionItem, type InsertActionItem,
-  type ExcelFile, type InsertExcelFile
+  type ExcelFile, type InsertExcelFile, type CellComment, type InsertCellComment
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -53,6 +53,16 @@ export interface IStorage {
   getAllExcelFiles(): Promise<ExcelFile[]>;
   getExcelFile(id: string): Promise<ExcelFile | undefined>;
   createExcelFile(file: InsertExcelFile): Promise<ExcelFile>;
+
+  // Cell Comments
+  getCellCommentsByProperty(propertyId: string): Promise<CellComment[]>;
+  getCellCommentsByType(commentType: string): Promise<CellComment[]>;
+  getAllCellComments(): Promise<CellComment[]>;
+  getCellComment(id: string): Promise<CellComment | undefined>;
+  createCellComment(comment: InsertCellComment): Promise<CellComment>;
+  updateCellComment(id: string, comment: Partial<InsertCellComment>): Promise<CellComment | undefined>;
+  deleteCellComment(id: string): Promise<boolean>;
+  getNextCommentNumber(propertyCode: string): Promise<string>;
 }
 
 export class MemStorage implements IStorage {
@@ -63,6 +73,7 @@ export class MemStorage implements IStorage {
   private notes: Map<string, Note>;
   private actionItems: Map<string, ActionItem>;
   private excelFiles: Map<string, ExcelFile>;
+  private cellComments: Map<string, CellComment>;
 
   constructor() {
     this.users = new Map();
@@ -72,6 +83,7 @@ export class MemStorage implements IStorage {
     this.notes = new Map();
     this.actionItems = new Map();
     this.excelFiles = new Map();
+    this.cellComments = new Map();
 
     // Initialize with Hartford 1 data
     this.initializeData();
@@ -395,6 +407,65 @@ export class MemStorage implements IStorage {
     const file: ExcelFile = { ...insertFile, id, uploadedAt: new Date() };
     this.excelFiles.set(id, file);
     return file;
+  }
+
+  // Cell Comments
+  async getCellCommentsByProperty(propertyId: string): Promise<CellComment[]> {
+    return Array.from(this.cellComments.values()).filter(comment => comment.propertyId === propertyId);
+  }
+
+  async getCellCommentsByType(commentType: string): Promise<CellComment[]> {
+    return Array.from(this.cellComments.values()).filter(comment => comment.commentType === commentType);
+  }
+
+  async getAllCellComments(): Promise<CellComment[]> {
+    return Array.from(this.cellComments.values());
+  }
+
+  async getCellComment(id: string): Promise<CellComment | undefined> {
+    return this.cellComments.get(id);
+  }
+
+  async createCellComment(insertComment: InsertCellComment): Promise<CellComment> {
+    const id = randomUUID();
+    const comment: CellComment = { 
+      ...insertComment, 
+      id, 
+      createdAt: new Date(),
+      completedAt: insertComment.status === 'COMPLETED' ? new Date() : null
+    };
+    this.cellComments.set(id, comment);
+    return comment;
+  }
+
+  async updateCellComment(id: string, updates: Partial<InsertCellComment>): Promise<CellComment | undefined> {
+    const comment = this.cellComments.get(id);
+    if (!comment) return undefined;
+    
+    const updated: CellComment = { 
+      ...comment, 
+      ...updates,
+      completedAt: updates.status === 'COMPLETED' && comment.status !== 'COMPLETED' ? new Date() : comment.completedAt
+    };
+    this.cellComments.set(id, updated);
+    return updated;
+  }
+
+  async deleteCellComment(id: string): Promise<boolean> {
+    return this.cellComments.delete(id);
+  }
+
+  async getNextCommentNumber(propertyCode: string): Promise<string> {
+    const propertyComments = Array.from(this.cellComments.values())
+      .filter(comment => comment.commentNumber.startsWith(propertyCode))
+      .map(comment => comment.commentNumber)
+      .sort();
+    
+    const lastNumber = propertyComments.length > 0 
+      ? parseInt(propertyComments[propertyComments.length - 1].split('-')[1]) || 0
+      : 0;
+    
+    return `${propertyCode}-${String(lastNumber + 1).padStart(3, '0')}`;
   }
 }
 

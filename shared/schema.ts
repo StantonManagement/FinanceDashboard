@@ -42,6 +42,24 @@ export const glAccounts = pgTable("gl_accounts", {
   month: text("month").notNull(), // e.g., "2024-01"
 });
 
+export const cellComments = pgTable("cell_comments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  commentNumber: text("comment_number").notNull(), // e.g., "S0010-001"
+  commentType: text("comment_type").notNull(), // "ACCOUNTING" | "PROPERTY_MANAGEMENT" | "EXTERNAL"
+  cellReference: text("cell_reference").notNull(), // e.g., "Balance Sheet > DSCR > Current Ratio"
+  cellValue: text("cell_value").notNull(), // The actual data value when commented
+  propertyId: varchar("property_id").references(() => properties.id).notNull(),
+  tabSection: text("tab_section").notNull(), // "Balance Sheet", "T12 Performance", etc.
+  noteText: text("note_text").notNull(),
+  actionRequired: boolean("action_required").notNull().default(false),
+  priority: text("priority").notNull().default("MEDIUM"), // HIGH, MEDIUM, LOW
+  status: text("status").notNull().default("OPEN"), // OPEN, IN_PROGRESS, COMPLETED
+  completionNote: text("completion_note"), // For accounting completion comments
+  author: text("author").notNull().default("User"),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  completedAt: timestamp("completed_at"),
+});
+
 export const notes = pgTable("notes", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   cellId: text("cell_id").notNull(), // e.g., "gl-4105"
@@ -101,6 +119,12 @@ export const insertExcelFileSchema = createInsertSchema(excelFiles).omit({
   uploadedAt: true,
 });
 
+export const insertCellCommentSchema = createInsertSchema(cellComments).omit({
+  id: true,
+  createdAt: true,
+  completedAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -122,3 +146,6 @@ export type InsertActionItem = z.infer<typeof insertActionItemSchema>;
 
 export type ExcelFile = typeof excelFiles.$inferSelect;
 export type InsertExcelFile = z.infer<typeof insertExcelFileSchema>;
+
+export type CellComment = typeof cellComments.$inferSelect;
+export type InsertCellComment = z.infer<typeof insertCellCommentSchema>;
