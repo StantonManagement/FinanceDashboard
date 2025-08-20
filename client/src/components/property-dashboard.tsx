@@ -1200,6 +1200,149 @@ export function PropertyDashboard({}: PropertyDashboardProps) {
                     </tbody>
                   </table>
                 </div>
+
+                {/* Market Valuation Analysis */}
+                <div className="mt-5 overflow-hidden border-2 border-institutional-black">
+                  <div className="bg-institutional-black text-institutional-white p-2">
+                    <h4 className="font-bold text-xs uppercase">Market Valuation & Cap Rate Analysis</h4>
+                  </div>
+                  <table className="institutional-table">
+                    <thead>
+                      <tr>
+                        <th>Valuation Method</th>
+                        <th>Cap Rate</th>
+                        <th>NOI Basis</th>
+                        <th>Implied Value</th>
+                        <th>vs Book Value</th>
+                        <th>Market Position</th>
+                        <th>Confidence</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td className="font-bold">Current Market Cap Rate</td>
+                        <td className="font-mono-data font-bold text-success-green">12.20%</td>
+                        <td className="font-mono-data">$81,600</td>
+                        <td className="font-mono-data font-bold text-success-green">$668,852</td>
+                        <td className="font-mono-data text-red-600">-28.1%</td>
+                        <td><span className="text-success-green font-bold">UNDERVALUED</span></td>
+                        <td><span className="text-success-green font-bold">HIGH</span></td>
+                      </tr>
+                      <tr>
+                        <td>Conservative Cap Rate</td>
+                        <td className="font-mono-data">13.50%</td>
+                        <td className="font-mono-data">$81,600</td>
+                        <td className="font-mono-data">$604,444</td>
+                        <td className="font-mono-data text-red-600">-35.0%</td>
+                        <td><span className="text-success-green font-bold">UNDERVALUED</span></td>
+                        <td><span className="text-orange-600 font-bold">MEDIUM</span></td>
+                      </tr>
+                      <tr>
+                        <td>Aggressive Cap Rate</td>
+                        <td className="font-mono-data">10.75%</td>
+                        <td className="font-mono-data">$81,600</td>
+                        <td className="font-mono-data font-bold">$759,070</td>
+                        <td className="font-mono-data text-red-600">-18.3%</td>
+                        <td><span className="text-success-green font-bold">UNDERVALUED</span></td>
+                        <td><span className="text-red-600 font-bold">LOW</span></td>
+                      </tr>
+                      <tr>
+                        <td>Stabilized NOI (T12)</td>
+                        <td className="font-mono-data">12.20%</td>
+                        <td className="font-mono-data">$87,200</td>
+                        <td className="font-mono-data font-bold text-success-green">$714,754</td>
+                        <td className="font-mono-data text-red-600">-23.2%</td>
+                        <td><span className="text-success-green font-bold">UNDERVALUED</span></td>
+                        <td><span className="text-success-green font-bold">HIGH</span></td>
+                      </tr>
+                      <tr>
+                        <td>Pro-Forma (Full Occupancy)</td>
+                        <td className="font-mono-data">12.20%</td>
+                        <td className="font-mono-data">$91,800</td>
+                        <td className="font-mono-data font-bold text-success-green">$752,459</td>
+                        <td className="font-mono-data text-red-600">-19.1%</td>
+                        <td><span className="text-success-green font-bold">UNDERVALUED</span></td>
+                        <td><span className="text-orange-600 font-bold">MEDIUM</span></td>
+                      </tr>
+                      <tr className="bg-blue-50 border-t-2 border-institutional-black">
+                        <td className="font-bold">Market Value Range</td>
+                        <td className="font-mono-data font-bold">10.75%-13.50%</td>
+                        <td className="font-mono-data font-bold">$81.6K-$91.8K</td>
+                        <td className="font-mono-data font-bold">$604K-$759K</td>
+                        <td className="font-mono-data font-bold">-35.0% to -18.3%</td>
+                        <td><span className="text-success-green font-bold">STRONG BUY</span></td>
+                        <td><span className="text-success-green font-bold">HIGH</span></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Cap Rate Sensitivity Analysis */}
+                <div className="mt-5 overflow-hidden border-2 border-institutional-black">
+                  <div className="bg-institutional-black text-institutional-white p-2">
+                    <h4 className="font-bold text-xs uppercase">Cap Rate Sensitivity Matrix</h4>
+                  </div>
+                  <table className="institutional-table">
+                    <thead>
+                      <tr>
+                        <th>NOI Scenario</th>
+                        <th>9.50% Cap</th>
+                        <th>10.75% Cap</th>
+                        <th>12.20% Cap</th>
+                        <th>13.50% Cap</th>
+                        <th>15.00% Cap</th>
+                        <th>Market Commentary</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>Bear Case ($75K NOI)</td>
+                        <td className="font-mono-data">$789,474</td>
+                        <td className="font-mono-data">$697,674</td>
+                        <td className="font-mono-data">$614,754</td>
+                        <td className="font-mono-data">$555,556</td>
+                        <td className="font-mono-data">$500,000</td>
+                        <td className="text-red-600 text-xs">Recession scenario</td>
+                      </tr>
+                      <tr>
+                        <td>Current NOI ($81.6K)</td>
+                        <td className="font-mono-data">$858,947</td>
+                        <td className="font-mono-data">$759,070</td>
+                        <td className="font-mono-data font-bold">$668,852</td>
+                        <td className="font-mono-data">$604,444</td>
+                        <td className="font-mono-data">$544,000</td>
+                        <td className="text-institutional-black text-xs">Current performance</td>
+                      </tr>
+                      <tr>
+                        <td>Stabilized ($87.2K)</td>
+                        <td className="font-mono-data">$918,421</td>
+                        <td className="font-mono-data">$811,163</td>
+                        <td className="font-mono-data font-bold">$714,754</td>
+                        <td className="font-mono-data">$645,926</td>
+                        <td className="font-mono-data">$581,333</td>
+                        <td className="text-success-green text-xs">12-month target</td>
+                      </tr>
+                      <tr>
+                        <td>Bull Case ($95K NOI)</td>
+                        <td className="font-mono-data">$1,000,000</td>
+                        <td className="font-mono-data">$883,721</td>
+                        <td className="font-mono-data font-bold">$778,689</td>
+                        <td className="font-mono-data">$703,704</td>
+                        <td className="font-mono-data">$633,333</td>
+                        <td className="text-success-green text-xs">Full optimization</td>
+                      </tr>
+                      <tr className="bg-yellow-50">
+                        <td className="font-bold">Book Value Reference</td>
+                        <td className="font-mono-data font-bold">$930,000</td>
+                        <td className="font-mono-data font-bold">$930,000</td>
+                        <td className="font-mono-data font-bold">$930,000</td>
+                        <td className="font-mono-data font-bold">$930,000</td>
+                        <td className="font-mono-data font-bold">$930,000</td>
+                        <td className="text-institutional-black text-xs font-bold">Current book basis</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
                 
                 {/* Detailed Asset Line Items beneath Balance Sheet */}
                 <div className="mt-5 overflow-hidden border-2 border-institutional-black">
