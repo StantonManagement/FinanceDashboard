@@ -1,64 +1,124 @@
-import { pgTable, text, integer, decimal, timestamp, boolean } from 'drizzle-orm/pg-core';
-import { createInsertSchema } from 'drizzle-zod';
-import { z } from 'zod';
+import { sql } from "drizzle-orm";
+import { pgTable, text, varchar, real, integer, jsonb, timestamp, boolean } from "drizzle-orm/pg-core";
+import { createInsertSchema } from "drizzle-zod";
+import { z } from "zod";
 
-// Property table
-export const properties = pgTable('properties', {
-  id: text('id').primaryKey(),
-  name: text('name').notNull(),
-  portfolio: text('portfolio').notNull(),
-  units: integer('units').notNull(),
-  avgRent: decimal('avg_rent', { precision: 10, scale: 2 }),
-  occupancy: decimal('occupancy', { precision: 5, scale: 2 }),
-  opexPerUnit: decimal('opex_per_unit', { precision: 10, scale: 2 }),
-  monthlyNoi: decimal('monthly_noi', { precision: 10, scale: 2 }),
+export const users = pgTable("users", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  username: text("username").notNull().unique(),
+  password: text("password").notNull(),
 });
 
-// GL Accounts table
-export const glAccounts = pgTable('gl_accounts', {
-  id: text('id').primaryKey(),
-  propertyId: text('property_id').notNull(),
-  accountNumber: text('account_number').notNull(),
-  description: text('description').notNull(),
-  amount: decimal('amount', { precision: 12, scale: 2 }).notNull(),
-  type: text('type').notNull(), // 'revenue' | 'expense'
-  category: text('category'),
+export const portfolios = pgTable("portfolios", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  key: text("key").notNull().unique(),
+  totalUnits: integer("total_units").notNull().default(0),
+  totalNOI: real("total_noi").notNull().default(0),
+  capRate: real("cap_rate").notNull().default(0),
 });
 
-// Notes table
-export const notes = pgTable('notes', {
-  id: text('id').primaryKey(),
-  propertyId: text('property_id').notNull(),
-  glAccountId: text('gl_account_id'),
-  cellId: text('cell_id').notNull(),
-  noteText: text('note_text').notNull(),
-  author: text('author').notNull(),
-  createdAt: timestamp('created_at').defaultNow(),
+export const properties = pgTable("properties", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  code: text("code").notNull().unique(), // e.g., "S0010"
+  name: text("name").notNull(), // e.g., "228 Maple"
+  portfolioId: varchar("portfolio_id").references(() => portfolios.id).notNull(),
+  units: integer("units").notNull().default(0),
+  monthlyNOI: real("monthly_noi").notNull().default(0),
+  noiMargin: real("noi_margin").notNull().default(0),
+  occupancy: real("occupancy").notNull().default(0),
+  revenuePerUnit: real("revenue_per_unit").notNull().default(0),
+  capRate: real("cap_rate").notNull().default(0),
+  dscr: real("dscr").notNull().default(0),
 });
 
-// Action Items table
-export const actionItems = pgTable('action_items', {
-  id: text('id').primaryKey(),
-  propertyId: text('property_id').notNull(),
-  description: text('description').notNull(),
-  priority: text('priority').notNull(), // 'HIGH' | 'MEDIUM' | 'LOW'
-  status: text('status').notNull(), // 'OPEN' | 'IN_PROGRESS' | 'COMPLETED'
-  createdAt: timestamp('created_at').defaultNow(),
+export const glAccounts = pgTable("gl_accounts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  propertyId: varchar("property_id").references(() => properties.id).notNull(),
+  code: text("code").notNull(), // e.g., "4105"
+  description: text("description").notNull(),
+  amount: real("amount").notNull().default(0),
+  type: text("type").notNull(), // "revenue" or "expense"
+  month: text("month").notNull(), // e.g., "2024-01"
+});
+
+export const notes = pgTable("notes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  cellId: text("cell_id").notNull(), // e.g., "gl-4105"
+  propertyId: varchar("property_id").references(() => properties.id).notNull(),
+  text: text("text").notNull(),
+  author: text("author").notNull().default("User"),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+export const actionItems = pgTable("action_items", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  itemId: text("item_id").notNull(), // e.g., "AI-001"
+  propertyId: varchar("property_id").references(() => properties.id).notNull(),
+  description: text("description").notNull(),
+  priority: text("priority").notNull().default("MEDIUM"), // HIGH, MEDIUM, LOW
+  status: text("status").notNull().default("OPEN"), // OPEN, IN_PROGRESS, CLOSED
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+export const excelFiles = pgTable("excel_files", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  filename: text("filename").notNull(),
+  uploadedAt: timestamp("uploaded_at").notNull().default(sql`now()`),
+  processedData: jsonb("processed_data"), // Store processed Excel data
 });
 
 // Insert schemas
-export const insertPropertySchema = createInsertSchema(properties);
-export const insertGlAccountSchema = createInsertSchema(glAccounts);
-export const insertNoteSchema = createInsertSchema(notes);
-export const insertActionItemSchema = createInsertSchema(actionItems);
+export const insertUserSchema = createInsertSchema(users).pick({
+  username: true,
+  password: true,
+});
+
+export const insertPortfolioSchema = createInsertSchema(portfolios).omit({
+  id: true,
+});
+
+export const insertPropertySchema = createInsertSchema(properties).omit({
+  id: true,
+});
+
+export const insertGLAccountSchema = createInsertSchema(glAccounts).omit({
+  id: true,
+});
+
+export const insertNoteSchema = createInsertSchema(notes).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertActionItemSchema = createInsertSchema(actionItems).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertExcelFileSchema = createInsertSchema(excelFiles).omit({
+  id: true,
+  uploadedAt: true,
+});
 
 // Types
-export type Property = typeof properties.$inferSelect;
-export type GlAccount = typeof glAccounts.$inferSelect;
-export type Note = typeof notes.$inferSelect;
-export type ActionItem = typeof actionItems.$inferSelect;
+export type User = typeof users.$inferSelect;
+export type InsertUser = z.infer<typeof insertUserSchema>;
 
+export type Portfolio = typeof portfolios.$inferSelect;
+export type InsertPortfolio = z.infer<typeof insertPortfolioSchema>;
+
+export type Property = typeof properties.$inferSelect;
 export type InsertProperty = z.infer<typeof insertPropertySchema>;
-export type InsertGlAccount = z.infer<typeof insertGlAccountSchema>;
+
+export type GLAccount = typeof glAccounts.$inferSelect;
+export type InsertGLAccount = z.infer<typeof insertGLAccountSchema>;
+
+export type Note = typeof notes.$inferSelect;
 export type InsertNote = z.infer<typeof insertNoteSchema>;
+
+export type ActionItem = typeof actionItems.$inferSelect;
 export type InsertActionItem = z.infer<typeof insertActionItemSchema>;
+
+export type ExcelFile = typeof excelFiles.$inferSelect;
+export type InsertExcelFile = z.infer<typeof insertExcelFileSchema>;
