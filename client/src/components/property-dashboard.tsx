@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { Upload, Download, FileText, RefreshCw, Flag, AlertTriangle, MessageSquare } from 'lucide-react';
+import { Upload, Download, FileText, RefreshCw, Flag, AlertTriangle, MessageSquare, Wrench } from 'lucide-react';
 import { Link } from 'wouter';
 import type { Portfolio, Property, GLAccount, Note, ActionItem } from '@shared/schema';
 import { ExportUtils } from '@/lib/export-utils';
@@ -270,6 +270,12 @@ export function PropertyDashboard({}: PropertyDashboardProps) {
               <Button className="btn-institutional" size="sm">
                 <MessageSquare className="w-4 h-4 mr-2" />
                 ACCOUNTING NOTES
+              </Button>
+            </Link>
+            <Link href="/property-management-notes">
+              <Button className="btn-secondary" size="sm">
+                <Wrench className="w-4 h-4 mr-2" />
+                PM DASHBOARD
               </Button>
             </Link>
           </div>

@@ -31,6 +31,14 @@ An institutional-grade property management dashboard with Excel processing, GL a
 - Cash Flow Detail tab implemented with all non-zero GL line items
 - Improved table styling with alternating row colors and compact rows
 - Added interactive note-taking and action item flagging system
+- **Complete three-tier commenting system implemented**:
+  - Accounting comments (yellow highlighting, internal audit)
+  - Property Management comments (blue highlighting, operations)
+  - External/Lender comments (numbered badges, footnotes)
+- **Property-specific numbering**: S0010-001, S0010-002 format for multi-portfolio scaling
+- **Dedicated dashboards**: Accounting Notes (/accounting-notes) and Property Management (/property-management-notes)
+- **Navigation system**: Back buttons and header navigation between all dashboards
+- **Comment completion workflow**: Mark completed with detailed completion notes
 
 ## Advanced Features Required
 - **Balance Sheet Analysis**: Asset tracking, debt analysis, equity positions, DSCR calculations

@@ -9,7 +9,8 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle, Clock, AlertTriangle, MessageSquare, ExternalLink } from 'lucide-react';
+import { CheckCircle, Clock, AlertTriangle, MessageSquare, ExternalLink, ArrowLeft } from 'lucide-react';
+import { Link } from 'wouter';
 
 interface CellComment {
   id: string;
@@ -179,7 +180,15 @@ export default function AccountingNotesDashboard() {
     <div className="min-h-screen bg-white">
       {/* Header */}
       <div className="bg-institutional-black text-institutional-white p-6">
-        <h1 className="text-2xl font-bold uppercase">Accounting Department Notes & Action Items</h1>
+        <div className="flex items-center gap-4 mb-2">
+          <Link href="/">
+            <Button variant="outline" size="sm" className="text-white border-white hover:bg-white hover:text-black">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Dashboard
+            </Button>
+          </Link>
+          <h1 className="text-2xl font-bold uppercase">Accounting Department Notes & Action Items</h1>
+        </div>
         <p className="text-sm mt-2 opacity-90">
           Comprehensive tracking of all property-level comments, notes, and action items across portfolios
         </p>
