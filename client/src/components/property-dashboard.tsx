@@ -636,9 +636,9 @@ export function PropertyDashboard({}: PropertyDashboardProps) {
                                   onClick={() => flagIssue(cellId)}
                                   variant="destructive"
                                   size="sm"
-                                  className="bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold px-3 py-1"
+                                  className="bg-orange-500 hover:bg-orange-600 text-white text-[10px] font-bold px-2 py-0.5 h-6"
                                 >
-                                  <Flag className="w-3 h-3 mr-1" />
+                                  <Flag className="w-2 h-2 mr-0.5" />
                                   FLAG
                                 </Button>
                               </td>

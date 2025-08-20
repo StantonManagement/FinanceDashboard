@@ -120,7 +120,7 @@
   
   .institutional-table td {
     background: var(--institutional-white);
-    padding: 8px 12px;
+    padding: 4px 8px;
     border-bottom: 1px solid var(--institutional-border);
     border-right: 1px solid var(--institutional-border);
     font-size: 16px;
