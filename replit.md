@@ -28,6 +28,16 @@ An institutional-grade property management dashboard with Excel processing, GL a
 - Initial project setup with attached requirements and visual specifications
 - Detailed institutional styling guidelines provided
 - Excel data structure analyzed (>>Balance, >>LastMnth, >>T12 sheets)
+- Cash Flow Detail tab implemented with all non-zero GL line items
+- Improved table styling with alternating row colors and compact rows
+- Added interactive note-taking and action item flagging system
+
+## Advanced Features Required
+- **Balance Sheet Analysis**: Asset tracking, debt analysis, equity positions, DSCR calculations
+- **T12 Performance**: Trailing 12-month trends, YoY growth, seasonal patterns, volatility analysis  
+- **Month-over-Month**: Current performance, variance analysis, expense breakdowns, trend indicators
+- **Advanced Statistics**: Revenue volatility, risk-adjusted returns, correlation analysis, predictive forecasting
+- **Smart Features**: Automated alerts, color-coded indicators, interactive charts, executive reporting
 
 ## Data Structure
 ### Hartford 1 Sample Data

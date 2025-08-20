@@ -572,7 +572,7 @@ export function PropertyDashboard({}: PropertyDashboardProps) {
                           const hasNote = notes.some((note: Note) => note.cellId === cellId);
                           
                           return (
-                            <tr key={account.id} className="hover:bg-institutional-accent">
+                            <tr key={account.id}>
                               <td 
                                 onClick={() => handleClick(`${cellId}-code`)}
                                 className={`font-mono-data font-bold text-center cursor-pointer transition-all ${

@@ -120,12 +120,25 @@
   
   .institutional-table td {
     background: var(--institutional-white);
-    padding: 14px 12px;
+    padding: 8px 12px;
     border-bottom: 1px solid var(--institutional-border);
     border-right: 1px solid var(--institutional-border);
     font-size: 16px;
     transition: all 0.15s ease;
     font-family: var(--font-sans);
+  }
+  
+  /* Alternating row colors */
+  .institutional-table tbody tr:nth-child(even) td {
+    background: hsl(210, 8%, 98%);
+  }
+  
+  .institutional-table tbody tr:nth-child(odd) td {
+    background: var(--institutional-white);
+  }
+  
+  .institutional-table tbody tr:hover td {
+    background: hsl(210, 8%, 95%) !important;
   }
   
   .institutional-table td:last-child {
