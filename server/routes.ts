@@ -268,6 +268,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Manual GL Account Override (for correcting Excel data)
+  app.post("/api/properties/:propertyId/gl-override", async (req, res) => {
+    try {
+      const { propertyId } = req.params;
+      const { glAccounts } = req.body;
+      
+      // Clear existing GL accounts
+      await storage.deleteGLAccountsByProperty(propertyId);
+      
+      // Add new GL accounts with correct data
+      const currentMonth = "2024-01";
+      const createdAccounts = [];
+      
+      for (const account of glAccounts) {
+        const created = await storage.createGLAccount({
+          propertyId,
+          code: account.code,
+          description: account.description,
+          amount: account.amount,
+          type: account.type,
+          month: currentMonth
+        });
+        createdAccounts.push(created);
+      }
+      
+      res.json({ 
+        message: "GL accounts updated successfully", 
+        accounts: createdAccounts 
+      });
+    } catch (error) {
+      console.error("GL override error:", error);
+      res.status(500).json({ message: "Failed to update GL accounts" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
