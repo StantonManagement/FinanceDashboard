@@ -394,6 +394,20 @@ export function PropertyDashboard({}: PropertyDashboardProps) {
                 Cash Flow Detail
               </TabsTrigger>
               <TabsTrigger 
+                value="balance" 
+                className="flex-1 bg-transparent text-gray-700 border-r border-institutional-border p-4 font-bold text-xs uppercase hover:bg-institutional-accent data-[state=active]:bg-institutional-black data-[state=active]:text-institutional-white"
+                onClick={() => handleClick('tab-balance')}
+              >
+                Balance Sheet
+              </TabsTrigger>
+              <TabsTrigger 
+                value="t12" 
+                className="flex-1 bg-transparent text-gray-700 border-r border-institutional-border p-4 font-bold text-xs uppercase hover:bg-institutional-accent data-[state=active]:bg-institutional-black data-[state=active]:text-institutional-white"
+                onClick={() => handleClick('tab-t12')}
+              >
+                T12 Performance
+              </TabsTrigger>
+              <TabsTrigger 
                 value="notes" 
                 className="flex-1 bg-transparent text-gray-700 p-4 font-bold text-xs uppercase hover:bg-institutional-accent data-[state=active]:bg-institutional-black data-[state=active]:text-institutional-white"
                 onClick={() => handleClick('tab-notes')}
@@ -453,14 +467,21 @@ export function PropertyDashboard({}: PropertyDashboardProps) {
                             >
                               {account.type === 'revenue' ? '+' : '-'}${account.amount.toLocaleString()}
                             </td>
-                            <td className="text-xs uppercase font-bold">
-                              {account.type.toUpperCase()}
+                            <td className="text-center">
+                              <Badge 
+                                variant={account.type === 'revenue' ? 'default' : 'destructive'}
+                                className={`text-[8px] font-bold px-1 py-0 h-4 ${
+                                  account.type === 'revenue' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                                }`}
+                              >
+                                {account.type === 'revenue' ? 'REV' : 'EXP'}
+                              </Badge>
                             </td>
-                            <td className="relative">
+                            <td className="text-center">
                               <Input 
                                 type="text" 
                                 placeholder="Add note..." 
-                                className="border border-institutional-border p-2 text-sm w-full" 
+                                className="text-xs border-institutional-border h-6 px-2" 
                                 value={cellNotes[cellId] || ''}
                                 onChange={(e) => handleNoteChange(cellId, e.target.value)}
                               />
@@ -474,13 +495,14 @@ export function PropertyDashboard({}: PropertyDashboardProps) {
                                 </span>
                               )}
                             </td>
-                            <td>
+                            <td className="text-center">
                               <Button 
                                 onClick={() => flagIssue(cellId)} 
-                                className="bg-orange-600 text-institutional-white border-none px-3 py-1 text-xs uppercase font-bold"
+                                variant="destructive"
                                 size="sm"
+                                className="bg-orange-500 hover:bg-orange-600 text-white text-[8px] font-bold px-1.5 py-0 h-5"
                               >
-                                <Flag className="w-3 h-3 mr-1" />
+                                <Flag className="w-2 h-2 mr-0.5" />
                                 FLAG
                               </Button>
                             </td>
@@ -682,6 +704,338 @@ export function PropertyDashboard({}: PropertyDashboardProps) {
                           ).toLocaleString()}
                         </td>
                         <td colSpan={3}></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </TabsContent>
+
+              {/* Balance Sheet Analysis Tab */}
+              <TabsContent value="balance" className="mt-0">
+                <h3 className="text-lg font-bold uppercase text-institutional-black mb-4">
+                  Balance Sheet Analysis & DSCR Calculations
+                </h3>
+                
+                <div className="grid grid-cols-2 gap-5 mb-5">
+                  <div className="overflow-hidden border-2 border-institutional-black">
+                    <div className="bg-institutional-black text-institutional-white p-2">
+                      <h4 className="font-bold text-xs uppercase">Asset Analysis</h4>
+                    </div>
+                    <table className="institutional-table">
+                      <thead>
+                        <tr>
+                          <th>Asset Category</th>
+                          <th>Amount</th>
+                          <th>% of Total</th>
+                          <th>Risk Score</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td>Property Value (Appraised)</td>
+                          <td className="font-mono-data font-bold">$2,840,000</td>
+                          <td className="font-mono-data">87.2%</td>
+                          <td><span className="text-success-green font-bold">LOW</span></td>
+                        </tr>
+                        <tr>
+                          <td>Cash & Equivalents</td>
+                          <td className="font-mono-data font-bold">$156,000</td>
+                          <td className="font-mono-data">4.8%</td>
+                          <td><span className="text-success-green font-bold">LOW</span></td>
+                        </tr>
+                        <tr>
+                          <td>Tenant Security Deposits</td>
+                          <td className="font-mono-data font-bold">$48,200</td>
+                          <td className="font-mono-data">1.5%</td>
+                          <td><span className="text-success-green font-bold">LOW</span></td>
+                        </tr>
+                        <tr>
+                          <td>Accounts Receivable</td>
+                          <td className="font-mono-data font-bold">$21,800</td>
+                          <td className="font-mono-data">0.7%</td>
+                          <td><span className="text-red-600 font-bold">MEDIUM</span></td>
+                        </tr>
+                        <tr className="bg-blue-50 border-t-2 border-institutional-black">
+                          <td className="font-bold">TOTAL ASSETS</td>
+                          <td className="font-mono-data font-bold">$3,066,000</td>
+                          <td className="font-mono-data font-bold">100.0%</td>
+                          <td></td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  
+                  <div className="overflow-hidden border-2 border-institutional-black">
+                    <div className="bg-institutional-black text-institutional-white p-2">
+                      <h4 className="font-bold text-xs uppercase">Debt Analysis</h4>
+                    </div>
+                    <table className="institutional-table">
+                      <thead>
+                        <tr>
+                          <th>Debt Category</th>
+                          <th>Balance</th>
+                          <th>Rate</th>
+                          <th>Maturity</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td>Primary Mortgage</td>
+                          <td className="font-mono-data font-bold">$1,820,000</td>
+                          <td className="font-mono-data">4.25%</td>
+                          <td className="font-mono-data">2029</td>
+                        </tr>
+                        <tr>
+                          <td>Line of Credit</td>
+                          <td className="font-mono-data font-bold">$125,000</td>
+                          <td className="font-mono-data">6.75%</td>
+                          <td className="font-mono-data">Revolving</td>
+                        </tr>
+                        <tr>
+                          <td>Tenant Deposits (Liability)</td>
+                          <td className="font-mono-data font-bold">$48,200</td>
+                          <td className="font-mono-data">0.00%</td>
+                          <td className="font-mono-data">On-Demand</td>
+                        </tr>
+                        <tr className="bg-red-50 border-t-2 border-institutional-black">
+                          <td className="font-bold">TOTAL LIABILITIES</td>
+                          <td className="font-mono-data font-bold">$1,993,200</td>
+                          <td className="font-mono-data font-bold">Blended: 4.56%</td>
+                          <td></td>
+                        </tr>
+                        <tr className="bg-green-50">
+                          <td className="font-bold">OWNER EQUITY</td>
+                          <td className="font-mono-data font-bold">$1,072,800</td>
+                          <td className="font-mono-data font-bold">35.0% LTV</td>
+                          <td></td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                
+                <div className="overflow-hidden border-2 border-institutional-black">
+                  <div className="bg-institutional-black text-institutional-white p-2">
+                    <h4 className="font-bold text-xs uppercase">DSCR Analysis & Covenant Compliance</h4>
+                  </div>
+                  <table className="institutional-table">
+                    <thead>
+                      <tr>
+                        <th>Metric</th>
+                        <th>Current</th>
+                        <th>Required</th>
+                        <th>Variance</th>
+                        <th>Trend (12M)</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>Debt Service Coverage Ratio</td>
+                        <td className="font-mono-data font-bold text-success-green">2.15x</td>
+                        <td className="font-mono-data">1.25x</td>
+                        <td className="font-mono-data text-success-green">+72.0%</td>
+                        <td className="font-mono-data text-success-green">↗ +8.5%</td>
+                        <td><span className="text-success-green font-bold">✓ COMPLIANT</span></td>
+                      </tr>
+                      <tr>
+                        <td>Loan-to-Value Ratio</td>
+                        <td className="font-mono-data font-bold">65.0%</td>
+                        <td className="font-mono-data">75.0%</td>
+                        <td className="font-mono-data text-success-green">-10.0pp</td>
+                        <td className="font-mono-data text-success-green">↘ -2.1pp</td>
+                        <td><span className="text-success-green font-bold">✓ COMPLIANT</span></td>
+                      </tr>
+                      <tr>
+                        <td>Minimum NOI (Covenant)</td>
+                        <td className="font-mono-data font-bold">$81,600</td>
+                        <td className="font-mono-data">$65,000</td>
+                        <td className="font-mono-data text-success-green">+25.5%</td>
+                        <td className="font-mono-data text-success-green">↗ +12.8%</td>
+                        <td><span className="text-success-green font-bold">✓ COMPLIANT</span></td>
+                      </tr>
+                      <tr>
+                        <td>Occupancy Requirement</td>
+                        <td className="font-mono-data font-bold">94.5%</td>
+                        <td className="font-mono-data">85.0%</td>
+                        <td className="font-mono-data text-success-green">+9.5pp</td>
+                        <td className="font-mono-data text-success-green">↗ +4.2pp</td>
+                        <td><span className="text-success-green font-bold">✓ COMPLIANT</span></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </TabsContent>
+
+              {/* T12 Performance Tab */}
+              <TabsContent value="t12" className="mt-0">
+                <h3 className="text-lg font-bold uppercase text-institutional-black mb-4">
+                  Trailing 12-Month Performance Analysis
+                </h3>
+                
+                <div className="grid grid-cols-2 gap-5 mb-5">
+                  <div className="overflow-hidden border-2 border-institutional-black">
+                    <div className="bg-institutional-black text-institutional-white p-2">
+                      <h4 className="font-bold text-xs uppercase">Revenue Volatility Analysis</h4>
+                    </div>
+                    <table className="institutional-table">
+                      <thead>
+                        <tr>
+                          <th>Revenue Metric</th>
+                          <th>T12 Average</th>
+                          <th>Std Dev</th>
+                          <th>Volatility Score</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td>Monthly Gross Rent</td>
+                          <td className="font-mono-data">$10,483</td>
+                          <td className="font-mono-data">$287</td>
+                          <td><span className="text-success-green font-bold">LOW (2.7%)</span></td>
+                        </tr>
+                        <tr>
+                          <td>Occupancy Rate</td>
+                          <td className="font-mono-data">92.8%</td>
+                          <td className="font-mono-data">3.1pp</td>
+                          <td><span className="text-success-green font-bold">LOW (3.3%)</span></td>
+                        </tr>
+                        <tr>
+                          <td>Other Income</td>
+                          <td className="font-mono-data">$127</td>
+                          <td className="font-mono-data">$89</td>
+                          <td><span className="text-orange-600 font-bold">HIGH (70.1%)</span></td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  
+                  <div className="overflow-hidden border-2 border-institutional-black">
+                    <div className="bg-institutional-black text-institutional-white p-2">
+                      <h4 className="font-bold text-xs uppercase">Seasonal Performance</h4>
+                    </div>
+                    <table className="institutional-table">
+                      <thead>
+                        <tr>
+                          <th>Quarter</th>
+                          <th>Avg NOI</th>
+                          <th>vs Annual Avg</th>
+                          <th>Pattern</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td>Q1 (Winter)</td>
+                          <td className="font-mono-data">$6,425</td>
+                          <td className="font-mono-data text-red-600">-6.3%</td>
+                          <td><span className="text-orange-600 font-bold">HEATING COSTS</span></td>
+                        </tr>
+                        <tr>
+                          <td>Q2 (Spring)</td>
+                          <td className="font-mono-data">$6,890</td>
+                          <td className="font-mono-data text-success-green">+0.5%</td>
+                          <td><span className="text-success-green font-bold">NORMAL</span></td>
+                        </tr>
+                        <tr>
+                          <td>Q3 (Summer)</td>
+                          <td className="font-mono-data">$7,240</td>
+                          <td className="font-mono-data text-success-green">+5.6%</td>
+                          <td><span className="text-success-green font-bold">PEAK SEASON</span></td>
+                        </tr>
+                        <tr>
+                          <td>Q4 (Fall)</td>
+                          <td className="font-mono-data">$6,980</td>
+                          <td className="font-mono-data text-success-green">+1.8%</td>
+                          <td><span className="text-success-green font-bold">STABLE</span></td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                
+                <div className="overflow-hidden border-2 border-institutional-black">
+                  <div className="bg-institutional-black text-institutional-white p-2">
+                    <h4 className="font-bold text-xs uppercase">Advanced Performance Statistics</h4>
+                  </div>
+                  <table className="institutional-table">
+                    <thead>
+                      <tr>
+                        <th>Analysis Type</th>
+                        <th>Metric</th>
+                        <th>Value</th>
+                        <th>Market Percentile</th>
+                        <th>Risk Assessment</th>
+                        <th>Action Items</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>Risk-Adjusted Returns</td>
+                        <td>Sharpe Ratio (NOI)</td>
+                        <td className="font-mono-data font-bold">1.87</td>
+                        <td className="font-mono-data text-success-green">82nd</td>
+                        <td><span className="text-success-green font-bold">LOW</span></td>
+                        <td>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-[8px] font-bold px-1.5 py-0 h-5"
+                          >
+                            MONITOR
+                          </Button>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td>Concentration Risk</td>
+                        <td>Single Tenant Max %</td>
+                        <td className="font-mono-data font-bold">16.7%</td>
+                        <td className="font-mono-data text-success-green">45th</td>
+                        <td><span className="text-success-green font-bold">LOW</span></td>
+                        <td>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-[8px] font-bold px-1.5 py-0 h-5"
+                          >
+                            MONITOR
+                          </Button>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td>Predictive Forecasting</td>
+                        <td>12M NOI Forecast</td>
+                        <td className="font-mono-data font-bold text-success-green">$85,200</td>
+                        <td className="font-mono-data">N/A</td>
+                        <td><span className="text-success-green font-bold">POSITIVE TREND</span></td>
+                        <td>
+                          <Button
+                            onClick={() => flagIssue('forecast-noi')}
+                            variant="destructive"
+                            size="sm"
+                            className="bg-orange-500 hover:bg-orange-600 text-white text-[8px] font-bold px-1.5 py-0 h-5"
+                          >
+                            <Flag className="w-2 h-2 mr-0.5" />
+                            TRACK
+                          </Button>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td>Maintenance Correlation</td>
+                        <td>Weather Sensitivity</td>
+                        <td className="font-mono-data font-bold">0.73</td>
+                        <td className="font-mono-data text-orange-600">91st</td>
+                        <td><span className="text-orange-600 font-bold">MEDIUM</span></td>
+                        <td>
+                          <Button
+                            onClick={() => flagIssue('weather-correlation')}
+                            variant="destructive"
+                            size="sm"
+                            className="bg-orange-500 hover:bg-orange-600 text-white text-[8px] font-bold px-1.5 py-0 h-5"
+                          >
+                            <Flag className="w-2 h-2 mr-0.5" />
+                            REVIEW
+                          </Button>
+                        </td>
                       </tr>
                     </tbody>
                   </table>
