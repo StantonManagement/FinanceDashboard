@@ -8,7 +8,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { Upload, Download, FileText, RefreshCw, Flag, AlertTriangle, MessageSquare, Wrench } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Upload, Download, FileText, RefreshCw, Flag, AlertTriangle, MessageSquare, Wrench, Settings, Eye, EyeOff } from 'lucide-react';
 import { Link } from 'wouter';
 import type { Portfolio, Property, GLAccount, Note, ActionItem } from '@shared/schema';
 import { ExportUtils } from '@/lib/export-utils';
@@ -25,6 +27,40 @@ export function PropertyDashboard({}: PropertyDashboardProps) {
   const [activeTab, setActiveTab] = useState('performance');
   const [clickedElements, setClickedElements] = useState<Set<string>>(new Set());
   const [cellNotes, setCellNotes] = useState<Record<string, string>>({});
+  
+  // Column visibility states for different tables
+  const [visibleColumns, setVisibleColumns] = useState({
+    balanceSheet: {
+      account: true,
+      balance: true,
+      percentage: true,
+      notes: true,
+      actions: true
+    },
+    performance: {
+      metric: true,
+      current: true,
+      budget: true,
+      variance: true,
+      ytd: true,
+      notes: true,
+      actions: true
+    },
+    cashFlow: {
+      account: true,
+      amount: true,
+      percentage: true,
+      notes: true,
+      actions: true
+    },
+    marketValuation: {
+      scenario: true,
+      capRate: true,
+      impliedValue: true,
+      variance: true,
+      notes: true
+    }
+  });
 
   // Queries
   const { data: portfolios = [] } = useQuery({
@@ -222,6 +258,52 @@ export function PropertyDashboard({}: PropertyDashboardProps) {
     queryClient.invalidateQueries();
     toast({ title: 'Data refreshed', variant: 'default' });
   };
+
+  // Column visibility toggle functions
+  const toggleColumn = (tableType: string, column: string) => {
+    setVisibleColumns(prev => ({
+      ...prev,
+      [tableType]: {
+        ...prev[tableType as keyof typeof prev],
+        [column]: !prev[tableType as keyof typeof prev][column as keyof typeof prev.balanceSheet]
+      }
+    }));
+  };
+
+  // Column visibility controls component
+  const ColumnVisibilityControls = ({ tableType, columns }: { 
+    tableType: string, 
+    columns: Array<{ key: string, label: string }> 
+  }) => (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant="outline" size="sm" className="bg-white border-gray-300">
+          <Settings className="w-4 h-4 mr-2" />
+          COLUMNS
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-64 p-4">
+        <h4 className="font-bold text-sm mb-3 uppercase">Show/Hide Columns</h4>
+        <div className="space-y-3">
+          {columns.map(({ key, label }) => (
+            <div key={key} className="flex items-center space-x-2">
+              <Checkbox
+                id={`${tableType}-${key}`}
+                checked={visibleColumns[tableType as keyof typeof visibleColumns]?.[key as keyof typeof visibleColumns.balanceSheet] || false}
+                onCheckedChange={() => toggleColumn(tableType, key)}
+              />
+              <label
+                htmlFor={`${tableType}-${key}`}
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              >
+                {label}
+              </label>
+            </div>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
 
   return (
     <div className="font-segoe bg-institutional-white min-h-screen">
@@ -455,20 +537,34 @@ export function PropertyDashboard({}: PropertyDashboardProps) {
             <div className="p-5">
               {/* Performance Analysis Tab */}
               <TabsContent value="performance" className="mt-0">
-                <h3 className="text-lg font-bold uppercase text-institutional-black mb-4">
-                  Hartford 1 - GL Account Detail
-                </h3>
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-bold uppercase text-institutional-black">
+                    Hartford 1 - GL Account Detail
+                  </h3>
+                  <ColumnVisibilityControls 
+                    tableType="performance"
+                    columns={[
+                      { key: 'account', label: 'GL Account' },
+                      { key: 'current', label: 'Current Period' },
+                      { key: 'budget', label: 'Budget' },
+                      { key: 'variance', label: 'Variance' },
+                      { key: 'ytd', label: 'YTD' },
+                      { key: 'notes', label: 'Notes' },
+                      { key: 'actions', label: 'Actions' }
+                    ]}
+                  />
+                </div>
                 
                 <div className="overflow-hidden border-2 border-institutional-black">
                   <table className="institutional-table">
                     <thead>
                       <tr>
-                        <th>GL Account</th>
-                        <th>Description</th>
-                        <th>Amount</th>
-                        <th>Type</th>
-                        <th>Notes</th>
-                        <th>Actions</th>
+                        {visibleColumns.performance.account && <th>GL Account</th>}
+                        {visibleColumns.performance.account && <th>Description</th>}
+                        {visibleColumns.performance.current && <th>Amount</th>}
+                        {visibleColumns.performance.current && <th>Type</th>}
+                        {visibleColumns.performance.notes && <th>Notes</th>}
+                        {visibleColumns.performance.actions && <th>Actions</th>}
                       </tr>
                     </thead>
                     <tbody>
@@ -599,20 +695,31 @@ export function PropertyDashboard({}: PropertyDashboardProps) {
 
               {/* Cash Flow Detail Tab */}
               <TabsContent value="cashflow" className="mt-0">
-                <h3 className="text-lg font-bold uppercase text-institutional-black mb-4">
-                  Hartford 1 - Detailed Cash Flow by GL Account
-                </h3>
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-bold uppercase text-institutional-black">
+                    Hartford 1 - Detailed Cash Flow by GL Account
+                  </h3>
+                  <ColumnVisibilityControls 
+                    tableType="cashFlow"
+                    columns={[
+                      { key: 'account', label: 'GL Account' },
+                      { key: 'amount', label: 'Amount & Type' },
+                      { key: 'notes', label: 'Notes' },
+                      { key: 'actions', label: 'Actions' }
+                    ]}
+                  />
+                </div>
                 
                 <div className="overflow-hidden border-2 border-institutional-black">
                   <table className="institutional-table">
                     <thead>
                       <tr>
-                        <th>GL Code</th>
-                        <th>Account Description</th>
-                        <th>Amount</th>
-                        <th>Type</th>
-                        <th>Notes</th>
-                        <th>Actions</th>
+                        {visibleColumns.cashFlow.account && <th>GL Code</th>}
+                        {visibleColumns.cashFlow.account && <th>Account Description</th>}
+                        {visibleColumns.cashFlow.amount && <th>Amount</th>}
+                        {visibleColumns.cashFlow.amount && <th>Type</th>}
+                        {visibleColumns.cashFlow.notes && <th>Notes</th>}
+                        {visibleColumns.cashFlow.actions && <th>Actions</th>}
                       </tr>
                     </thead>
                     <tbody>
@@ -631,75 +738,87 @@ export function PropertyDashboard({}: PropertyDashboardProps) {
                           
                           return (
                             <tr key={account.id}>
-                              <td 
-                                onClick={() => handleClick(`${cellId}-code`)}
-                                className={`font-mono-data font-bold text-center cursor-pointer transition-all ${
-                                  clickedElements.has(`${cellId}-code`) ? 'click-highlight' : ''
-                                }`}
-                              >
-                                {account.code}
-                              </td>
-                              <td 
-                                onClick={() => handleClick(`${cellId}-desc`)}
-                                className={`cursor-pointer transition-all ${
-                                  clickedElements.has(`${cellId}-desc`) ? 'click-highlight' : ''
-                                }`}
-                              >
-                                {account.description}
-                              </td>
-                              <td 
-                                onClick={() => handleClick(cellId)}
-                                className={`font-mono-data font-bold text-right cursor-pointer transition-all ${
-                                  account.type === 'revenue' ? 'text-success-green' : 'text-red-600'
-                                } ${clickedElements.has(cellId) ? 'click-highlight' : ''}`}
-                              >
-                                {account.type === 'revenue' ? '+' : '-'}${Math.abs(account.amount).toLocaleString()}
-                                {hasNote && (
-                                  <span className="note-indicator ml-2">📝 NOTE</span>
-                                )}
-                              </td>
-                              <td className="text-center">
-                                <Badge 
-                                  variant={account.type === 'revenue' ? 'default' : 'destructive'}
-                                  className={`text-[8px] font-bold px-1 py-0 h-4 ${
-                                    account.type === 'revenue' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                              {visibleColumns.cashFlow.account && (
+                                <td 
+                                  onClick={() => handleClick(`${cellId}-code`)}
+                                  className={`font-mono-data font-bold text-center cursor-pointer transition-all ${
+                                    clickedElements.has(`${cellId}-code`) ? 'click-highlight' : ''
                                   }`}
                                 >
-                                  {account.type === 'revenue' ? 'REV' : 'EXP'}
-                                </Badge>
-                              </td>
-                              <td className="text-center">
-                                <Input
-                                  placeholder="Add note..."
-                                  className="text-xs border-institutional-border h-6 px-2"
-                                  onBlur={(e) => {
-                                    if (e.target.value.trim()) {
-                                      handleNoteChange(cellId, e.target.value);
-                                      e.target.value = '';
-                                    }
-                                  }}
-                                  onKeyPress={(e) => {
-                                    if (e.key === 'Enter') {
-                                      const input = e.target as HTMLInputElement;
-                                      if (input.value.trim()) {
-                                        handleNoteChange(cellId, input.value);
-                                        input.value = '';
-                                      }
-                                    }
-                                  }}
-                                />
-                              </td>
-                              <td className="text-center">
-                                <Button
-                                  onClick={() => flagIssue(cellId)}
-                                  variant="destructive"
-                                  size="sm"
-                                  className="bg-orange-500 hover:bg-orange-600 text-white text-[8px] font-bold px-1.5 py-0 h-5"
+                                  {account.code}
+                                </td>
+                              )}
+                              {visibleColumns.cashFlow.account && (
+                                <td 
+                                  onClick={() => handleClick(`${cellId}-desc`)}
+                                  className={`cursor-pointer transition-all ${
+                                    clickedElements.has(`${cellId}-desc`) ? 'click-highlight' : ''
+                                  }`}
                                 >
-                                  <Flag className="w-2 h-2 mr-0.5" />
-                                  FLAG
-                                </Button>
-                              </td>
+                                  {account.description}
+                                </td>
+                              )}
+                              {visibleColumns.cashFlow.amount && (
+                                <td 
+                                  onClick={() => handleClick(cellId)}
+                                  className={`font-mono-data font-bold text-right cursor-pointer transition-all ${
+                                    account.type === 'revenue' ? 'text-success-green' : 'text-red-600'
+                                  } ${clickedElements.has(cellId) ? 'click-highlight' : ''}`}
+                                >
+                                  {account.type === 'revenue' ? '+' : '-'}${Math.abs(account.amount).toLocaleString()}
+                                  {hasNote && (
+                                    <span className="note-indicator ml-2">📝 NOTE</span>
+                                  )}
+                                </td>
+                              )}
+                              {visibleColumns.cashFlow.amount && (
+                                <td className="text-center">
+                                  <Badge 
+                                    variant={account.type === 'revenue' ? 'default' : 'destructive'}
+                                    className={`text-[8px] font-bold px-1 py-0 h-4 ${
+                                      account.type === 'revenue' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                                    }`}
+                                  >
+                                    {account.type === 'revenue' ? 'REV' : 'EXP'}
+                                  </Badge>
+                                </td>
+                              )}
+                              {visibleColumns.cashFlow.notes && (
+                                <td className="text-center">
+                                  <Input
+                                    placeholder="Add note..."
+                                    className="text-xs border-institutional-border h-6 px-2"
+                                    onBlur={(e) => {
+                                      if (e.target.value.trim()) {
+                                        handleNoteChange(cellId, e.target.value);
+                                        e.target.value = '';
+                                      }
+                                    }}
+                                    onKeyPress={(e) => {
+                                      if (e.key === 'Enter') {
+                                        const input = e.target as HTMLInputElement;
+                                        if (input.value.trim()) {
+                                          handleNoteChange(cellId, input.value);
+                                          input.value = '';
+                                        }
+                                      }
+                                    }}
+                                  />
+                                </td>
+                              )}
+                              {visibleColumns.cashFlow.actions && (
+                                <td className="text-center">
+                                  <Button
+                                    onClick={() => flagIssue(cellId)}
+                                    variant="destructive"
+                                    size="sm"
+                                    className="bg-orange-500 hover:bg-orange-600 text-white text-[8px] font-bold px-1.5 py-0 h-5"
+                                  >
+                                    <Flag className="w-2 h-2 mr-0.5" />
+                                    FLAG
+                                  </Button>
+                                </td>
+                              )}
                             </tr>
                           );
                         })}
@@ -1082,9 +1201,21 @@ export function PropertyDashboard({}: PropertyDashboardProps) {
 
               {/* Balance Sheet Analysis Tab */}
               <TabsContent value="balance" className="mt-0">
-                <h3 className="text-lg font-bold uppercase text-institutional-black mb-4">
-                  Balance Sheet Analysis & DSCR Calculations
-                </h3>
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-bold uppercase text-institutional-black">
+                    Balance Sheet Analysis & DSCR Calculations
+                  </h3>
+                  <ColumnVisibilityControls 
+                    tableType="balanceSheet"
+                    columns={[
+                      { key: 'account', label: 'Account & Description' },
+                      { key: 'balance', label: 'Balance & Value' },
+                      { key: 'percentage', label: 'Percentage & Ratios' },
+                      { key: 'notes', label: 'Notes & Commentary' },
+                      { key: 'actions', label: 'Actions & Status' }
+                    ]}
+                  />
+                </div>
                 
                 <div className="grid grid-cols-2 gap-5 mb-5">
                   <div className="overflow-hidden border-2 border-institutional-black">
