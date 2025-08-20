@@ -15,6 +15,7 @@ import { Link } from 'wouter';
 import type { Portfolio, Property, GLAccount, Note, ActionItem } from '@shared/schema';
 import { ExportUtils } from '@/lib/export-utils';
 import { ExcelProcessor } from '@/lib/excel-processor';
+import { downloadExcelTemplate } from '@/lib/excel-template-generator';
 import ClickableCell from './clickable-cell';
 
 interface PropertyDashboardProps {}
@@ -367,8 +368,16 @@ export function PropertyDashboard({}: PropertyDashboardProps) {
       <div className="max-w-7xl mx-auto p-5">
         {/* Portfolio Navigation */}
         <Card className="mb-5 border-2 border-institutional-black">
-          <CardHeader className="bg-institutional-black text-institutional-white p-3">
+          <CardHeader className="bg-institutional-black text-institutional-white p-3 flex flex-row items-center justify-between">
             <CardTitle className="font-bold text-xs uppercase">Portfolio Selection</CardTitle>
+            <Button
+              onClick={() => downloadExcelTemplate()}
+              className="bg-institutional-white text-institutional-black hover:bg-gray-200 font-bold text-xs px-3 py-1"
+              size="sm"
+            >
+              <Download className="w-3 h-3 mr-1" />
+              DOWNLOAD TEMPLATE
+            </Button>
           </CardHeader>
           <CardContent className="p-0">
             <div className="grid grid-cols-5">
@@ -386,7 +395,7 @@ export function PropertyDashboard({}: PropertyDashboardProps) {
                   </div>
                   <div className="text-xs text-gray-600 grid grid-cols-3 gap-2">
                     <span>{portfolio.totalUnits} Units</span>
-                    <span>${Math.round(portfolio.totalNOI / 1000)}K NOI</span>
+                    <span>${Math.round(portfolio.totalNOI / 1000).toLocaleString()}K NOI</span>
                     <span>{portfolio.capRate}% Cap</span>
                   </div>
                 </button>
@@ -559,9 +568,9 @@ export function PropertyDashboard({}: PropertyDashboardProps) {
                   <table className="institutional-table">
                     <thead>
                       <tr>
-                        {visibleColumns.performance.account && <th>GL Account</th>}
-                        {visibleColumns.performance.account && <th>Description</th>}
-                        {visibleColumns.performance.current && <th>Amount</th>}
+                        {visibleColumns.performance.account && <th>GL Code</th>}
+                        {visibleColumns.performance.account && <th>Account Description</th>}
+                        {visibleColumns.performance.current && <th>Current Period</th>}
                         {visibleColumns.performance.current && <th>Type</th>}
                         {visibleColumns.performance.notes && <th>Notes</th>}
                         {visibleColumns.performance.actions && <th>Actions</th>}

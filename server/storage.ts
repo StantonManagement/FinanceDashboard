@@ -211,6 +211,127 @@ export class MemStorage implements IStorage {
       month: currentMonth
     });
 
+    // Additional income and expense accounts
+    await this.createGLAccount({
+      propertyId: property.id,
+      code: "4120",
+      description: "Other Income",
+      amount: 180,
+      type: "revenue",
+      month: currentMonth
+    });
+
+    await this.createGLAccount({
+      propertyId: property.id,
+      code: "6115",
+      description: "Landscaping & Grounds",
+      amount: 285,
+      type: "expense",
+      month: currentMonth
+    });
+
+    await this.createGLAccount({
+      propertyId: property.id,
+      code: "6125",
+      description: "Trash & Recycling",
+      amount: 125,
+      type: "expense",
+      month: currentMonth
+    });
+
+    await this.createGLAccount({
+      propertyId: property.id,
+      code: "6150",
+      description: "Legal & Professional",
+      amount: 150,
+      type: "expense",
+      month: currentMonth
+    });
+
+    await this.createGLAccount({
+      propertyId: property.id,
+      code: "6160",
+      description: "Office & Administrative",
+      amount: 75,
+      type: "expense",
+      month: currentMonth
+    });
+
+    // Balance Sheet Assets
+    await this.createGLAccount({
+      propertyId: property.id,
+      code: "1100",
+      description: "Cash & Equivalents",
+      amount: 156000,
+      type: "asset",
+      month: currentMonth
+    });
+
+    await this.createGLAccount({
+      propertyId: property.id,
+      code: "1200",
+      description: "Accounts Receivable",
+      amount: 12500,
+      type: "asset",
+      month: currentMonth
+    });
+
+    await this.createGLAccount({
+      propertyId: property.id,
+      code: "1500",
+      description: "Property Value (Appraised)",
+      amount: 2840000,
+      type: "asset",
+      month: currentMonth
+    });
+
+    // Balance Sheet Liabilities
+    await this.createGLAccount({
+      propertyId: property.id,
+      code: "2200",
+      description: "Owner Held Security Deposits",
+      amount: 10400,
+      type: "liability",
+      month: currentMonth
+    });
+
+    await this.createGLAccount({
+      propertyId: property.id,
+      code: "2400",
+      description: "Due to Stanton Group LLC",
+      amount: 8350,
+      type: "liability",
+      month: currentMonth
+    });
+
+    await this.createGLAccount({
+      propertyId: property.id,
+      code: "2500",
+      description: "Mortgage Payable",
+      amount: 1850000,
+      type: "liability",
+      month: currentMonth
+    });
+
+    // Balance Sheet Equity
+    await this.createGLAccount({
+      propertyId: property.id,
+      code: "3100",
+      description: "Owner Contributions",
+      amount: 450000,
+      type: "equity",
+      month: currentMonth
+    });
+
+    await this.createGLAccount({
+      propertyId: property.id,
+      code: "3200",
+      description: "Retained Earnings",
+      amount: 145038,
+      type: "equity",
+      month: currentMonth
+    });
+
     // Add sample action item
     await this.createActionItem({
       itemId: "AI-001",

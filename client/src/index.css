@@ -146,6 +146,25 @@
     border-right: none;
   }
   
+  /* Column-specific alignments */
+  .institutional-table .text-right {
+    text-align: right !important;
+  }
+
+  .institutional-table .text-center {
+    text-align: center !important;
+  }
+
+  .institutional-table .text-left {
+    text-align: left !important;
+  }
+
+  /* Number formatting for financial data */
+  .font-mono-data {
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
+    font-variant-numeric: tabular-nums;
+  }
+  
   .institutional-table tr:last-child td {
     border-bottom: none;
   }
