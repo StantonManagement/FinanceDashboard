@@ -1,0 +1,467 @@
+# Property Management Dashboard - Replit Implementation Prompt
+
+## Overview
+Build a professional property management dashboard that processes Excel files from Stanton Management LLC with API-linked data (marked with `>>`) and manual investment data. Focus initially on Hartford 1 portfolio while maintaining navigation for all portfolios.
+
+**IMPORTANT**: This prompt includes a working React prototype that demonstrates the core structure and functionality. Use this as your foundation and reference for implementation patterns.
+
+## Primary Goals
+1. **Accounting Verification**: Enable accounting team to verify GL categorization and add notes for corrections
+2. **Lender Export**: Generate clean financial packages for refinancing submissions  
+3. **Operational Monitoring**: Detect unusual expense patterns (water/sewer spikes, maintenance overruns)
+
+## Visual Design Requirements (Updated Based on Prototype Feedback)
+
+### Typography & Readability
+```css
+/* CRITICAL: 16px was too small for screen sharing */
+.primary-text {
+  font-family: 'Inter', 'system-ui', '-apple-system', sans-serif;
+  font-size: 18px; /* Increased from 16px */
+  line-height: 1.5;
+  font-weight: 500;
+}
+
+.data-display {
+  font-family: 'JetBrains Mono', 'SF Mono', 'Monaco', 'Cascadia Code', monospace;
+  font-size: 16px; /* Monospace can be slightly smaller */
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.header-text {
+  font-size: 20px; /* Increased for headers */
+  font-weight: 700;
+}
+
+.table-text {
+  font-size: 17px; /* Compromise between readability and space */
+  font-weight: 500;
+}
+```
+
+### Color Scheme (Modern Professional)
+```css
+/* Move away from pure black/white - too harsh for screen sharing */
+:root {
+  --primary-bg: #fafbfc;
+  --surface-bg: #ffffff;
+  --text-primary: #1a1d21;
+  --text-secondary: #404854;
+  --text-muted: #6b7280;
+  --border-primary: #d1d5db;
+  --border-accent: #2563eb;
+  --accent-blue: #3b82f6;
+  --success-green: #059669;
+  --warning-amber: #d97706;
+  --error-red: #dc2626;
+  
+  /* Click highlighting */
+  --highlight-yellow: #fef08a;
+  --highlight-border: #f59e0b;
+  
+  /* Visual indicators */
+  --indicator-note: #8b5cf6;
+  --indicator-edit: #06b6d4;
+  --indicator-alert: #ef4444;
+}
+```
+
+### Enhanced Visual Indicators
+```css
+/* Make visual indicators much more prominent */
+.note-indicator {
+  background: var(--indicator-note);
+  color: white;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 8px;
+  display: inline-block;
+  box-shadow: 0 2px 4px rgba(139, 92, 246, 0.3);
+}
+
+.edit-indicator {
+  background: var(--indicator-edit);
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 4px;
+  border-radius: 2px;
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  box-shadow: 0 1px 3px rgba(6, 182, 212, 0.4);
+}
+
+.alert-indicator {
+  background: var(--indicator-alert);
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 3px;
+  margin-left: 8px;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+/* Enhanced click highlighting */
+.click-highlight {
+  background: var(--highlight-yellow) !important;
+  border: 3px solid var(--highlight-border) !important;
+  transform: scale(1.03) !important;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4) !important;
+  transition: all 0.15s ease-out !important;
+  z-index: 10 !important;
+  position: relative !important;
+}
+```
+
+## Reference Implementation Structure
+
+The included React prototype demonstrates:
+
+### 1. Portfolio Navigation Pattern
+```javascript
+// Follow this pattern for portfolio switching
+const portfolios = {
+  all: { name: "Consolidated", units: 109, noi: 985000, cap: 9.6 },
+  hartford1: { name: "Hartford 1", units: 6, noi: 85000, cap: 12.2 }
+  // Add others as needed
+};
+
+// Click handling with visual feedback
+const handleClick = (elementId) => {
+  setClickedElement(elementId);
+  setTimeout(() => setClickedElement(null), 5000);
+};
+```
+
+### 2. Data Structure Pattern
+```javascript
+// Follow this structure for property data
+const hartford1Data = {
+  "S0010": {
+    propertyName: "228 Maple",
+    portfolio: "Hartford 1",
+    units: 6,
+    // ... property metrics
+    glAccounts: {
+      "4105": { description: "Rent Income", amount: 10200, type: "revenue" },
+      "6110": { description: "Maintenance & Repairs", amount: 1850, type: "expense" }
+      // ... all GL accounts
+    }
+  }
+};
+```
+
+### 3. Note-Taking System Pattern
+```javascript
+// Implement notes exactly like this
+const [cellNotes, setCellNotes] = useState({});
+
+const addNote = (cellId, note) => {
+  setCellNotes(prev => ({
+    ...prev,
+    [cellId]: {
+      text: note,
+      timestamp: new Date().toISOString(),
+      author: "User"
+    }
+  }));
+};
+
+// Visual note indicator in cells
+{cellNotes[cellId] && <span className="note-indicator">📝 NOTE</span>}
+```
+
+### 4. Action Item System Pattern
+```javascript
+// Follow this structure for action items
+const [actionItems, setActionItems] = useState([]);
+
+const addActionItem = (description, priority = "MEDIUM") => {
+  const newItem = {
+    id: `AI-${Date.now()}`,
+    description,
+    property: "S0010",
+    priority, // HIGH, MEDIUM, LOW
+    status: "OPEN", // OPEN, IN_PROGRESS, COMPLETED
+    createdAt: new Date().toISOString()
+  };
+  setActionItems(prev => [...prev, newItem]);
+};
+```
+
+## Core Data Structure (From Excel Analysis)
+
+### Excel File Organization
+```
+>> prefixed sheets = API-linked, authoritative data
+Manual sheets = User-maintained data
+
+Key Sheets:
+- >>Balance: Property-level balance sheet data
+- >>LastMnth: Monthly P&L with GL account detail  
+- >>T12: Trailing 12-month performance by property
+- >>Prop Direct: Property directory with portfolio assignments
+- >>Rent Roll: Unit-level rent rolls
+- Investments: Manual property investment details
+```
+
+### Portfolio Structure
+```javascript
+// From analysis of actual data
+const portfolios = {
+  "90 Park": ["S0001 - 90 Park St"], // 12 units
+  "South End Portfolio": [
+    "S0002 - 101 Maple", // 16 units  
+    "S0003 - 222 Maple", // 6 units
+    "S0004 - 43 Frank",  // 6 units
+    "S0005 - 47 Frank",  // 4 units
+    "S0006 - 15 Whit",   // 6 units
+    "S0007 - 36 Whit",   // 6 units
+    "S0008 - 38 Whit"    // 6 units
+  ],
+  "Hartford 1": ["S0010 - 228 Maple"], // 6 units
+  "North End Portfolio": [
+    "S0011 - 110 Martin", // 7 units
+    "S0012 - 120 Martin", // 2 units  
+    "S0013 - 152 Wooster" // 6 units
+  ]
+};
+```
+
+## Implementation Requirements
+
+### 1. File Processing System
+```javascript
+// Use SheetJS to process Excel file
+import * as XLSX from 'xlsx';
+
+// Priority hierarchy: >> sheets override manual data
+const dataHierarchy = {
+  balance: ">>Balance",      // Primary source for cash/assets
+  cashflow: ">>LastMnth",    // Primary source for P&L
+  performance: ">>T12",      // Primary source for trailing performance
+  directory: ">>Prop Direct", // Property metadata
+  rentroll: ">>Rent Roll",   // Unit-level detail
+  investments: "Investments"  // Manual override capability
+};
+```
+
+### 2. Enhanced UI Components
+
+#### Improved Table Design
+```css
+.data-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  border: 2px solid var(--border-primary);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.data-table th {
+  background: linear-gradient(135deg, #374151, #4b5563);
+  color: white;
+  padding: 16px 12px;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.data-table td {
+  padding: 14px 12px;
+  border-bottom: 1px solid var(--border-primary);
+  font-size: 17px;
+  transition: all 0.15s ease;
+}
+
+.data-table tr:hover td {
+  background: #f8fafc;
+}
+```
+
+#### Enhanced Button Design
+```css
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent-blue), #2563eb);
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+}
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.4);
+}
+```
+
+### 3. Export Functions (Enhanced from Prototype)
+
+#### Accounting Export
+```javascript
+function exportAccountingPackage() {
+  const exportData = {
+    summary: {
+      totalNotes: Object.keys(cellNotes).length,
+      totalActionItems: actionItems.length,
+      propertiesReviewed: [selectedPortfolio],
+      exportDate: new Date().toISOString()
+    },
+    cellNotes: Object.entries(cellNotes).map(([cellId, note]) => ({
+      cellId,
+      property: "S0010", // Extract from cellId
+      glAccount: cellId.includes('gl-') ? cellId.split('-')[1] : null,
+      note: note.text,
+      author: note.author,
+      timestamp: note.timestamp,
+      priority: determinePriority(note.text) // Auto-assign based on keywords
+    })),
+    actionItems: actionItems.map(item => ({
+      ...item,
+      assignedTo: "accounting@stantonmgmt.com",
+      estimatedHours: estimateHours(item.description)
+    })),
+    recommendations: generateAccountingRecommendations()
+  };
+  
+  // In real implementation, this would generate Excel file
+  console.log('Accounting Export Package:', exportData);
+  return exportData;
+}
+```
+
+### 4. Screen Sharing Optimization
+
+#### Layout Adjustments
+```css
+/* Optimize for 1920x1080 shared screens */
+.container {
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 24px; /* Increased padding */
+}
+
+/* Ensure minimum click target size for remote viewing */
+.clickable {
+  min-height: 44px;
+  min-width: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Enhanced focus states for keyboard navigation */
+.clickable:focus {
+  outline: 3px solid var(--accent-blue);
+  outline-offset: 2px;
+}
+```
+
+### 5. Implementation Steps
+
+#### Phase 1: Foundation (Use Prototype as Base)
+1. Copy the React prototype structure exactly
+2. Implement the updated visual design system
+3. Add Excel file upload functionality using SheetJS
+4. Integrate actual Hartford 1 data from Excel sheets
+
+#### Phase 2: Enhanced Features
+1. Add GL account drill-down modals
+2. Implement export functions (Excel, PDF, email)
+3. Add operational variance alerts
+4. Create meeting notes capture system
+
+#### Phase 3: Scale & Polish
+1. Expand to all portfolios using Hartford 1 pattern
+2. Add real-time API integration for >> sheets
+3. Implement user management and permissions
+4. Add dashboard customization options
+
+## Technical Specifications
+
+### Required Libraries
+```javascript
+// Core (same as prototype)
+import * as XLSX from 'xlsx';
+import _ from 'lodash';
+import { useState, useEffect } from 'react';
+
+// Additional for enhanced features
+import { format, parseISO } from 'date-fns';
+import * as Papa from 'papaparse'; // For CSV export
+```
+
+### Error Handling (Enhanced)
+```javascript
+// Robust file processing with user feedback
+const processExcelFile = async (file) => {
+  try {
+    const buffer = await file.arrayBuffer();
+    const workbook = XLSX.read(buffer, {
+      cellStyles: true,
+      cellFormulas: true,
+      cellDates: true
+    });
+    
+    // Validate required sheets
+    const requiredSheets = ['>>Balance', '>>LastMnth', 'Investments'];
+    const missingSheets = requiredSheets.filter(sheet => 
+      !workbook.SheetNames.includes(sheet)
+    );
+    
+    if (missingSheets.length > 0) {
+      throw new Error(`Missing required sheets: ${missingSheets.join(', ')}`);
+    }
+    
+    return processSheetData(workbook);
+    
+  } catch (error) {
+    console.error('File processing error:', error);
+    
+    // User-friendly error display
+    setError({
+      type: 'FILE_PROCESSING',
+      message: 'Unable to process Excel file. Please check format and try again.',
+      details: error.message,
+      timestamp: new Date().toISOString()
+    });
+    
+    return null;
+  }
+};
+```
+
+## Success Metrics & Validation
+
+### Usability Testing
+1. **Font Readability**: Text should be clearly readable at 1920x1080 shared screen
+2. **Click Feedback**: All clicks should have immediate visual confirmation
+3. **Note Taking**: Users should be able to add notes within 3 clicks
+4. **Export Speed**: Complete export package generation under 10 seconds
+
+### Functional Testing
+1. **Data Accuracy**: All calculations match Excel source exactly
+2. **Note Persistence**: All notes and action items survive page refresh
+3. **Export Completeness**: Exported files contain all user annotations
+4. **Performance**: Dashboard loads under 3 seconds with full dataset
+
+Build this as a single-page React application following the exact patterns demonstrated in the included prototype, with enhanced visual design and expanded functionality for production use.

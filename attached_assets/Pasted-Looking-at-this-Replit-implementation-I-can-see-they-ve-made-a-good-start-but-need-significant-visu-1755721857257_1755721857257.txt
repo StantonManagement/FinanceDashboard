@@ -1,0 +1,265 @@
+Looking at this Replit implementation, I can see they've made a good start but need significant visual refinement. Here's the complete visual style definition to guide them:
+
+## **Visual Style Definition for Replit Implementation**
+
+### **Current Issues to Fix:**
+1. **Card-based design** - Should be table-based for financial data
+2. **Consumer app styling** - Needs institutional/corporate look
+3. **Colored cards** - Too playful for professional finance environment
+4. **Missing data tables** - Core functionality not visible
+
+### **Required Visual System:**
+
+#### **Typography Hierarchy**
+```css
+/* Primary font stack - never deviate from this */
+font-family: 'Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', sans-serif;
+
+/* Heading sizes for screen sharing */
+.header-primary: 24px, font-weight: 700, letter-spacing: 1.5px
+.header-secondary: 20px, font-weight: 700, letter-spacing: 1px  
+.section-title: 18px, font-weight: 700, text-transform: uppercase
+.body-text: 18px, font-weight: 500, line-height: 1.5
+.table-text: 17px, font-weight: 500
+.data-mono: 'JetBrains Mono', monospace, 16px, font-weight: 600
+```
+
+#### **Color Palette (Institutional Finance)**
+```css
+/* Base colors - ONLY use these */
+--bg-primary: #fafbfc;          /* Main background */
+--bg-surface: #ffffff;          /* Cards, tables, panels */
+--bg-accent: #f8fafc;           /* Section backgrounds */
+
+--text-primary: #1a1d21;        /* Headers, important text */
+--text-secondary: #404854;       /* Body text */
+--text-muted: #6b7280;          /* Supporting text */
+
+--border-primary: #d1d5db;       /* Table borders, dividers */
+--border-accent: #cbd5e1;        /* Section borders */
+
+--accent-blue: #3b82f6;          /* Primary actions */
+--success-green: #059669;        /* Positive values */
+--warning-amber: #d97706;        /* Caution items */
+--error-red: #dc2626;           /* Negative values */
+
+/* Click highlighting */
+--highlight-bg: #fef08a;         /* Click background */
+--highlight-border: #f59e0b;     /* Click border */
+```
+
+#### **Layout Structure**
+```css
+/* Container system */
+.main-container {
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 24px;
+  background: var(--bg-primary);
+}
+
+/* Replace colored cards with this structure */
+.portfolio-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2px;
+  background: var(--border-primary);
+  border: 2px solid var(--border-accent);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.portfolio-item {
+  background: var(--bg-surface);
+  padding: 20px 24px;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s ease;
+}
+
+.portfolio-item.active {
+  background: #dbeafe;
+  border-left: 4px solid var(--accent-blue);
+}
+
+.portfolio-item.clicked {
+  background: var(--highlight-bg);
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+  border: 3px solid var(--highlight-border);
+  z-index: 10;
+  position: relative;
+}
+```
+
+#### **Data Table System (Critical - This is Missing)**
+```css
+.data-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: var(--bg-surface);
+  border: 2px solid var(--border-primary);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.table-header {
+  background: linear-gradient(135deg, #374151, #4b5563);
+  color: #ffffff;
+  padding: 16px 12px;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  text-align: center;
+}
+
+.table-cell {
+  padding: 14px 12px;
+  border-bottom: 1px solid var(--border-primary);
+  font-size: 17px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 600;
+}
+
+.table-cell:hover {
+  background: #f8fafc;
+}
+
+.table-cell.clicked {
+  background: var(--highlight-bg);
+  border: 3px solid var(--highlight-border);
+  transform: scale(1.02);
+  position: relative;
+  z-index: 10;
+}
+```
+
+#### **Button System**
+```css
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent-blue), #2563eb);
+  color: #ffffff;
+  border: none;
+  padding: 12px 20px;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+}
+
+.btn-secondary {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  border: 2px solid var(--border-accent);
+  padding: 10px 18px;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-flag {
+  background: var(--warning-amber);
+  color: #ffffff;
+  border: none;
+  padding: 8px 16px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  border-radius: 4px;
+  cursor: pointer;
+}
+```
+
+### **Required Immediate Changes:**
+
+#### **1. Remove All Colored Cards**
+Replace the current blue/green/orange/gray portfolio cards with:
+- Clean white backgrounds
+- Dark gray text
+- Subtle borders
+- Professional typography
+
+#### **2. Add Missing Data Tables**
+The core functionality (GL accounts, expense details, financial data) must be in tables:
+```html
+<table className="data-table">
+  <thead>
+    <tr>
+      <th className="table-header">GL Account</th>
+      <th className="table-header">Description</th>
+      <th className="table-header">Amount</th>
+      <th className="table-header">Notes</th>
+    </tr>
+  </thead>
+  <tbody>
+    <!-- Actual Hartford 1 data rows -->
+  </tbody>
+</table>
+```
+
+#### **3. Implement Click Highlighting**
+Every clickable element needs this exact behavior:
+```javascript
+const handleClick = (elementId) => {
+  setClickedElement(elementId);
+  setTimeout(() => setClickedElement(null), 5000);
+};
+
+// Apply to every cell/button
+onClick={() => handleClick('unique-element-id')}
+style={{
+  transform: clickedElement === 'unique-element-id' ? 'scale(1.02)' : 'scale(1)',
+  background: clickedElement === 'unique-element-id' ? '#fef08a' : 'normal-bg',
+  border: clickedElement === 'unique-element-id' ? '3px solid #f59e0b' : 'normal-border'
+}}
+```
+
+#### **4. Add Visual Indicators**
+```css
+.note-indicator {
+  background: #8b5cf6;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 4px;
+  margin-left: 8px;
+  text-transform: uppercase;
+}
+
+.alert-indicator {
+  background: #ef4444;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 4px;
+  animation: pulse 2s infinite;
+}
+```
+
+### **Critical Missing Features to Add:**
+
+1. **Hartford 1 Data Table** - Show actual GL accounts from Excel
+2. **Note-Taking Interface** - Input fields for each data cell
+3. **Action Item System** - FLAG buttons and tracking
+4. **Export Functionality** - Excel/PDF generation
+5. **Expense Variance Analysis** - Operational monitoring
+
+**The current implementation looks like a consumer app. It needs to look like Bloomberg Terminal or institutional financial software - clean, data-dense, professional, and optimized for financial analysis.**
