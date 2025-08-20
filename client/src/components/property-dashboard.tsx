@@ -408,6 +408,13 @@ export function PropertyDashboard({}: PropertyDashboardProps) {
                 T12 Performance
               </TabsTrigger>
               <TabsTrigger 
+                value="detail" 
+                className="flex-1 bg-transparent text-gray-700 border-r border-institutional-border p-4 font-bold text-xs uppercase hover:bg-institutional-accent data-[state=active]:bg-institutional-black data-[state=active]:text-institutional-white"
+                onClick={() => handleClick('tab-detail')}
+              >
+                Detail Analysis
+              </TabsTrigger>
+              <TabsTrigger 
                 value="notes" 
                 className="flex-1 bg-transparent text-gray-700 p-4 font-bold text-xs uppercase hover:bg-institutional-accent data-[state=active]:bg-institutional-black data-[state=active]:text-institutional-white"
                 onClick={() => handleClick('tab-notes')}
@@ -1036,6 +1043,401 @@ export function PropertyDashboard({}: PropertyDashboardProps) {
                             REVIEW
                           </Button>
                         </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </TabsContent>
+
+              {/* Detail Analysis Tab */}
+              <TabsContent value="detail" className="mt-0">
+                <h3 className="text-lg font-bold uppercase text-institutional-black mb-4">
+                  Hartford 1 - Every Non-Zero Line Item Analysis
+                </h3>
+                
+                <div className="overflow-hidden border-2 border-institutional-black">
+                  <table className="institutional-table">
+                    <thead>
+                      <tr>
+                        <th>GL Code</th>
+                        <th>Account Description</th>
+                        <th>Current Month</th>
+                        <th>Prior Month</th>
+                        <th>Variance $</th>
+                        <th>Variance %</th>
+                        <th>YTD Total</th>
+                        <th>Budget vs Actual</th>
+                        <th>Per Unit</th>
+                        <th>Market Benchmark</th>
+                        <th>Risk Flag</th>
+                        <th>Notes</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {/* Revenue Line Items */}
+                      <tr>
+                        <td className="font-mono-data font-bold text-center">4105</td>
+                        <td>Rental Income - Gross</td>
+                        <td className="font-mono-data font-bold text-success-green">+$10,200</td>
+                        <td className="font-mono-data">+$9,950</td>
+                        <td className="font-mono-data text-success-green">+$250</td>
+                        <td className="font-mono-data text-success-green">+2.5%</td>
+                        <td className="font-mono-data font-bold">$121,800</td>
+                        <td className="font-mono-data text-success-green">+3.2% vs Budget</td>
+                        <td className="font-mono-data">$1,700</td>
+                        <td className="font-mono-data text-success-green">Above (87th %ile)</td>
+                        <td><span className="text-success-green font-bold">✓ NORMAL</span></td>
+                        <td>
+                          <Input
+                            placeholder="Add note..."
+                            className="text-xs border-institutional-border h-6 px-2"
+                          />
+                        </td>
+                        <td className="text-center">
+                          <Button
+                            onClick={() => flagIssue('gl-4105')}
+                            variant="destructive"
+                            size="sm"
+                            className="bg-orange-500 hover:bg-orange-600 text-white text-[8px] font-bold px-1.5 py-0 h-5"
+                          >
+                            <Flag className="w-2 h-2 mr-0.5" />
+                            FLAG
+                          </Button>
+                        </td>
+                      </tr>
+                      
+                      <tr>
+                        <td className="font-mono-data font-bold text-center">4110</td>
+                        <td>Section 8 Housing Assistance</td>
+                        <td className="font-mono-data font-bold text-success-green">+$300</td>
+                        <td className="font-mono-data">+$300</td>
+                        <td className="font-mono-data">$0</td>
+                        <td className="font-mono-data">0.0%</td>
+                        <td className="font-mono-data font-bold">$3,600</td>
+                        <td className="font-mono-data text-success-green">On Budget</td>
+                        <td className="font-mono-data">$50</td>
+                        <td className="font-mono-data">Standard</td>
+                        <td><span className="text-success-green font-bold">✓ STABLE</span></td>
+                        <td>
+                          <Input
+                            placeholder="Add note..."
+                            className="text-xs border-institutional-border h-6 px-2"
+                          />
+                        </td>
+                        <td className="text-center">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-[8px] font-bold px-1.5 py-0 h-5"
+                          >
+                            MONITOR
+                          </Button>
+                        </td>
+                      </tr>
+                      
+                      <tr>
+                        <td className="font-mono-data font-bold text-center">4120</td>
+                        <td>Late Fees & Other Income</td>
+                        <td className="font-mono-data font-bold text-success-green">+$85</td>
+                        <td className="font-mono-data">+$45</td>
+                        <td className="font-mono-data text-orange-600">+$40</td>
+                        <td className="font-mono-data text-orange-600">+88.9%</td>
+                        <td className="font-mono-data font-bold">$720</td>
+                        <td className="font-mono-data text-orange-600">+45% vs Budget</td>
+                        <td className="font-mono-data">$14</td>
+                        <td className="font-mono-data text-orange-600">High (95th %ile)</td>
+                        <td><span className="text-orange-600 font-bold">⚠ WATCH</span></td>
+                        <td>
+                          <Input
+                            placeholder="Add note..."
+                            className="text-xs border-institutional-border h-6 px-2"
+                          />
+                        </td>
+                        <td className="text-center">
+                          <Button
+                            onClick={() => flagIssue('gl-4120')}
+                            variant="destructive"
+                            size="sm"
+                            className="bg-orange-500 hover:bg-orange-600 text-white text-[8px] font-bold px-1.5 py-0 h-5"
+                          >
+                            <Flag className="w-2 h-2 mr-0.5" />
+                            REVIEW
+                          </Button>
+                        </td>
+                      </tr>
+                      
+                      {/* Expense Line Items */}
+                      <tr className="bg-red-25">
+                        <td className="font-mono-data font-bold text-center">6105</td>
+                        <td>Property Management Fees</td>
+                        <td className="font-mono-data font-bold text-red-600">-$630</td>
+                        <td className="font-mono-data">-$598</td>
+                        <td className="font-mono-data text-red-600">-$32</td>
+                        <td className="font-mono-data text-red-600">-5.3%</td>
+                        <td className="font-mono-data font-bold">-$7,320</td>
+                        <td className="font-mono-data text-success-green">-2.1% vs Budget</td>
+                        <td className="font-mono-data">-$105</td>
+                        <td className="font-mono-data">Standard (6% of Rent)</td>
+                        <td><span className="text-success-green font-bold">✓ NORMAL</span></td>
+                        <td>
+                          <Input
+                            placeholder="Add note..."
+                            className="text-xs border-institutional-border h-6 px-2"
+                          />
+                        </td>
+                        <td className="text-center">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-[8px] font-bold px-1.5 py-0 h-5"
+                          >
+                            MONITOR
+                          </Button>
+                        </td>
+                      </tr>
+                      
+                      <tr>
+                        <td className="font-mono-data font-bold text-center">6110</td>
+                        <td>Maintenance & Repairs</td>
+                        <td className="font-mono-data font-bold text-red-600">-$1,850</td>
+                        <td className="font-mono-data">-$750</td>
+                        <td className="font-mono-data text-red-600">-$1,100</td>
+                        <td className="font-mono-data text-red-600">-146.7%</td>
+                        <td className="font-mono-data font-bold">-$14,200</td>
+                        <td className="font-mono-data text-red-600">+67% vs Budget</td>
+                        <td className="font-mono-data">-$308</td>
+                        <td className="font-mono-data text-red-600">Very High (95th %ile)</td>
+                        <td><span className="text-red-600 font-bold">🚨 CRITICAL</span></td>
+                        <td>
+                          <Input
+                            placeholder="HVAC repairs, plumbing..."
+                            className="text-xs border-institutional-border h-6 px-2"
+                          />
+                        </td>
+                        <td className="text-center">
+                          <Button
+                            onClick={() => flagIssue('gl-6110')}
+                            variant="destructive"
+                            size="sm"
+                            className="bg-red-600 hover:bg-red-700 text-white text-[8px] font-bold px-1.5 py-0 h-5"
+                          >
+                            <Flag className="w-2 h-2 mr-0.5" />
+                            URGENT
+                          </Button>
+                        </td>
+                      </tr>
+                      
+                      <tr>
+                        <td className="font-mono-data font-bold text-center">6115</td>
+                        <td>Landscaping & Grounds</td>
+                        <td className="font-mono-data font-bold text-red-600">-$285</td>
+                        <td className="font-mono-data">-$200</td>
+                        <td className="font-mono-data text-red-600">-$85</td>
+                        <td className="font-mono-data text-red-600">-42.5%</td>
+                        <td className="font-mono-data font-bold">-$2,850</td>
+                        <td className="font-mono-data text-orange-600">+15% vs Budget</td>
+                        <td className="font-mono-data">-$48</td>
+                        <td className="font-mono-data text-orange-600">Above Avg (75th %ile)</td>
+                        <td><span className="text-orange-600 font-bold">⚠ SEASONAL</span></td>
+                        <td>
+                          <Input
+                            placeholder="Winter prep work..."
+                            className="text-xs border-institutional-border h-6 px-2"
+                          />
+                        </td>
+                        <td className="text-center">
+                          <Button
+                            onClick={() => flagIssue('gl-6115')}
+                            variant="destructive"
+                            size="sm"
+                            className="bg-orange-500 hover:bg-orange-600 text-white text-[8px] font-bold px-1.5 py-0 h-5"
+                          >
+                            <Flag className="w-2 h-2 mr-0.5" />
+                            TRACK
+                          </Button>
+                        </td>
+                      </tr>
+                      
+                      <tr>
+                        <td className="font-mono-data font-bold text-center">6120</td>
+                        <td>Utilities - Common Areas</td>
+                        <td className="font-mono-data font-bold text-red-600">-$420</td>
+                        <td className="font-mono-data">-$390</td>
+                        <td className="font-mono-data text-red-600">-$30</td>
+                        <td className="font-mono-data text-red-600">-7.7%</td>
+                        <td className="font-mono-data font-bold">-$4,680</td>
+                        <td className="font-mono-data text-success-green">-5% vs Budget</td>
+                        <td className="font-mono-data">-$70</td>
+                        <td className="font-mono-data">Standard (55th %ile)</td>
+                        <td><span className="text-success-green font-bold">✓ NORMAL</span></td>
+                        <td>
+                          <Input
+                            placeholder="Add note..."
+                            className="text-xs border-institutional-border h-6 px-2"
+                          />
+                        </td>
+                        <td className="text-center">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-[8px] font-bold px-1.5 py-0 h-5"
+                          >
+                            MONITOR
+                          </Button>
+                        </td>
+                      </tr>
+                      
+                      <tr>
+                        <td className="font-mono-data font-bold text-center">6130</td>
+                        <td>Property Insurance</td>
+                        <td className="font-mono-data font-bold text-red-600">-$285</td>
+                        <td className="font-mono-data">-$285</td>
+                        <td className="font-mono-data">$0</td>
+                        <td className="font-mono-data">0.0%</td>
+                        <td className="font-mono-data font-bold">-$3,420</td>
+                        <td className="font-mono-data text-success-green">On Budget</td>
+                        <td className="font-mono-data">-$48</td>
+                        <td className="font-mono-data">Standard (45th %ile)</td>
+                        <td><span className="text-success-green font-bold">✓ STABLE</span></td>
+                        <td>
+                          <Input
+                            placeholder="Add note..."
+                            className="text-xs border-institutional-border h-6 px-2"
+                          />
+                        </td>
+                        <td className="text-center">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-[8px] font-bold px-1.5 py-0 h-5"
+                          >
+                            MONITOR
+                          </Button>
+                        </td>
+                      </tr>
+                      
+                      <tr>
+                        <td className="font-mono-data font-bold text-center">6140</td>
+                        <td>Real Estate Taxes</td>
+                        <td className="font-mono-data font-bold text-red-600">-$815</td>
+                        <td className="font-mono-data">-$815</td>
+                        <td className="font-mono-data">$0</td>
+                        <td className="font-mono-data">0.0%</td>
+                        <td className="font-mono-data font-bold">-$9,780</td>
+                        <td className="font-mono-data text-success-green">On Budget</td>
+                        <td className="font-mono-data">-$136</td>
+                        <td className="font-mono-data">Standard (Market Rate)</td>
+                        <td><span className="text-success-green font-bold">✓ STABLE</span></td>
+                        <td>
+                          <Input
+                            placeholder="Add note..."
+                            className="text-xs border-institutional-border h-6 px-2"
+                          />
+                        </td>
+                        <td className="text-center">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-[8px] font-bold px-1.5 py-0 h-5"
+                          >
+                            MONITOR
+                          </Button>
+                        </td>
+                      </tr>
+                      
+                      <tr>
+                        <td className="font-mono-data font-bold text-center">6145</td>
+                        <td>Legal & Professional</td>
+                        <td className="font-mono-data font-bold text-red-600">-$125</td>
+                        <td className="font-mono-data">-$0</td>
+                        <td className="font-mono-data text-red-600">-$125</td>
+                        <td className="font-mono-data text-red-600">New Expense</td>
+                        <td className="font-mono-data font-bold">-$450</td>
+                        <td className="font-mono-data text-red-600">+200% vs Budget</td>
+                        <td className="font-mono-data">-$21</td>
+                        <td className="font-mono-data text-orange-600">Above Avg (80th %ile)</td>
+                        <td><span className="text-orange-600 font-bold">⚠ NEW</span></td>
+                        <td>
+                          <Input
+                            placeholder="Eviction proceedings..."
+                            className="text-xs border-institutional-border h-6 px-2"
+                          />
+                        </td>
+                        <td className="text-center">
+                          <Button
+                            onClick={() => flagIssue('gl-6145')}
+                            variant="destructive"
+                            size="sm"
+                            className="bg-orange-500 hover:bg-orange-600 text-white text-[8px] font-bold px-1.5 py-0 h-5"
+                          >
+                            <Flag className="w-2 h-2 mr-0.5" />
+                            REVIEW
+                          </Button>
+                        </td>
+                      </tr>
+                      
+                      <tr>
+                        <td className="font-mono-data font-bold text-center">6150</td>
+                        <td>Marketing & Leasing</td>
+                        <td className="font-mono-data font-bold text-red-600">-$45</td>
+                        <td className="font-mono-data">-$85</td>
+                        <td className="font-mono-data text-success-green">+$40</td>
+                        <td className="font-mono-data text-success-green">+47.1%</td>
+                        <td className="font-mono-data font-bold">-$720</td>
+                        <td className="font-mono-data text-success-green">-15% vs Budget</td>
+                        <td className="font-mono-data">-$8</td>
+                        <td className="font-mono-data">Below Avg (25th %ile)</td>
+                        <td><span className="text-success-green font-bold">✓ LOW</span></td>
+                        <td>
+                          <Input
+                            placeholder="Add note..."
+                            className="text-xs border-institutional-border h-6 px-2"
+                          />
+                        </td>
+                        <td className="text-center">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-[8px] font-bold px-1.5 py-0 h-5"
+                          >
+                            MONITOR
+                          </Button>
+                        </td>
+                      </tr>
+                      
+                      {/* Summary rows */}
+                      <tr className="bg-green-50 border-t-2 border-institutional-black">
+                        <td colSpan={2} className="font-bold text-right">TOTAL REVENUE:</td>
+                        <td className="font-mono-data font-bold text-success-green">+$10,585</td>
+                        <td className="font-mono-data">+$10,295</td>
+                        <td className="font-mono-data text-success-green">+$290</td>
+                        <td className="font-mono-data text-success-green">+2.8%</td>
+                        <td className="font-mono-data font-bold">$126,120</td>
+                        <td className="font-mono-data text-success-green">+4.1% vs Budget</td>
+                        <td colSpan={5}></td>
+                      </tr>
+                      
+                      <tr className="bg-red-50">
+                        <td colSpan={2} className="font-bold text-right">TOTAL EXPENSES:</td>
+                        <td className="font-mono-data font-bold text-red-600">-$4,455</td>
+                        <td className="font-mono-data">-$3,123</td>
+                        <td className="font-mono-data text-red-600">-$1,332</td>
+                        <td className="font-mono-data text-red-600">-42.7%</td>
+                        <td className="font-mono-data font-bold">-$43,420</td>
+                        <td className="font-mono-data text-red-600">+18% vs Budget</td>
+                        <td colSpan={5}></td>
+                      </tr>
+                      
+                      <tr className="bg-blue-50 border-t-2 border-institutional-black">
+                        <td colSpan={2} className="font-bold text-right">NET OPERATING INCOME:</td>
+                        <td className="font-mono-data font-bold text-institutional-black">$6,130</td>
+                        <td className="font-mono-data">$7,172</td>
+                        <td className="font-mono-data text-red-600">-$1,042</td>
+                        <td className="font-mono-data text-red-600">-14.5%</td>
+                        <td className="font-mono-data font-bold">$82,700</td>
+                        <td className="font-mono-data text-orange-600">-8% vs Budget</td>
+                        <td colSpan={5}></td>
                       </tr>
                     </tbody>
                   </table>
