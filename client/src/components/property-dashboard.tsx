@@ -542,33 +542,146 @@ export function PropertyDashboard({}: PropertyDashboardProps) {
               {/* Cash Flow Detail Tab */}
               <TabsContent value="cashflow" className="mt-0">
                 <h3 className="text-lg font-bold uppercase text-institutional-black mb-4">
-                  Monthly Cash Flow Statement
+                  Hartford 1 - Detailed Cash Flow by GL Account
                 </h3>
                 
                 <div className="overflow-hidden border-2 border-institutional-black">
                   <table className="institutional-table">
                     <thead>
                       <tr>
-                        <th>Category</th>
+                        <th>GL Code</th>
+                        <th>Account Description</th>
                         <th>Amount</th>
-                        <th>% of Revenue</th>
+                        <th>Type</th>
+                        <th>Notes</th>
+                        <th>Actions</th>
                       </tr>
                     </thead>
                     <tbody>
-                      <tr className="bg-green-50">
-                        <td className="font-bold">TOTAL REVENUE</td>
-                        <td className="font-mono-data font-bold text-success-green">$10,500</td>
-                        <td className="font-mono-data">100.0%</td>
+                      {glAccounts
+                        .filter((account: GLAccount) => account.amount !== 0)
+                        .sort((a: GLAccount, b: GLAccount) => {
+                          // Sort by type (revenue first) then by GL code
+                          if (a.type !== b.type) {
+                            return a.type === 'revenue' ? -1 : 1;
+                          }
+                          return a.code.localeCompare(b.code);
+                        })
+                        .map((account: GLAccount) => {
+                          const cellId = `cashflow-gl-${account.code}`;
+                          const hasNote = notes.some((note: Note) => note.cellId === cellId);
+                          
+                          return (
+                            <tr key={account.id} className="hover:bg-institutional-accent">
+                              <td 
+                                onClick={() => handleClick(`${cellId}-code`)}
+                                className={`font-mono-data font-bold text-center cursor-pointer transition-all ${
+                                  clickedElements.has(`${cellId}-code`) ? 'click-highlight' : ''
+                                }`}
+                              >
+                                {account.code}
+                              </td>
+                              <td 
+                                onClick={() => handleClick(`${cellId}-desc`)}
+                                className={`cursor-pointer transition-all ${
+                                  clickedElements.has(`${cellId}-desc`) ? 'click-highlight' : ''
+                                }`}
+                              >
+                                {account.description}
+                              </td>
+                              <td 
+                                onClick={() => handleClick(cellId)}
+                                className={`font-mono-data font-bold text-right cursor-pointer transition-all ${
+                                  account.type === 'revenue' ? 'text-success-green' : 'text-red-600'
+                                } ${clickedElements.has(cellId) ? 'click-highlight' : ''}`}
+                              >
+                                {account.type === 'revenue' ? '+' : '-'}${Math.abs(account.amount).toLocaleString()}
+                                {hasNote && (
+                                  <span className="note-indicator ml-2">📝 NOTE</span>
+                                )}
+                              </td>
+                              <td className="text-center">
+                                <Badge 
+                                  variant={account.type === 'revenue' ? 'default' : 'destructive'}
+                                  className={`text-xs font-bold ${
+                                    account.type === 'revenue' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                                  }`}
+                                >
+                                  {account.type.toUpperCase()}
+                                </Badge>
+                              </td>
+                              <td className="text-center">
+                                <Input
+                                  placeholder="Add note..."
+                                  className="text-sm border-institutional-border"
+                                  onBlur={(e) => {
+                                    if (e.target.value.trim()) {
+                                      handleNoteChange(cellId, e.target.value);
+                                      e.target.value = '';
+                                    }
+                                  }}
+                                  onKeyPress={(e) => {
+                                    if (e.key === 'Enter') {
+                                      const input = e.target as HTMLInputElement;
+                                      if (input.value.trim()) {
+                                        handleNoteChange(cellId, input.value);
+                                        input.value = '';
+                                      }
+                                    }
+                                  }}
+                                />
+                              </td>
+                              <td className="text-center">
+                                <Button
+                                  onClick={() => flagIssue(cellId)}
+                                  variant="destructive"
+                                  size="sm"
+                                  className="bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold px-3 py-1"
+                                >
+                                  <Flag className="w-3 h-3 mr-1" />
+                                  FLAG
+                                </Button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      
+                      {/* Summary rows */}
+                      <tr className="bg-green-50 border-t-2 border-institutional-black">
+                        <td colSpan={2} className="font-bold text-right">TOTAL REVENUE:</td>
+                        <td className="font-mono-data font-bold text-success-green text-right">
+                          +${glAccounts
+                            .filter((acc: GLAccount) => acc.type === 'revenue')
+                            .reduce((sum: number, acc: GLAccount) => sum + acc.amount, 0)
+                            .toLocaleString()}
+                        </td>
+                        <td colSpan={3}></td>
                       </tr>
+                      
                       <tr className="bg-red-50">
-                        <td className="font-bold">TOTAL EXPENSES</td>
-                        <td className="font-mono-data font-bold text-red-600">($4,000)</td>
-                        <td className="font-mono-data">38.1%</td>
+                        <td colSpan={2} className="font-bold text-right">TOTAL EXPENSES:</td>
+                        <td className="font-mono-data font-bold text-red-600 text-right">
+                          -${glAccounts
+                            .filter((acc: GLAccount) => acc.type === 'expense')
+                            .reduce((sum: number, acc: GLAccount) => sum + acc.amount, 0)
+                            .toLocaleString()}
+                        </td>
+                        <td colSpan={3}></td>
                       </tr>
-                      <tr className="bg-blue-50">
-                        <td className="font-bold">NET OPERATING INCOME</td>
-                        <td className="font-mono-data font-bold text-institutional-black">$6,500</td>
-                        <td className="font-mono-data">61.9%</td>
+                      
+                      <tr className="bg-blue-50 border-t-2 border-institutional-black">
+                        <td colSpan={2} className="font-bold text-right">NET OPERATING INCOME:</td>
+                        <td className="font-mono-data font-bold text-institutional-black text-right">
+                          ${(
+                            glAccounts
+                              .filter((acc: GLAccount) => acc.type === 'revenue')
+                              .reduce((sum: number, acc: GLAccount) => sum + acc.amount, 0) -
+                            glAccounts
+                              .filter((acc: GLAccount) => acc.type === 'expense')
+                              .reduce((sum: number, acc: GLAccount) => sum + acc.amount, 0)
+                          ).toLocaleString()}
+                        </td>
+                        <td colSpan={3}></td>
                       </tr>
                     </tbody>
                   </table>
