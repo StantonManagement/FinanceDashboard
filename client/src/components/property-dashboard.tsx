@@ -603,17 +603,17 @@ export function PropertyDashboard({}: PropertyDashboardProps) {
                               <td className="text-center">
                                 <Badge 
                                   variant={account.type === 'revenue' ? 'default' : 'destructive'}
-                                  className={`text-xs font-bold ${
+                                  className={`text-[8px] font-bold px-1 py-0 h-4 ${
                                     account.type === 'revenue' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                                   }`}
                                 >
-                                  {account.type.toUpperCase()}
+                                  {account.type === 'revenue' ? 'REV' : 'EXP'}
                                 </Badge>
                               </td>
                               <td className="text-center">
                                 <Input
                                   placeholder="Add note..."
-                                  className="text-sm border-institutional-border"
+                                  className="text-xs border-institutional-border h-6 px-2"
                                   onBlur={(e) => {
                                     if (e.target.value.trim()) {
                                       handleNoteChange(cellId, e.target.value);
@@ -636,7 +636,7 @@ export function PropertyDashboard({}: PropertyDashboardProps) {
                                   onClick={() => flagIssue(cellId)}
                                   variant="destructive"
                                   size="sm"
-                                  className="bg-orange-500 hover:bg-orange-600 text-white text-[10px] font-bold px-2 py-0.5 h-6"
+                                  className="bg-orange-500 hover:bg-orange-600 text-white text-[8px] font-bold px-1.5 py-0 h-5"
                                 >
                                   <Flag className="w-2 h-2 mr-0.5" />
                                   FLAG
