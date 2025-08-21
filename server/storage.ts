@@ -94,9 +94,9 @@ export class MemStorage implements IStorage {
     const hartfordPortfolio = await this.createPortfolio({
       name: "Hartford 1",
       key: "hartford1",
-      totalUnits: 6,
-      totalNOI: 85000,
-      capRate: 12.2
+      totalUnits: 14,
+      totalNOI: 192000,
+      capRate: 12.0
     });
 
     // Create other portfolios
@@ -132,8 +132,8 @@ export class MemStorage implements IStorage {
       capRate: 8.9
     });
 
-    // Create Hartford 1 property
-    const hartfordProperty = await this.createProperty({
+    // Create Hartford 1 properties
+    const hartfordProperty1 = await this.createProperty({
       code: "S0010",
       name: "228 Maple",
       portfolioId: hartfordPortfolio.id,
@@ -144,6 +144,19 @@ export class MemStorage implements IStorage {
       revenuePerUnit: 1750,
       capRate: 12.2,
       dscr: 2.15
+    });
+
+    const hartfordProperty2 = await this.createProperty({
+      code: "S0011",
+      name: "315 Elm Street",
+      portfolioId: hartfordPortfolio.id,
+      units: 8,
+      monthlyNOI: 9200,
+      noiMargin: 67.8,
+      occupancy: 95.8,
+      revenuePerUnit: 1820,
+      capRate: 11.8,
+      dscr: 1.92
     });
 
     // Create South End properties
@@ -217,9 +230,9 @@ export class MemStorage implements IStorage {
     // Create GL accounts for all properties
     const currentMonth = "2024-01";
     
-    // Hartford 1 GL Accounts
+    // Hartford 1 Property 1 (S0010) GL Accounts
     await this.createGLAccount({
-      propertyId: hartfordProperty.id,
+      propertyId: hartfordProperty1.id,
       code: "4105",
       description: "Rent Income",
       amount: 10200,
@@ -228,7 +241,7 @@ export class MemStorage implements IStorage {
     });
 
     await this.createGLAccount({
-      propertyId: hartfordProperty.id,
+      propertyId: hartfordProperty1.id,
       code: "4110",
       description: "Section 8 Rent",
       amount: 300,
@@ -237,7 +250,7 @@ export class MemStorage implements IStorage {
     });
 
     await this.createGLAccount({
-      propertyId: hartfordProperty.id,
+      propertyId: hartfordProperty1.id,
       code: "6105",
       description: "Property Management",
       amount: 630,
@@ -246,7 +259,7 @@ export class MemStorage implements IStorage {
     });
 
     await this.createGLAccount({
-      propertyId: hartfordProperty.id,
+      propertyId: hartfordProperty1.id,
       code: "6110",
       description: "Maintenance & Repairs",
       amount: 1850,
@@ -255,7 +268,7 @@ export class MemStorage implements IStorage {
     });
 
     await this.createGLAccount({
-      propertyId: hartfordProperty.id,
+      propertyId: hartfordProperty1.id,
       code: "6120",
       description: "Utilities",
       amount: 420,
@@ -264,7 +277,7 @@ export class MemStorage implements IStorage {
     });
 
     await this.createGLAccount({
-      propertyId: hartfordProperty.id,
+      propertyId: hartfordProperty1.id,
       code: "6130",
       description: "Property Insurance",
       amount: 285,
@@ -273,7 +286,7 @@ export class MemStorage implements IStorage {
     });
 
     await this.createGLAccount({
-      propertyId: hartfordProperty.id,
+      propertyId: hartfordProperty1.id,
       code: "6140",
       description: "Property Taxes",
       amount: 815,
@@ -283,7 +296,7 @@ export class MemStorage implements IStorage {
 
     // Additional income and expense accounts
     await this.createGLAccount({
-      propertyId: hartfordProperty.id,
+      propertyId: hartfordProperty1.id,
       code: "4120",
       description: "Other Income",
       amount: 180,
@@ -292,7 +305,7 @@ export class MemStorage implements IStorage {
     });
 
     await this.createGLAccount({
-      propertyId: hartfordProperty.id,
+      propertyId: hartfordProperty1.id,
       code: "6115",
       description: "Landscaping & Grounds",
       amount: 285,
@@ -301,7 +314,7 @@ export class MemStorage implements IStorage {
     });
 
     await this.createGLAccount({
-      propertyId: hartfordProperty.id,
+      propertyId: hartfordProperty1.id,
       code: "6125",
       description: "Trash & Recycling",
       amount: 125,
@@ -310,7 +323,7 @@ export class MemStorage implements IStorage {
     });
 
     await this.createGLAccount({
-      propertyId: hartfordProperty.id,
+      propertyId: hartfordProperty1.id,
       code: "6150",
       description: "Legal & Professional",
       amount: 150,
@@ -319,7 +332,7 @@ export class MemStorage implements IStorage {
     });
 
     await this.createGLAccount({
-      propertyId: hartfordProperty.id,
+      propertyId: hartfordProperty1.id,
       code: "6160",
       description: "Office & Administrative",
       amount: 75,
@@ -329,7 +342,7 @@ export class MemStorage implements IStorage {
 
     // Balance Sheet Assets
     await this.createGLAccount({
-      propertyId: hartfordProperty.id,
+      propertyId: hartfordProperty1.id,
       code: "1100",
       description: "Cash & Equivalents",
       amount: 156000,
@@ -338,7 +351,7 @@ export class MemStorage implements IStorage {
     });
 
     await this.createGLAccount({
-      propertyId: hartfordProperty.id,
+      propertyId: hartfordProperty1.id,
       code: "1200",
       description: "Accounts Receivable",
       amount: 12500,
@@ -347,7 +360,7 @@ export class MemStorage implements IStorage {
     });
 
     await this.createGLAccount({
-      propertyId: hartfordProperty.id,
+      propertyId: hartfordProperty1.id,
       code: "1500",
       description: "Property Value (Appraised)",
       amount: 2840000,
@@ -357,7 +370,7 @@ export class MemStorage implements IStorage {
 
     // Balance Sheet Liabilities
     await this.createGLAccount({
-      propertyId: hartfordProperty.id,
+      propertyId: hartfordProperty1.id,
       code: "2200",
       description: "Owner Held Security Deposits",
       amount: 10400,
@@ -366,7 +379,7 @@ export class MemStorage implements IStorage {
     });
 
     await this.createGLAccount({
-      propertyId: hartfordProperty.id,
+      propertyId: hartfordProperty1.id,
       code: "2400",
       description: "Due to Stanton Group LLC",
       amount: 8350,
@@ -375,7 +388,7 @@ export class MemStorage implements IStorage {
     });
 
     await this.createGLAccount({
-      propertyId: hartfordProperty.id,
+      propertyId: hartfordProperty1.id,
       code: "2500",
       description: "Mortgage Payable",
       amount: 1850000,
@@ -385,7 +398,7 @@ export class MemStorage implements IStorage {
 
     // Balance Sheet Equity
     await this.createGLAccount({
-      propertyId: hartfordProperty.id,
+      propertyId: hartfordProperty1.id,
       code: "3100",
       description: "Owner Contributions",
       amount: 450000,
@@ -394,10 +407,111 @@ export class MemStorage implements IStorage {
     });
 
     await this.createGLAccount({
-      propertyId: hartfordProperty.id,
+      propertyId: hartfordProperty1.id,
       code: "3200",
       description: "Retained Earnings",
       amount: 145038,
+      type: "equity",
+      month: currentMonth
+    });
+
+    // Hartford 1 Property 2 (S0011) - 315 Elm Street GL Accounts
+    await this.createGLAccount({
+      propertyId: hartfordProperty2.id,
+      code: "4105",
+      description: "Rent Income",
+      amount: 13800,
+      type: "revenue",
+      month: currentMonth
+    });
+
+    await this.createGLAccount({
+      propertyId: hartfordProperty2.id,
+      code: "4110",
+      description: "Section 8 Rent",
+      amount: 480,
+      type: "revenue",
+      month: currentMonth
+    });
+
+    await this.createGLAccount({
+      propertyId: hartfordProperty2.id,
+      code: "6105",
+      description: "Property Management",
+      amount: 850,
+      type: "expense",
+      month: currentMonth
+    });
+
+    await this.createGLAccount({
+      propertyId: hartfordProperty2.id,
+      code: "6110",
+      description: "Maintenance & Repairs",
+      amount: 2400,
+      type: "expense",
+      month: currentMonth
+    });
+
+    await this.createGLAccount({
+      propertyId: hartfordProperty2.id,
+      code: "6120",
+      description: "Utilities",
+      amount: 565,
+      type: "expense",
+      month: currentMonth
+    });
+
+    await this.createGLAccount({
+      propertyId: hartfordProperty2.id,
+      code: "6130",
+      description: "Property Insurance",
+      amount: 380,
+      type: "expense",
+      month: currentMonth
+    });
+
+    await this.createGLAccount({
+      propertyId: hartfordProperty2.id,
+      code: "6140",
+      description: "Property Taxes",
+      amount: 1095,
+      type: "expense",
+      month: currentMonth
+    });
+
+    // S0011 Balance Sheet accounts
+    await this.createGLAccount({
+      propertyId: hartfordProperty2.id,
+      code: "1100",
+      description: "Cash & Equivalents",
+      amount: 210000,
+      type: "asset",
+      month: currentMonth
+    });
+
+    await this.createGLAccount({
+      propertyId: hartfordProperty2.id,
+      code: "1500",
+      description: "Property Value (Appraised)",
+      amount: 3850000,
+      type: "asset",
+      month: currentMonth
+    });
+
+    await this.createGLAccount({
+      propertyId: hartfordProperty2.id,
+      code: "2500",
+      description: "Mortgage Payable",
+      amount: 2500000,
+      type: "liability",
+      month: currentMonth
+    });
+
+    await this.createGLAccount({
+      propertyId: hartfordProperty2.id,
+      code: "3100",
+      description: "Owner Contributions",
+      amount: 600000,
       type: "equity",
       month: currentMonth
     });
@@ -545,7 +659,7 @@ export class MemStorage implements IStorage {
     // Add sample action items for multiple properties
     await this.createActionItem({
       itemId: "AI-001",
-      propertyId: hartfordProperty.id,
+      propertyId: hartfordProperty1.id,
       description: "Investigate 146% increase in maintenance costs",
       priority: "HIGH",
       status: "OPEN"

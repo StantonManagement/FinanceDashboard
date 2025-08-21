@@ -58,11 +58,11 @@ An institutional-grade property management dashboard with Excel processing, GL a
 
 ## Data Structure
 ### Full Portfolio Data
-**Hartford 1**: S0010 - 228 Maple (6 units, $6,800 NOI, 12.2% Cap Rate)
+**Hartford 1**: S0010 - 228 Maple (6 units, $6,800 NOI), S0011 - 315 Elm Street (8 units, $9,200 NOI) - Portfolio: 14 units total, 12.0% Cap Rate
 **South End**: S0020 - 150 Union Street (24 units, $18,500 NOI), S0021 - 425 Broadway (27 units, $19,200 NOI)
 **North End**: N0030 - 88 Salem Street (18 units, $14,800 NOI), N0031 - 205 Hanover Street (22 units, $17,600 NOI)
 **90 Park**: P0040 - 90 Park Street (12 units, $9,800 NOI, 8.9% Cap Rate)
-**Consolidated**: All properties aggregated (109 total units, $985K total NOI, 9.6% average Cap Rate)
+**Consolidated**: All properties aggregated (115 total units, $95.9K monthly NOI, 11.1% average Cap Rate)
 
 - Key GL Accounts: 4105 (Rent Income), 6105 (Property Management), 6110 (Maintenance), Balance Sheet accounts
 - Balance Sheet: Assets ($3M+ including cash, property value), Liabilities ($1.85M mortgage), Equity ($595K+)
