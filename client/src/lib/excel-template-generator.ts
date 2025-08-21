@@ -68,6 +68,12 @@ export function generateExcelTemplate(): ArrayBuffer {
   ];
 
   properties.forEach(property => {
+    // Calculate property-specific balance sheet values based on property scale
+    const assetMultiplier = property.revenue / 10680; // Hartford 1 baseline
+    const basePropertyValue = 2840000;
+    const baseCash = 156000;
+    const baseMortgage = 1850000;
+    
     const propertyData = [
       [`${property.code} - ${property.name}`, '', '', '', '', '', '', ''],
       [`Portfolio: ${property.portfolio}`, '', '', '', '', '', '', ''],
@@ -90,40 +96,67 @@ export function generateExcelTemplate(): ArrayBuffer {
       { wch: 10 }, { wch: 25 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 12 }, { wch: 15 }
     ];
     XLSX.utils.book_append_sheet(workbook, propertyWS, property.code);
+    
+    // Individual Balance Sheet for each property
+    const balanceSheetData = [
+      [`${property.code} Balance Sheet`, '', '', '', '', ''],
+      [`${property.name} - ${property.portfolio}`, '', '', '', '', ''],
+      ['', '', '', '', '', ''],
+      ['Account Category', 'Account Name', 'Account Code', 'Current Balance', 'Prior Balance', 'Type'],
+      ['ASSETS', '', '', '', '', ''],
+      ['Current Assets', 'Cash & Equivalents', '1100', Math.round(baseCash * assetMultiplier), Math.round(baseCash * assetMultiplier * 0.91), 'asset'],
+      ['Current Assets', 'Accounts Receivable', '1200', Math.round(12500 * assetMultiplier), Math.round(8900 * assetMultiplier), 'asset'],
+      ['Current Assets', 'Prepaid Expenses', '1300', Math.round(8500 * assetMultiplier), Math.round(7200 * assetMultiplier), 'asset'],
+      ['Fixed Assets', 'Property Value (Appraised)', '1500', Math.round(basePropertyValue * assetMultiplier), Math.round(basePropertyValue * assetMultiplier), 'asset'],
+      ['Fixed Assets', 'Equipment & Fixtures', '1600', Math.round(45000 * assetMultiplier), Math.round(48000 * assetMultiplier), 'asset'],
+      ['Fixed Assets', 'Accumulated Depreciation', '1650', -Math.round(125000 * assetMultiplier), -Math.round(118000 * assetMultiplier), 'asset'],
+      ['', '', '', '', '', ''],
+      ['LIABILITIES', '', '', '', '', ''],
+      ['Current Liabilities', 'Accounts Payable', '2100', Math.round(8500 * assetMultiplier), Math.round(6200 * assetMultiplier), 'liability'],
+      ['Current Liabilities', 'Security Deposits', '2200', Math.round(10400 * assetMultiplier), Math.round(10400 * assetMultiplier), 'liability'],
+      ['Long-term Debt', 'Mortgage Payable', '2500', Math.round(baseMortgage * assetMultiplier), Math.round(baseMortgage * assetMultiplier * 1.008), 'liability'],
+      ['', '', '', '', '', ''],
+      ['EQUITY', '', '', '', '', ''],
+      ['Owner Equity', 'Owner Contributions', '3100', Math.round(450000 * assetMultiplier), Math.round(450000 * assetMultiplier), 'equity'],
+      ['Owner Equity', 'Retained Earnings', '3200', Math.round(634000 * assetMultiplier), Math.round(595900 * assetMultiplier), 'equity']
+    ];
+
+    const balanceSheetWS = XLSX.utils.aoa_to_sheet(balanceSheetData);
+    balanceSheetWS['!cols'] = [
+      { wch: 18 }, { wch: 25 }, { wch: 12 }, { wch: 15 }, { wch: 15 }, { wch: 12 }
+    ];
+    XLSX.utils.book_append_sheet(workbook, balanceSheetWS, `${property.code}-BS`);
   });
   
-  // Balance Sheet Template
-  const balanceSheetTemplate = [
+  // Consolidated Balance Sheet Template
+  const consolidatedBalanceSheet = [
+    ['Consolidated Portfolio Balance Sheet', '', '', '', '', ''],
+    ['All Properties Combined', '', '', '', '', ''],
+    ['', '', '', '', '', ''],
     ['Account Category', 'Account Name', 'Account Code', 'Current Balance', 'Prior Balance', 'Type'],
     ['ASSETS', '', '', '', '', ''],
-    ['Current Assets', 'Cash & Equivalents', '1100', 156000, 142000, 'asset'],
-    ['Current Assets', 'Accounts Receivable', '1200', 12500, 8900, 'asset'],
-    ['Current Assets', 'Prepaid Expenses', '1300', 8500, 7200, 'asset'],
-    ['Fixed Assets', 'Property Value (Appraised)', '1500', 2840000, 2840000, 'asset'],
-    ['Fixed Assets', 'Equipment & Fixtures', '1600', 45000, 48000, 'asset'],
-    ['Fixed Assets', 'Accumulated Depreciation', '1650', -125000, -118000, 'asset'],
+    ['Current Assets', 'Cash & Equivalents', '1100', 985000, 890000, 'asset'],
+    ['Current Assets', 'Accounts Receivable', '1200', 78000, 55000, 'asset'],
+    ['Current Assets', 'Prepaid Expenses', '1300', 52000, 44000, 'asset'],
+    ['Fixed Assets', 'Property Value (Appraised)', '1500', 18550000, 18550000, 'asset'],
+    ['Fixed Assets', 'Equipment & Fixtures', '1600', 285000, 305000, 'asset'],
+    ['Fixed Assets', 'Accumulated Depreciation', '1650', -820000, -770000, 'asset'],
     ['', '', '', '', '', ''],
     ['LIABILITIES', '', '', '', '', ''],
-    ['Current Liabilities', 'Accounts Payable', '2100', 8500, 6200, 'liability'],
-    ['Current Liabilities', 'Security Deposits', '2200', 10400, 10400, 'liability'],
-    ['Long-term Debt', 'Mortgage Payable', '2500', 1850000, 1865000, 'liability'],
+    ['Current Liabilities', 'Accounts Payable', '2100', 55000, 38000, 'liability'],
+    ['Current Liabilities', 'Security Deposits', '2200', 68000, 68000, 'liability'],
+    ['Long-term Debt', 'Mortgage Payable', '2500', 12100000, 12200000, 'liability'],
     ['', '', '', '', '', ''],
     ['EQUITY', '', '', '', '', ''],
-    ['Owner Equity', 'Owner Contributions', '3100', 450000, 450000, 'equity'],
-    ['Owner Equity', 'Retained Earnings', '3200', 634000, 595900, 'equity']
+    ['Owner Equity', 'Owner Contributions', '3100', 2950000, 2950000, 'equity'],
+    ['Owner Equity', 'Retained Earnings', '3200', 4157000, 3904000, 'equity']
   ];
   
-  const balanceSheetWS = XLSX.utils.aoa_to_sheet(balanceSheetTemplate);
-  balanceSheetWS['!cols'] = [
-    { wch: 18 }, // Account Category
-    { wch: 25 }, // Account Name
-    { wch: 12 }, // Account Code
-    { wch: 15 }, // Current Balance
-    { wch: 15 }, // Prior Balance
-    { wch: 12 }  // Type
+  const consolidatedBS = XLSX.utils.aoa_to_sheet(consolidatedBalanceSheet);
+  consolidatedBS['!cols'] = [
+    { wch: 18 }, { wch: 25 }, { wch: 12 }, { wch: 15 }, { wch: 15 }, { wch: 12 }
   ];
-  
-  XLSX.utils.book_append_sheet(workbook, balanceSheetWS, 'Balance Sheet');
+  XLSX.utils.book_append_sheet(workbook, consolidatedBS, 'Consolidated-BS');
   
   return XLSX.write(workbook, { type: 'array', bookType: 'xlsx' });
 }

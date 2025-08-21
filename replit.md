@@ -45,7 +45,8 @@ An institutional-grade property management dashboard with Excel processing, GL a
   - Dynamic property selection UI with comprehensive GL account data for each property
   - Multi-property data management with portfolio-level aggregation
   - Property-specific KPI display and financial metrics
-  - Comprehensive balance sheet accounts (Assets, Liabilities, Equity) for Hartford 1
+  - Individual balance sheet accounts for each property (Assets, Liabilities, Equity)
+  - Property-specific Excel templates with separate P&L and balance sheet tabs
   - Dynamic switching between properties with real-time data updates
 
 ## Advanced Features Required
