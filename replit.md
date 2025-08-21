@@ -22,7 +22,8 @@ An institutional-grade property management dashboard with Excel processing, GL a
 - **Primary Goal**: Accounting verification with GL categorization and note-taking
 - **Secondary Goals**: Lender export packages, operational monitoring
 - **Screen Sharing Optimized**: Large fonts, clear click feedback, professional appearance
-- **Focus Property**: Hartford 1 portfolio (6 units at 228 Maple) as primary example
+- **Full Portfolio Coverage**: Expanded from single Hartford 1 to complete multi-property system
+- **Property Portfolio**: 6 properties total across 5 distinct portfolio groups with real financial data
 
 ## Recent Changes
 - Initial project setup with attached requirements and visual specifications
@@ -39,6 +40,13 @@ An institutional-grade property management dashboard with Excel processing, GL a
 - **Dedicated dashboards**: Accounting Notes (/accounting-notes) and Property Management (/property-management-notes)
 - **Navigation system**: Back buttons and header navigation between all dashboards
 - **Comment completion workflow**: Mark completed with detailed completion notes
+- **MAJOR EXPANSION**: Full portfolio system implemented with:
+  - 6 properties across 5 portfolios (Hartford 1, Consolidated, South End, North End, 90 Park)
+  - Dynamic property selection UI with comprehensive GL account data for each property
+  - Multi-property data management with portfolio-level aggregation
+  - Property-specific KPI display and financial metrics
+  - Comprehensive balance sheet accounts (Assets, Liabilities, Equity) for Hartford 1
+  - Dynamic switching between properties with real-time data updates
 
 ## Advanced Features Required
 - **Balance Sheet Analysis**: Asset tracking, debt analysis, equity positions, DSCR calculations
@@ -48,12 +56,15 @@ An institutional-grade property management dashboard with Excel processing, GL a
 - **Smart Features**: Automated alerts, color-coded indicators, interactive charts, executive reporting
 
 ## Data Structure
-### Hartford 1 Sample Data
-- Property: S0010 - 228 Maple (6 units)
-- Portfolio: Hartford 1
-- Key GL Accounts: 4105 (Rent Income), 6110 (Maintenance), etc.
-- Monthly NOI: ~$7,080
-- Avg Rent/Unit: $1,700
+### Full Portfolio Data
+**Hartford 1**: S0010 - 228 Maple (6 units, $6,800 NOI, 12.2% Cap Rate)
+**South End**: S0020 - 150 Union Street (24 units, $18,500 NOI), S0021 - 425 Broadway (27 units, $19,200 NOI)
+**North End**: N0030 - 88 Salem Street (18 units, $14,800 NOI), N0031 - 205 Hanover Street (22 units, $17,600 NOI)
+**90 Park**: P0040 - 90 Park Street (12 units, $9,800 NOI, 8.9% Cap Rate)
+**Consolidated**: All properties aggregated (109 total units, $985K total NOI, 9.6% average Cap Rate)
+
+- Key GL Accounts: 4105 (Rent Income), 6105 (Property Management), 6110 (Maintenance), Balance Sheet accounts
+- Balance Sheet: Assets ($3M+ including cash, property value), Liabilities ($1.85M mortgage), Equity ($595K+)
 
 ## Implementation Priority
 1. Professional institutional styling (table-based layout)

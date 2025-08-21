@@ -25,6 +25,7 @@ export function PropertyDashboard({}: PropertyDashboardProps) {
   const queryClient = useQueryClient();
   
   const [selectedPortfolio, setSelectedPortfolio] = useState('hartford1');
+  const [selectedPropertyId, setSelectedPropertyId] = useState<string>('');
   const [activeTab, setActiveTab] = useState('performance');
   const [clickedElements, setClickedElements] = useState<Set<string>>(new Set());
   const [cellNotes, setCellNotes] = useState<Record<string, string>>({});
@@ -84,37 +85,44 @@ export function PropertyDashboard({}: PropertyDashboardProps) {
     enabled: !!currentPortfolio?.id,
   });
 
-  const hartfordProperty = properties.find((p: Property) => p.code === 'S0010');
+  // Auto-select first property when portfolio changes
+  useEffect(() => {
+    if (properties.length > 0 && !selectedPropertyId) {
+      setSelectedPropertyId(properties[0].id);
+    }
+  }, [properties, selectedPropertyId]);
+
+  const selectedProperty = properties.find((p: Property) => p.id === selectedPropertyId) || properties[0];
 
   const { data: glAccounts = [] } = useQuery({
-    queryKey: ['/api/properties', hartfordProperty?.id, 'gl-accounts'],
-    enabled: !!hartfordProperty?.id,
+    queryKey: ['/api/properties', selectedProperty?.id, 'gl-accounts'],
+    enabled: !!selectedProperty?.id,
   });
 
   const { data: notes = [] } = useQuery({
-    queryKey: ['/api/properties', hartfordProperty?.id, 'notes'],
-    enabled: !!hartfordProperty?.id,
+    queryKey: ['/api/properties', selectedProperty?.id, 'notes'],
+    enabled: !!selectedProperty?.id,
   });
 
   const { data: actionItems = [] } = useQuery({
     queryKey: ['/api/action-items'],
     queryFn: async () => {
-      const response = await fetch(`/api/action-items${hartfordProperty?.id ? `?propertyId=${hartfordProperty.id}` : ''}`);
+      const response = await fetch(`/api/action-items${selectedProperty?.id ? `?propertyId=${selectedProperty.id}` : ''}`);
       if (!response.ok) throw new Error('Failed to fetch action items');
       return response.json();
     },
-    enabled: !!hartfordProperty?.id,
+    enabled: !!selectedProperty?.id,
   });
 
   // Cell comments query
   const { data: cellComments = [], refetch: refetchComments } = useQuery({
     queryKey: ['/api/cell-comments'],
     queryFn: async () => {
-      const response = await fetch(`/api/cell-comments${hartfordProperty?.id ? `?propertyId=${hartfordProperty.id}` : ''}`);
+      const response = await fetch(`/api/cell-comments${selectedProperty?.id ? `?propertyId=${selectedProperty.id}` : ''}`);
       if (!response.ok) throw new Error('Failed to fetch cell comments');
       return response.json();
     },
-    enabled: !!hartfordProperty?.id,
+    enabled: !!selectedProperty?.id,
   });
 
   // Helper function to get comments for a specific cell
@@ -133,7 +141,7 @@ export function PropertyDashboard({}: PropertyDashboardProps) {
       return apiRequest('POST', '/api/notes', noteData);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/properties', hartfordProperty?.id, 'notes'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/properties', selectedProperty?.id, 'notes'] });
       toast({ title: 'Note added successfully', variant: 'default' });
     },
     onError: () => {
@@ -169,17 +177,22 @@ export function PropertyDashboard({}: PropertyDashboardProps) {
   // Portfolio selection
   const selectPortfolio = (portfolioKey: string) => {
     setSelectedPortfolio(portfolioKey);
+    setSelectedPropertyId(''); // Reset property selection when portfolio changes
     handleClick(`portfolio-${portfolioKey}`);
+  };
+
+  const selectProperty = (propertyId: string) => {
+    setSelectedPropertyId(propertyId);
   };
 
   // Note handling
   const handleNoteChange = (cellId: string, value: string) => {
     setCellNotes(prev => ({ ...prev, [cellId]: value }));
     
-    if (value.trim() && hartfordProperty?.id) {
+    if (value.trim() && selectedProperty?.id) {
       createNoteMutation.mutate({
         cellId,
-        propertyId: hartfordProperty.id,
+        propertyId: selectedProperty.id,
         text: value.trim()
       });
     }
@@ -187,14 +200,14 @@ export function PropertyDashboard({}: PropertyDashboardProps) {
 
   // Flag issue
   const flagIssue = (cellId: string) => {
-    if (!hartfordProperty?.id) return;
+    if (!selectedProperty?.id) return;
     
     const description = `Review flagged item for GL account ${cellId.replace('gl-', '')}`;
     const itemId = `AI-${Date.now()}`;
     
     createActionItemMutation.mutate({
       itemId,
-      propertyId: hartfordProperty.id,
+      propertyId: selectedProperty.id,
       description,
       priority: 'HIGH'
     });
@@ -404,12 +417,44 @@ export function PropertyDashboard({}: PropertyDashboardProps) {
           </CardContent>
         </Card>
 
-        {/* Hartford 1 KPI Section */}
-        {selectedPortfolio === 'hartford1' && hartfordProperty && (
+        {/* Property Selection */}
+        {properties.length > 1 && (
+          <Card className="mb-5 border-2 border-institutional-black">
+            <CardHeader className="bg-institutional-black text-institutional-white p-3">
+              <CardTitle className="font-bold text-xs uppercase">
+                Property Selection ({properties.length} properties)
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="grid grid-cols-3">
+                {properties.map((property) => (
+                  <button
+                    key={property.id}
+                    onClick={() => selectProperty(property.id)}
+                    className={`property-item border-r border-institutional-border p-4 text-left hover:bg-institutional-accent transition-all ${
+                      selectedPropertyId === property.id ? 'active bg-blue-50 border-l-4 border-blue-600' : ''
+                    }`}
+                  >
+                    <div className="text-sm font-bold text-institutional-black mb-1">
+                      {property.code}
+                    </div>
+                    <div className="text-xs text-gray-700 mb-2">{property.name}</div>
+                    <div className="text-xs text-gray-600">
+                      {property.units} Units • ${property.monthlyNOI?.toLocaleString()} NOI
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Portfolio KPI Section */}
+        {currentPortfolio && selectedProperty && (
           <Card className="bg-institutional-accent border-2 border-institutional-black mb-5">
             <CardContent className="p-5">
               <div className="text-sm font-bold uppercase text-institutional-black mb-4">
-                Hartford 1 Portfolio Metrics - S0010: {hartfordProperty.name}
+                {currentPortfolio.name} Portfolio Metrics - {selectedProperty.code}: {selectedProperty.name}
               </div>
               <div className="grid grid-cols-6 gap-1 bg-institutional-border">
                 <div 
@@ -420,7 +465,7 @@ export function PropertyDashboard({}: PropertyDashboardProps) {
                 >
                   <div className="text-xs uppercase text-gray-600 mb-2 font-bold">Monthly NOI</div>
                   <div className="text-2xl font-bold text-institutional-black font-mono-data mb-1">
-                    ${hartfordProperty.monthlyNOI?.toLocaleString()}
+                    ${selectedProperty.monthlyNOI?.toLocaleString()}
                   </div>
                   <div className="text-xs font-bold text-success-green">+8.2% MoM</div>
                 </div>
@@ -433,7 +478,7 @@ export function PropertyDashboard({}: PropertyDashboardProps) {
                 >
                   <div className="text-xs uppercase text-gray-600 mb-2 font-bold">NOI Margin</div>
                   <div className="text-2xl font-bold text-institutional-black font-mono-data mb-1">
-                    {hartfordProperty.noiMargin}%
+                    {selectedProperty.noiMargin}%
                   </div>
                   <div className="text-xs font-bold text-success-green">+2.1pp YoY</div>
                 </div>
@@ -446,7 +491,7 @@ export function PropertyDashboard({}: PropertyDashboardProps) {
                 >
                   <div className="text-xs uppercase text-gray-600 mb-2 font-bold">Occupancy</div>
                   <div className="text-2xl font-bold text-institutional-black font-mono-data mb-1">
-                    {hartfordProperty.occupancy}%
+                    {selectedProperty.occupancy}%
                   </div>
                   <div className="text-xs font-bold text-success-green">+1.2pp MoM</div>
                 </div>
@@ -459,7 +504,7 @@ export function PropertyDashboard({}: PropertyDashboardProps) {
                 >
                   <div className="text-xs uppercase text-gray-600 mb-2 font-bold">Revenue/Unit</div>
                   <div className="text-2xl font-bold text-institutional-black font-mono-data mb-1">
-                    ${hartfordProperty.revenuePerUnit}
+                    ${selectedProperty.revenuePerUnit}
                   </div>
                   <div className="text-xs font-bold text-success-green">+3.8% MoM</div>
                 </div>
@@ -472,7 +517,7 @@ export function PropertyDashboard({}: PropertyDashboardProps) {
                 >
                   <div className="text-xs uppercase text-gray-600 mb-2 font-bold">Cap Rate</div>
                   <div className="text-2xl font-bold text-institutional-black font-mono-data mb-1">
-                    {hartfordProperty.capRate}%
+                    {selectedProperty.capRate}%
                   </div>
                   <div className="text-xs font-bold text-success-green">Above Market</div>
                 </div>
@@ -485,7 +530,7 @@ export function PropertyDashboard({}: PropertyDashboardProps) {
                 >
                   <div className="text-xs uppercase text-gray-600 mb-2 font-bold">DSCR</div>
                   <div className="text-2xl font-bold text-institutional-black font-mono-data mb-1">
-                    {hartfordProperty.dscr}x
+                    {selectedProperty.dscr}x
                   </div>
                   <div className="text-xs font-bold text-success-green">Strong</div>
                 </div>
