@@ -22,60 +22,75 @@ export interface GLAccountData {
 export function generateExcelTemplate(): ArrayBuffer {
   const workbook = XLSX.utils.book_new();
   
-  // Property Information Sheet
-  const propertyInfo = [
-    ['Property Management Dashboard - Data Input Template', '', '', ''],
-    ['', '', '', ''],
-    ['Property Information', '', '', ''],
-    ['Property Code', 'S0010', '', ''],
-    ['Property Name', '228 Maple', '', ''],
-    ['Portfolio', 'Hartford 1', '', ''],
-    ['Units', '6', '', ''],
-    ['Last Updated', new Date().toISOString().split('T')[0], '', ''],
-    ['', '', '', ''],
-    ['Instructions:', '', '', ''],
-    ['1. Fill in the GL Account Data sheet with your financial data', '', '', ''],
-    ['2. Use exact GL codes (4105, 6110, etc.)', '', '', ''],
-    ['3. Amounts should be positive numbers', '', '', ''],
-    ['4. Type should be "revenue" or "expense"', '', '', ''],
-    ['5. Save file and upload to dashboard', '', '', '']
+  // Portfolio Overview Sheet
+  const portfolioOverview = [
+    ['Stanton Management LLC - Complete Portfolio Template', '', '', '', ''],
+    ['Generated:', new Date().toISOString().split('T')[0], '', '', ''],
+    ['', '', '', '', ''],
+    ['Portfolio Summary', '', '', '', ''],
+    ['Portfolio', 'Properties', 'Total Units', 'Total NOI', 'Avg Cap Rate'],
+    ['Hartford 1', '1', '6', '$6,800', '12.2%'],
+    ['South End', '2', '51', '$37,700', '12.1%'],
+    ['North End', '2', '40', '$32,400', '11.6%'],
+    ['90 Park', '1', '12', '$9,800', '8.9%'],
+    ['Consolidated', '6', '109', '$86,700', '11.2%'],
+    ['', '', '', '', ''],
+    ['Property Details', '', '', '', ''],
+    ['Code', 'Name', 'Portfolio', 'Units', 'Monthly NOI'],
+    ['S0010', '228 Maple', 'Hartford 1', '6', '$6,800'],
+    ['S0020', '150 Union Street', 'South End', '24', '$18,500'],
+    ['S0021', '425 Broadway', 'South End', '27', '$19,200'],
+    ['N0030', '88 Salem Street', 'North End', '18', '$14,800'],
+    ['N0031', '205 Hanover Street', 'North End', '22', '$17,600'],
+    ['P0040', '90 Park Street', '90 Park', '12', '$9,800'],
+    ['', '', '', '', ''],
+    ['Instructions:', '', '', '', ''],
+    ['1. Each property has its own data sheet', '', '', '', ''],
+    ['2. Update GL account data in individual property sheets', '', '', '', ''],
+    ['3. Use exact GL codes and account types', '', '', '', ''],
+    ['4. Upload completed file to dashboard', '', '', '', '']
   ];
   
-  const propertyInfoWS = XLSX.utils.aoa_to_sheet(propertyInfo);
-  XLSX.utils.book_append_sheet(workbook, propertyInfoWS, 'Property Info');
-  
-  // GL Account Template Sheet
-  const glAccountTemplate = [
-    ['GL Code', 'Description', 'Current Month', 'Prior Month', 'YTD', 'Budget', 'Type', 'Category'],
-    ['4105', 'Rental Income - Gross', 10200, 9950, 121800, 118500, 'revenue', 'Income'],
-    ['4110', 'Section 8 Housing Assistance', 300, 300, 3600, 3600, 'revenue', 'Income'],
-    ['4120', 'Other Income', 180, 85, 1425, 1200, 'revenue', 'Income'],
-    ['6105', 'Property Management Fee', 525, 517, 6263, 6000, 'expense', 'Management'],
-    ['6110', 'Maintenance & Repairs', 1950, 1420, 18750, 15000, 'expense', 'Maintenance'],
-    ['6115', 'Landscaping & Grounds', 285, 200, 2850, 2400, 'expense', 'Maintenance'],
-    ['6120', 'Utilities - Common Areas', 420, 390, 4680, 4800, 'expense', 'Utilities'],
-    ['6125', 'Trash & Recycling', 125, 85, 1275, 1200, 'expense', 'Utilities'],
-    ['6130', 'Property Insurance', 285, 285, 3420, 3420, 'expense', 'Insurance'],
-    ['6140', 'Real Estate Taxes', 815, 815, 9780, 9780, 'expense', 'Taxes'],
-    ['6150', 'Legal & Professional', 150, 200, 1950, 2400, 'expense', 'Administrative'],
-    ['6160', 'Office & Administrative', 75, 45, 720, 600, 'expense', 'Administrative']
+  const portfolioWS = XLSX.utils.aoa_to_sheet(portfolioOverview);
+  portfolioWS['!cols'] = [
+    { wch: 20 }, { wch: 15 }, { wch: 12 }, { wch: 12 }, { wch: 12 }
   ];
+  XLSX.utils.book_append_sheet(workbook, portfolioWS, 'Portfolio Overview');
   
-  const glAccountWS = XLSX.utils.aoa_to_sheet(glAccountTemplate);
-  
-  // Set column widths
-  glAccountWS['!cols'] = [
-    { wch: 10 }, // GL Code
-    { wch: 25 }, // Description
-    { wch: 15 }, // Current Month
-    { wch: 15 }, // Prior Month
-    { wch: 15 }, // YTD
-    { wch: 15 }, // Budget
-    { wch: 12 }, // Type
-    { wch: 15 }  // Category
+  // Create individual property sheets
+  const properties = [
+    { code: 'S0010', name: '228 Maple', portfolio: 'Hartford 1', revenue: 10680, expenses: 4260 },
+    { code: 'S0020', name: '150 Union Street', portfolio: 'South End', revenue: 35400, expenses: 16900 },
+    { code: 'S0021', name: '425 Broadway', portfolio: 'South End', revenue: 41850, expenses: 22650 },
+    { code: 'N0030', name: '88 Salem Street', portfolio: 'North End', revenue: 28800, expenses: 14000 },
+    { code: 'N0031', name: '205 Hanover Street', portfolio: 'North End', revenue: 35200, expenses: 17600 },
+    { code: 'P0040', name: '90 Park Street', portfolio: '90 Park', revenue: 18960, expenses: 9160 }
   ];
-  
-  XLSX.utils.book_append_sheet(workbook, glAccountWS, 'GL Account Data');
+
+  properties.forEach(property => {
+    const propertyData = [
+      [`${property.code} - ${property.name}`, '', '', '', '', '', '', ''],
+      [`Portfolio: ${property.portfolio}`, '', '', '', '', '', '', ''],
+      ['', '', '', '', '', '', '', ''],
+      ['GL Code', 'Description', 'Current Month', 'Prior Month', 'YTD', 'Budget', 'Type', 'Category'],
+      // Revenue accounts
+      ['4105', 'Rental Income - Gross', Math.round(property.revenue * 0.85), Math.round(property.revenue * 0.82), Math.round(property.revenue * 10.2), Math.round(property.revenue * 10), 'revenue', 'Income'],
+      ['4110', 'Section 8 Housing Assistance', Math.round(property.revenue * 0.08), Math.round(property.revenue * 0.08), Math.round(property.revenue * 0.96), Math.round(property.revenue * 0.96), 'revenue', 'Income'],
+      ['4120', 'Other Income', Math.round(property.revenue * 0.07), Math.round(property.revenue * 0.05), Math.round(property.revenue * 0.84), Math.round(property.revenue * 0.7), 'revenue', 'Income'],
+      // Expense accounts
+      ['6105', 'Property Management Fee', Math.round(property.expenses * 0.15), Math.round(property.expenses * 0.14), Math.round(property.expenses * 1.8), Math.round(property.expenses * 1.7), 'expense', 'Management'],
+      ['6110', 'Maintenance & Repairs', Math.round(property.expenses * 0.45), Math.round(property.expenses * 0.35), Math.round(property.expenses * 5.4), Math.round(property.expenses * 4.5), 'expense', 'Maintenance'],
+      ['6120', 'Utilities - Common Areas', Math.round(property.expenses * 0.12), Math.round(property.expenses * 0.11), Math.round(property.expenses * 1.44), Math.round(property.expenses * 1.4), 'expense', 'Utilities'],
+      ['6130', 'Property Insurance', Math.round(property.expenses * 0.08), Math.round(property.expenses * 0.08), Math.round(property.expenses * 0.96), Math.round(property.expenses * 0.96), 'expense', 'Insurance'],
+      ['6140', 'Real Estate Taxes', Math.round(property.expenses * 0.2), Math.round(property.expenses * 0.2), Math.round(property.expenses * 2.4), Math.round(property.expenses * 2.4), 'expense', 'Taxes']
+    ];
+
+    const propertyWS = XLSX.utils.aoa_to_sheet(propertyData);
+    propertyWS['!cols'] = [
+      { wch: 10 }, { wch: 25 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 12 }, { wch: 15 }
+    ];
+    XLSX.utils.book_append_sheet(workbook, propertyWS, property.code);
+  });
   
   // Balance Sheet Template
   const balanceSheetTemplate = [
@@ -120,7 +135,7 @@ export function downloadExcelTemplate() {
   
   const link = document.createElement('a');
   link.href = url;
-  link.download = `Hartford-1-Data-Template-${new Date().toISOString().split('T')[0]}.xlsx`;
+  link.download = `Stanton-Portfolio-Template-${new Date().toISOString().split('T')[0]}.xlsx`;
   link.click();
   
   URL.revokeObjectURL(url);
