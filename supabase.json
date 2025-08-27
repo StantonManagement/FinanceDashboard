@@ -1,0 +1,19 @@
+{
+  "mcpServers": {
+    "supabase-mcp": {
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "@smithery/cli@latest",
+        "run",
+        "@supabase-community/supabase-mcp",
+        "--key",
+        "726e2c44-340b-483c-9619-374c97757385",
+        "--profile",
+        "ethnic-cockroach-gEVfGD"
+      ]
+    }
+  }
+}

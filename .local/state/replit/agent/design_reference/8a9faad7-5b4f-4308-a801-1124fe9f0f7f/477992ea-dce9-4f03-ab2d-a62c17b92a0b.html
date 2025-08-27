@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Property Management Dashboard - Stanton Management LLC</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'inter': ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+                        'mono': ['JetBrains Mono', 'SF Mono', 'Monaco', 'Cascadia Code', 'monospace']
+                    },
+                    colors: {
+                        'primary-bg': '#fafbfc',
+                        'surface-bg': '#ffffff',
+                        'text-primary': '#1a1d21',
+                        'text-secondary': '#404854',
+                        'text-muted': '#6b7280',
+                        'border-primary': '#d1d5db',
+                        'border-accent': '#cbd5e1',
+                        'accent-blue': '#3b82f6',
+                        'success-green': '#059669',
+                        'warning-amber': '#d97706',
+                        'error-red': '#dc2626',
+                        'highlight-bg': '#fef08a',
+                        'highlight-border': '#f59e0b',
+                        'indicator-note': '#8b5cf6',
+                        'indicator-alert': '#ef4444'
+                    }
+                }
+            }
+        };
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .click-highlight {
+            background: #fef08a !important;
+            border: 3px solid #f59e0b !important;
+            transform: scale(1.02) !important;
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4) !important;
+            transition: all 0.15s ease-out !important;
+            z-index: 10 !important;
+            position: relative !important;
+        }
+        
+        .note-indicator {
+            background: #8b5cf6;
+            color: white;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 4px;
+            margin-left: 8px;
+            text-transform: uppercase;
+            box-shadow: 0 2px 4px rgba(139, 92, 246, 0.3);
+        }
+        
+        .alert-indicator {
+            background: #ef4444;
+            color: white;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 4px;
+            margin-left: 8px;
+            animation: pulse 2s infinite;
+            text-transform: uppercase;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        .table-hover:hover {
+            background-color: #f8fafc;
+        }
+        
+        .professional-input {
+            border: 2px solid #d1d5db;
+            padding: 8px 12px;
+            font-family: 'Inter', sans-serif;
+            font-size: 16px;
+            border-radius: 4px;
+            transition: all 0.15s ease;
+        }
+        
+        .professional-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+    </style>
+</head>
+<body class="font-inter bg-primary-bg text-text-primary">
+    <!-- Header Section -->
+    <header class="bg-surface-bg border-b-2 border-border-primary">
+        <div class="max-w-7xl mx-auto px-6 py-4">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center space-x-4">
+                    <h1 class="text-2xl font-bold text-text-primary tracking-wide">STANTON MANAGEMENT LLC</h1>
+                    <span class="bg-gray-700 text-white px-3 py-1 text-sm font-bold uppercase tracking-wider">Property Dashboard</span>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <!-- Professional business meeting presentation scene -->
+                    <img src="https://images.unsplash.com/photo-1560472354-b33ff0c44a43?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=120&h=80" alt="Business meeting presentation" class="w-16 h-12 object-cover border border-border-primary" />
+                    <div class="text-right">
+                        <div class="text-sm font-medium text-text-secondary">Monthly Review</div>
+                        <div class="text-lg font-bold font-mono">December 2024</div>
+                    </div>
+                    <button id="file-upload-btn" class="bg-accent-blue text-white px-6 py-3 font-bold text-sm uppercase tracking-wide hover:bg-blue-600 transition-colors duration-200">
+                        UPLOAD EXCEL
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="max-w-7xl mx-auto px-6 py-6">
+        
+        <!-- Portfolio Navigation Section -->
+        <div class="mb-8">
+            <h2 class="text-xl font-bold text-text-primary mb-4 uppercase tracking-wider">PORTFOLIO OVERVIEW</h2>
+            <div class="bg-surface-bg border-2 border-border-primary overflow-hidden">
+                <div class="bg-gray-700 text-white px-6 py-4 font-bold text-sm uppercase tracking-wider">
+                    Property Portfolio Navigation
+                </div>
+                <div class="grid grid-cols-4 gap-0 border-collapse">
+                    <!-- All Properties Portfolio -->
+                    <div id="portfolio-all" class="bg-surface-bg border-r border-b border-border-primary p-6 cursor-pointer transition-all duration-150 hover:bg-gray-50">
+                        <div class="text-lg font-bold text-text-primary mb-2">ALL PORTFOLIOS</div>
+                        <table class="w-full text-lg">
+                            <tr><td class="text-text-secondary">Total Units</td><td class="text-right font-mono font-semibold">109</td></tr>
+                            <tr><td class="text-text-secondary">Annual NOI</td><td class="text-right font-mono font-semibold text-success-green">$985,000</td></tr>
+                            <tr><td class="text-text-secondary">Cap Rate</td><td class="text-right font-mono font-semibold">9.6%</td></tr>
+                            <tr><td class="text-text-secondary">Occupancy</td><td class="text-right font-mono font-semibold">94.2%</td></tr>
+                        </table>
+                    </div>
+
+                    <!-- Hartford 1 Portfolio - Active -->
+                    <div id="portfolio-hartford1" class="bg-blue-50 border-r border-b border-border-primary border-l-4 border-l-accent-blue p-6 cursor-pointer transition-all duration-150">
+                        <div class="text-lg font-bold text-text-primary mb-2">HARTFORD 1 <span class="bg-accent-blue text-white px-2 py-1 text-xs font-bold ml-2">ACTIVE</span></div>
+                        <table class="w-full text-lg">
+                            <tr><td class="text-text-secondary">Units</td><td class="text-right font-mono font-semibold">6</td></tr>
+                            <tr><td class="text-text-secondary">Monthly NOI</td><td class="text-right font-mono font-semibold text-success-green">$7,080</td></tr>
+                            <tr><td class="text-text-secondary">Avg Rent/Unit</td><td class="text-right font-mono font-semibold">$1,700</td></tr>
+                            <tr><td class="text-text-secondary">OpEx/Unit</td><td class="text-right font-mono font-semibold">$425</td></tr>
+                        </table>
+                    </div>
+
+                    <!-- South End Portfolio -->
+                    <div id="portfolio-southend" class="bg-surface-bg border-r border-b border-border-primary p-6 cursor-pointer transition-all duration-150 hover:bg-gray-50">
+                        <div class="text-lg font-bold text-text-primary mb-2">SOUTH END</div>
+                        <table class="w-full text-lg">
+                            <tr><td class="text-text-secondary">Units</td><td class="text-right font-mono font-semibold">50</td></tr>
+                            <tr><td class="text-text-secondary">Monthly NOI</td><td class="text-right font-mono font-semibold text-success-green">$42,500</td></tr>
+                            <tr><td class="text-text-secondary">Avg Rent/Unit</td><td class="text-right font-mono font-semibold">$1,450</td></tr>
+                            <tr><td class="text-text-secondary">OpEx/Unit</td><td class="text-right font-mono font-semibold">$380</td></tr>
+                        </table>
+                    </div>
+
+                    <!-- North End Portfolio -->
+                    <div id="portfolio-northend" class="bg-surface-bg border-b border-border-primary p-6 cursor-pointer transition-all duration-150 hover:bg-gray-50">
+                        <div class="text-lg font-bold text-text-primary mb-2">NORTH END</div>
+                        <table class="w-full text-lg">
+                            <tr><td class="text-text-secondary">Units</td><td class="text-right font-mono font-semibold">15</td></tr>
+                            <tr><td class="text-text-secondary">Monthly NOI</td><td class="text-right font-mono font-semibold text-success-green">$12,750</td></tr>
+                            <tr><td class="text-text-secondary">Avg Rent/Unit</td><td class="text-right font-mono font-semibold">$1,600</td></tr>
+                            <tr><td class="text-text-secondary">OpEx/Unit</td><td class="text-right font-mono font-semibold">$410</td></tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Property Detail Section - Hartford 1 Focus -->
+        <div class="grid grid-cols-3 gap-6 mb-8">
+            <!-- Property Overview -->
+            <div class="col-span-2">
+                <div class="bg-surface-bg border-2 border-border-primary">
+                    <div class="bg-gray-700 text-white px-6 py-4 font-bold text-sm uppercase tracking-wider flex items-center justify-between">
+                        <span>Hartford 1 - S0010 (228 Maple Ave)</span>
+                        <span class="bg-success-green px-2 py-1 text-xs">96.7% OCCUPIED</span>
+                    </div>
+                    <div class="p-6">
+                        <!-- Property management office scene -->
+                        <img src="https://images.unsplash.com/photo-1497366216548-37526070297c?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=800&h=200" alt="Property management office" class="w-full h-48 object-cover border border-border-primary mb-6" />
+                        
+                        <div class="grid grid-cols-2 gap-8">
+                            <div>
+                                <h4 class="text-lg font-bold text-text-primary mb-4 uppercase">Property Metrics</h4>
+                                <table class="w-full text-lg space-y-2">
+                                    <tr><td class="py-2 text-text-secondary">Total Units</td><td class="py-2 text-right font-mono font-semibold">6</td></tr>
+                                    <tr><td class="py-2 text-text-secondary">Building Type</td><td class="py-2 text-right font-semibold">Multi-Family</td></tr>
+                                    <tr><td class="py-2 text-text-secondary">Year Built</td><td class="py-2 text-right font-mono font-semibold">1985</td></tr>
+                                    <tr><td class="py-2 text-text-secondary">Square Footage</td><td class="py-2 text-right font-mono font-semibold">4,800</td></tr>
+                                </table>
+                            </div>
+                            <div>
+                                <h4 class="text-lg font-bold text-text-primary mb-4 uppercase">Financial Performance</h4>
+                                <table class="w-full text-lg space-y-2">
+                                    <tr><td class="py-2 text-text-secondary">Gross Rent</td><td class="py-2 text-right font-mono font-semibold text-success-green">$10,200</td></tr>
+                                    <tr><td class="py-2 text-text-secondary">Operating Exp</td><td class="py-2 text-right font-mono font-semibold text-error-red">($3,120)</td></tr>
+                                    <tr><td class="py-2 text-text-secondary border-t border-border-primary font-bold">Net Operating Income</td><td class="py-2 text-right font-mono font-bold text-success-green border-t border-border-primary">$7,080</td></tr>
+                                    <tr><td class="py-2 text-text-secondary">Cap Rate</td><td class="py-2 text-right font-mono font-semibold">12.2%</td></tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Items & Notes Panel -->
+            <div class="col-span-1">
+                <div class="bg-surface-bg border-2 border-border-primary mb-4">
+                    <div class="bg-gray-700 text-white px-4 py-3 font-bold text-sm uppercase tracking-wider">
+                        Action Items
+                    </div>
+                    <div class="p-4 space-y-3">
+                        <div class="border-l-4 border-warning-amber pl-3 py-2">
+                            <div class="text-sm font-semibold text-text-primary">High Water Bill - Unit 3A</div>
+                            <div class="text-sm text-text-muted">Created 2 days ago</div>
+                            <span class="bg-warning-amber text-white px-2 py-1 text-xs font-bold mt-1 inline-block">MEDIUM</span>
+                        </div>
+                        <div class="border-l-4 border-error-red pl-3 py-2">
+                            <div class="text-sm font-semibold text-text-primary">Maintenance Overrun Review</div>
+                            <div class="text-sm text-text-muted">Created 1 hour ago</div>
+                            <span class="bg-error-red text-white px-2 py-1 text-xs font-bold mt-1 inline-block">HIGH</span>
+                        </div>
+                        <div class="border-l-4 border-success-green pl-3 py-2">
+                            <div class="text-sm font-semibold text-text-primary">Rent Roll Verification</div>
+                            <div class="text-sm text-text-muted">Created yesterday</div>
+                            <span class="bg-success-green text-white px-2 py-1 text-xs font-bold mt-1 inline-block">LOW</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Property Image -->
+                <!-- Modern property management office workspace -->
+                <img src="https://images.unsplash.com/photo-1556761175-4b46a572b786?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&h=300" alt="Modern property management office workspace" class="w-full h-64 object-cover border-2 border-border-primary" />
+            </div>
+        </div>
+
+        <!-- GL Account Detail Table - CORE FUNCTIONALITY -->
+        <div class="mb-8">
+            <div class="bg-surface-bg border-2 border-border-primary">
+                <div class="bg-gray-700 text-white px-6 py-4 font-bold text-sm uppercase tracking-wider flex items-center justify-between">
+                    <span>Hartford 1 - General Ledger Account Detail</span>
+                    <div class="space-x-2">
+                        <button id="export-excel-btn" class="bg-accent-blue text-white px-4 py-2 text-xs font-bold uppercase hover:bg-blue-600 transition-colors">
+                            EXPORT EXCEL
+                        </button>
+                        <button id="export-pdf-btn" class="bg-surface-bg text-text-primary border border-border-accent px-4 py-2 text-xs font-bold uppercase hover:bg-gray-100 transition-colors">
+                            EXPORT PDF
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Financial spreadsheets scene -->
+                <div class="px-6 pt-4">
+                    <img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=800&h=300" alt="Financial spreadsheets and data analysis" class="w-full h-32 object-cover border border-border-primary mb-4" />
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full border-collapse">
+                        <thead>
+                            <tr class="bg-gray-600 text-white">
+                                <th class="px-4 py-4 text-left text-sm font-bold uppercase tracking-wider border-r border-gray-500">GL Account</th>
+                                <th class="px-4 py-4 text-left text-sm font-bold uppercase tracking-wider border-r border-gray-500">Description</th>
+                                <th class="px-4 py-4 text-right text-sm font-bold uppercase tracking-wider border-r border-gray-500">Amount</th>
+                                <th class="px-4 py-4 text-left text-sm font-bold uppercase tracking-wider border-r border-gray-500">Notes</th>
+                                <th class="px-4 py-4 text-center text-sm font-bold uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Revenue Accounts -->
+                            <tr class="border-b border-border-primary table-hover">
+                                <td id="gl-4105" class="px-4 py-4 font-mono font-semibold text-lg border-r border-border-primary cursor-pointer">4105</td>
+                                <td class="px-4 py-4 text-lg border-r border-border-primary">Rent Income</td>
+                                <td class="px-4 py-4 font-mono font-semibold text-lg text-success-green text-right border-r border-border-primary">+$10,200.00</td>
+                                <td class="px-4 py-4 border-r border-border-primary">
+                                    <input id="note-4105" type="text" placeholder="Add accounting note..." class="professional-input w-48 text-sm" />
+                                    <span id="note-indicator-4105" class="note-indicator hidden">📝 NOTE</span>
+                                </td>
+                                <td class="px-4 py-4 text-center">
+                                    <button id="flag-4105" class="bg-warning-amber text-white px-3 py-1 text-xs font-bold uppercase hover:bg-orange-600 transition-colors">
+                                        FLAG ISSUE
+                                    </button>
+                                </td>
+                            </tr>
+
+                            <tr class="border-b border-border-primary table-hover">
+                                <td id="gl-4110" class="px-4 py-4 font-mono font-semibold text-lg border-r border-border-primary cursor-pointer">4110</td>
+                                <td class="px-4 py-4 text-lg border-r border-border-primary">Other Income</td>
+                                <td class="px-4 py-4 font-mono font-semibold text-lg text-success-green text-right border-r border-border-primary">+$350.00</td>
+                                <td class="px-4 py-4 border-r border-border-primary">
+                                    <input id="note-4110" type="text" placeholder="Add accounting note..." class="professional-input w-48 text-sm" />
+                                    <span id="note-indicator-4110" class="note-indicator hidden">📝 NOTE</span>
+                                </td>
+                                <td class="px-4 py-4 text-center">
+                                    <button id="flag-4110" class="bg-warning-amber text-white px-3 py-1 text-xs font-bold uppercase hover:bg-orange-600 transition-colors">
+                                        FLAG ISSUE
+                                    </button>
+                                </td>
+                            </tr>
+
+                            <!-- Expense Accounts -->
+                            <tr class="border-b border-border-primary table-hover">
+                                <td id="gl-6110" class="px-4 py-4 font-mono font-semibold text-lg border-r border-border-primary cursor-pointer">6110</td>
+                                <td class="px-4 py-4 text-lg border-r border-border-primary">Maintenance & Repairs</td>
+                                <td class="px-4 py-4 font-mono font-semibold text-lg text-error-red text-right border-r border-border-primary">-$1,850.00
+                                    <span class="alert-indicator ml-2">⚠️ HIGH</span>
+                                </td>
+                                <td class="px-4 py-4 border-r border-border-primary">
+                                    <input id="note-6110" type="text" placeholder="Add accounting note..." class="professional-input w-48 text-sm" value="Plumbing emergency - Unit 2B" />
+                                    <span id="note-indicator-6110" class="note-indicator">📝 NOTE</span>
+                                </td>
+                                <td class="px-4 py-4 text-center">
+                                    <button id="flag-6110" class="bg-error-red text-white px-3 py-1 text-xs font-bold uppercase hover:bg-red-700 transition-colors">
+                                        FLAGGED
+                                    </button>
+                                </td>
+                            </tr>
+
+                            <tr class="border-b border-border-primary table-hover">
+                                <td id="gl-6210" class="px-4 py-4 font-mono font-semibold text-lg border-r border-border-primary cursor-pointer">6210</td>
+                                <td class="px-4 py-4 text-lg border-r border-border-primary">Utilities - Water/Sewer</td>
+                                <td class="px-4 py-4 font-mono font-semibold text-lg text-error-red text-right border-r border-border-primary">-$680.00
+                                    <span class="alert-indicator ml-2">⚠️ WATCH</span>
+                                </td>
+                                <td class="px-4 py-4 border-r border-border-primary">
+                                    <input id="note-6210" type="text" placeholder="Add accounting note..." class="professional-input w-48 text-sm" />
+                                    <span id="note-indicator-6210" class="note-indicator hidden">📝 NOTE</span>
+                                </td>
+                                <td class="px-4 py-4 text-center">
+                                    <button id="flag-6210" class="bg-warning-amber text-white px-3 py-1 text-xs font-bold uppercase hover:bg-orange-600 transition-colors">
+                                        FLAG ISSUE
+                                    </button>
+                                </td>
+                            </tr>
+
+                            <tr class="border-b border-border-primary table-hover">
+                                <td id="gl-6220" class="px-4 py-4 font-mono font-semibold text-lg border-r border-border-primary cursor-pointer">6220</td>
+                                <td class="px-4 py-4 text-lg border-r border-border-primary">Utilities - Electric/Gas</td>
+                                <td class="px-4 py-4 font-mono font-semibold text-lg text-error-red text-right border-r border-border-primary">-$425.00</td>
+                                <td class="px-4 py-4 border-r border-border-primary">
+                                    <input id="note-6220" type="text" placeholder="Add accounting note..." class="professional-input w-48 text-sm" />
+                                    <span id="note-indicator-6220" class="note-indicator hidden">📝 NOTE</span>
+                                </td>
+                                <td class="px-4 py-4 text-center">
+                                    <button id="flag-6220" class="bg-warning-amber text-white px-3 py-1 text-xs font-bold uppercase hover:bg-orange-600 transition-colors">
+                                        FLAG ISSUE
+                                    </button>
+                                </td>
+                            </tr>
+
+                            <tr class="border-b border-border-primary table-hover">
+                                <td id="gl-6310" class="px-4 py-4 font-mono font-semibold text-lg border-r border-border-primary cursor-pointer">6310</td>
+                                <td class="px-4 py-4 text-lg border-r border-border-primary">Property Insurance</td>
+                                <td class="px-4 py-4 font-mono font-semibold text-lg text-error-red text-right border-r border-border-primary">-$285.00</td>
+                                <td class="px-4 py-4 border-r border-border-primary">
+                                    <input id="note-6310" type="text" placeholder="Add accounting note..." class="professional-input w-48 text-sm" />
+                                    <span id="note-indicator-6310" class="note-indicator hidden">📝 NOTE</span>
+                                </td>
+                                <td class="px-4 py-4 text-center">
+                                    <button id="flag-6310" class="bg-warning-amber text-white px-3 py-1 text-xs font-bold uppercase hover:bg-orange-600 transition-colors">
+                                        FLAG ISSUE
+                                    </button>
+                                </td>
+                            </tr>
+
+                            <tr class="border-b border-border-primary table-hover">
+                                <td id="gl-6410" class="px-4 py-4 font-mono font-semibold text-lg border-r border-border-primary cursor-pointer">6410</td>
+                                <td class="px-4 py-4 text-lg border-r border-border-primary">Property Management Fees</td>
+                                <td class="px-4 py-4 font-mono font-semibold text-lg text-error-red text-right border-r border-border-primary">-$510.00</td>
+                                <td class="px-4 py-4 border-r border-border-primary">
+                                    <input id="note-6410" type="text" placeholder="Add accounting note..." class="professional-input w-48 text-sm" />
+                                    <span id="note-indicator-6410" class="note-indicator hidden">📝 NOTE</span>
+                                </td>
+                                <td class="px-4 py-4 text-center">
+                                    <button id="flag-6410" class="bg-warning-amber text-white px-3 py-1 text-xs font-bold uppercase hover:bg-orange-600 transition-colors">
+                                        FLAG ISSUE
+                                    </button>
+                                </td>
+                            </tr>
+
+                            <!-- Totals Row -->
+                            <tr class="bg-gray-100 border-t-4 border-gray-400">
+                                <td class="px-4 py-4 font-bold text-lg border-r border-border-primary">TOTALS</td>
+                                <td class="px-4 py-4 font-bold text-lg border-r border-border-primary">Net Operating Income</td>
+                                <td class="px-4 py-4 font-mono font-bold text-xl text-success-green text-right border-r border-border-primary">+$7,080.00</td>
+                                <td class="px-4 py-4 border-r border-border-primary"></td>
+                                <td class="px-4 py-4 text-center">
+                                    <span class="bg-success-green text-white px-3 py-1 text-xs font-bold uppercase">VERIFIED</span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Export and Analysis Section -->
+        <div class="grid grid-cols-2 gap-6 mb-8">
+            <!-- Export Controls -->
+            <div class="bg-surface-bg border-2 border-border-primary">
+                <div class="bg-gray-700 text-white px-6 py-4 font-bold text-sm uppercase tracking-wider">
+                    Export & Reporting
+                </div>
+                <div class="p-6 space-y-4">
+                    <!-- Financial documents and business meeting -->
+                    <img src="https://images.unsplash.com/photo-1554224155-6726b3ff858f?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=800&h=200" alt="Financial documents and business meeting" class="w-full h-32 object-cover border border-border-primary mb-4" />
+                    
+                    <div class="space-y-3">
+                        <button id="export-accounting" class="w-full bg-accent-blue text-white px-6 py-4 font-bold text-sm uppercase tracking-wider hover:bg-blue-600 transition-colors">
+                            EXPORT ACCOUNTING PACKAGE
+                        </button>
+                        <button id="export-lender" class="w-full bg-surface-bg text-text-primary border-2 border-border-accent px-6 py-4 font-bold text-sm uppercase tracking-wider hover:bg-gray-100 transition-colors">
+                            EXPORT LENDER PACKAGE
+                        </button>
+                        <button id="export-notes" class="w-full bg-indicator-note text-white px-6 py-4 font-bold text-sm uppercase tracking-wider hover:bg-purple-700 transition-colors">
+                            EXPORT NOTES & ACTION ITEMS
+                        </button>
+                        <div class="pt-4 border-t border-border-primary">
+                            <div class="text-sm text-text-muted mb-2">LAST EXPORT</div>
+                            <div class="font-mono text-sm">December 15, 2024 - 14:32 EST</div>
+                            <div class="text-sm text-success-green font-semibold">Accounting Package - Completed</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Variance Analysis -->
+            <div class="bg-surface-bg border-2 border-border-primary">
+                <div class="bg-gray-700 text-white px-6 py-4 font-bold text-sm uppercase tracking-wider">
+                    Operational Variance Analysis
+                </div>
+                <div class="p-6">
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between py-3 border-b border-border-primary">
+                            <div>
+                                <div class="font-semibold text-text-primary text-lg">Water/Sewer Expenses</div>
+                                <div class="text-sm text-text-muted">vs. Previous Month</div>
+                            </div>
+                            <div class="text-right">
+                                <div class="font-mono font-bold text-lg text-error-red">+47%</div>
+                                <span class="alert-indicator">⚠️ ALERT</span>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center justify-between py-3 border-b border-border-primary">
+                            <div>
+                                <div class="font-semibold text-text-primary text-lg">Maintenance Costs</div>
+                                <div class="text-sm text-text-muted">vs. Budget</div>
+                            </div>
+                            <div class="text-right">
+                                <div class="font-mono font-bold text-lg text-error-red">+23%</div>
+                                {/*<span class="alert-indicator">⚠️ WATCH</span>*/}
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center justify-between py-3 border-b border-border-primary">
+                            <div>
+                                <div class="font-semibold text-text-primary text-lg">Occupancy Rate</div>
+                                <div class="text-sm text-text-muted">Current vs. Target</div>
+                            </div>
+                            <div class="text-right">
+                                <div class="font-mono font-bold text-lg text-success-green">96.7%</div>
+                                <span class="bg-success-green text-white px-2 py-1 text-xs font-bold uppercase">ON TARGET</span>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center justify-between py-3">
+                            <div>
+                                <div class="font-semibold text-text-primary text-lg">Rent Collection</div>
+                                <div class="text-sm text-text-muted">Month-to-Date</div>
+                            </div>
+                            <div class="text-right">
+                                <div class="font-mono font-bold text-lg text-success-green">98.5%</div>
+                                <span class="bg-success-green text-white px-2 py-1 text-xs font-bold uppercase">EXCELLENT</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="bg-surface-bg border-t-2 border-border-primary px-6 py-4">
+            <div class="flex justify-between items-center text-sm text-text-muted">
+                <div>© 2024 Stanton Management LLC - Property Dashboard v2.1</div>
+                <div>Last Updated: December 15, 2024 - 15:45 EST | Next Review: December 30, 2024</div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- JavaScript for Interactive Features -->
+    <script>
+        (function() {
+            let clickedElement = null;
+            let clickTimer = null;
+            
+            // Click highlighting system
+            function handleClick(elementId) {
+                // Clear previous highlight
+                if (clickedElement && clickedElement !== elementId) {
+                    const prevElement = document.getElementById(clickedElement);
+                    if (prevElement) {
+                        prevElement.classList.remove('click-highlight');
+                    }
+                }
+                
+                // Clear existing timer
+                if (clickTimer) {
+                    clearTimeout(clickTimer);
+                }
+                
+                // Apply highlight to clicked element
+                const element = document.getElementById(elementId);
+                if (element) {
+                    element.classList.add('click-highlight');
+                    clickedElement = elementId;
+                    
+                    // Remove highlight after 5 seconds
+                    clickTimer = setTimeout(() => {
+                        element.classList.remove('click-highlight');
+                        clickedElement = null;
+                        clickTimer = null;
+                    }, 5000);
+                }
+            }
+            
+            // Portfolio navigation click handlers
+            document.getElementById('portfolio-all').addEventListener('click', () => handleClick('portfolio-all'));
+            document.getElementById('portfolio-hartford1').addEventListener('click', () => handleClick('portfolio-hartford1'));
+            document.getElementById('portfolio-southend').addEventListener('click', () => handleClick('portfolio-southend'));
+            document.getElementById('portfolio-northend').addEventListener('click', () => handleClick('portfolio-northend'));
+            
+            // GL account click handlers
+            const glAccounts = ['gl-4105', 'gl-4110', 'gl-6110', 'gl-6210', 'gl-6220', 'gl-6310', 'gl-6410'];
+            glAccounts.forEach(accountId => {
+                const element = document.getElementById(accountId);
+                if (element) {
+                    element.addEventListener('click', () => handleClick(accountId));
+                }
+            });
+            
+            // Note-taking functionality
+            const noteInputs = document.querySelectorAll('input[id^="note-"]');
+            noteInputs.forEach(input => {
+                input.addEventListener('blur', function() {
+                    const accountId = this.id.replace('note-', '');
+                    const indicatorId = `note-indicator-${accountId}`;
+                    const indicator = document.getElementById(indicatorId);
+                    
+                    if (this.value.trim() !== '' && indicator) {
+                        indicator.classList.remove('hidden');
+                    } else if (indicator) {
+                        indicator.classList.add('hidden');
+                    }
+                });
+                
+                input.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        this.blur();
+                        // TODO: Save note to database
+                        console.log('Note saved:', this.value);
+                    }
+                });
+            });
+            
+            // Flag button functionality
+            const flagButtons = document.querySelectorAll('button[id^="flag-"]');
+            flagButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const accountId = this.id.replace('flag-', '');
+                    
+                    if (this.textContent === 'FLAG ISSUE') {
+                        this.textContent = 'FLAGGED';
+                        this.classList.remove('bg-warning-amber', 'hover:bg-orange-600');
+                        this.classList.add('bg-error-red', 'hover:bg-red-700');
+                        
+                        // TODO: Create action item
+                        console.log('Action item created for GL account:', accountId);
+                    } else {
+                        this.textContent = 'FLAG ISSUE';
+                        this.classList.remove('bg-error-red', 'hover:bg-red-700');
+                        this.classList.add('bg-warning-amber', 'hover:bg-orange-600');
+                        
+                        // TODO: Remove action item
+                        console.log('Action item removed for GL account:', accountId);
+                    }
+                    
+                    handleClick(this.id);
+                });
+            });
+            
+            // Export button functionality
+            document.getElementById('export-excel-btn').addEventListener('click', function() {
+                handleClick(this.id);
+                // TODO: Generate Excel export
+                console.log('Excel export initiated');
+                alert('Excel export functionality will be implemented with real data processing');
+            });
+            
+            document.getElementById('export-pdf-btn').addEventListener('click', function() {
+                handleClick(this.id);
+                // TODO: Generate PDF export  
+                console.log('PDF export initiated');
+                alert('PDF export functionality will be implemented with report generation');
+            });
+            
+            document.getElementById('export-accounting').addEventListener('click', function() {
+                handleClick(this.id);
+                // TODO: Generate accounting package
+                console.log('Accounting package export initiated');
+                alert('Accounting package will include all notes, action items, and flagged accounts');
+            });
+            
+            document.getElementById('export-lender').addEventListener('click', function() {
+                handleClick(this.id);
+                // TODO: Generate lender package
+                console.log('Lender package export initiated');
+                alert('Lender package will include clean financial statements without notes');
+            });
+            
+            document.getElementById('export-notes').addEventListener('click', function() {
+                handleClick(this.id);
+                // TODO: Export notes and action items
+                console.log('Notes and action items export initiated');
+                alert('Notes and action items will be exported to Excel format');
+            });
+            
+            document.getElementById('file-upload-btn').addEventListener('click', function() {
+                handleClick(this.id);
+                // TODO: Implement file upload functionality
+                console.log('File upload initiated');
+                alert('Excel file upload will process Stanton Management monthly review files');
+            });
+        })();
+    </script>
+</body>
+</html>

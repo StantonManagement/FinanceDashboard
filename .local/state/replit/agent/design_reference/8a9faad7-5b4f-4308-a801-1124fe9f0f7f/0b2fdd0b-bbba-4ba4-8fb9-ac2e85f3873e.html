@@ -1,0 +1,645 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stanton Management LLC - Property Management Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                fontFamily: {
+                    'inter': ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+                    'mono': ['JetBrains Mono', 'SF Mono', 'Monaco', 'Cascadia Code', 'monospace']
+                },
+                colors: {
+                    'bg-primary': '#fafbfc',
+                    'bg-surface': '#ffffff',
+                    'bg-accent': '#f8fafc',
+                    'text-primary': '#1a1d21',
+                    'text-secondary': '#404854',
+                    'text-muted': '#6b7280',
+                    'border-primary': '#d1d5db',
+                    'border-accent': '#cbd5e1',
+                    'accent-blue': '#3b82f6',
+                    'success-green': '#059669',
+                    'warning-amber': '#d97706',
+                    'error-red': '#dc2626',
+                    'highlight-bg': '#fef08a',
+                    'highlight-border': '#f59e0b',
+                    'indicator-note': '#8b5cf6',
+                    'indicator-edit': '#06b6d4',
+                    'indicator-alert': '#ef4444'
+                }
+            }
+        }
+    };
+    </script>
+    <style>
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+        }
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(59, 130, 246, 0.4);
+        }
+        .table-header {
+            background: linear-gradient(135deg, #374151, #4b5563);
+        }
+        .click-highlight {
+            background: #fef08a !important;
+            border: 3px solid #f59e0b !important;
+            transform: scale(1.02) !important;
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4) !important;
+            transition: all 0.15s ease-out !important;
+            z-index: 10 !important;
+            position: relative !important;
+        }
+        .note-indicator {
+            background: #8b5cf6;
+            color: white;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 4px;
+            margin-left: 8px;
+            text-transform: uppercase;
+            box-shadow: 0 2px 4px rgba(139, 92, 246, 0.3);
+        }
+        .alert-indicator {
+            background: #ef4444;
+            color: white;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 4px;
+            animation: pulse 2s infinite;
+            text-transform: uppercase;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        .portfolio-item.active {
+            background: #dbeafe;
+            border-left: 4px solid #3b82f6;
+        }
+        .data-table {
+            border-collapse: separate;
+            border-spacing: 0;
+            border: 2px solid #d1d5db;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+        .table-cell:hover {
+            background: #f8fafc;
+        }
+    </style>
+</head>
+<body class="font-inter bg-bg-primary min-h-screen">
+    <!-- Header -->
+    <header class="bg-bg-surface border-b-2 border-border-primary shadow-sm">
+        <div class="max-w-7xl mx-auto px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <i class="fas fa-building text-accent-blue text-3xl"></i>
+                    <div>
+                        <h1 class="text-2xl font-bold text-text-primary tracking-wide">STANTON MANAGEMENT LLC</h1>
+                        <p class="text-sm text-text-muted font-medium tracking-wide">PROPERTY MANAGEMENT DASHBOARD</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <!-- Modern property management office with professionals reviewing documents -->
+                    <img src="https://images.unsplash.com/photo-1560472354-b33ff0c44a43?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=100&h=100" alt="Property management office" class="w-12 h-12 rounded-full object-cover border-2 border-border-accent">
+                    <div class="text-right">
+                        <p class="text-sm font-semibold text-text-primary">Monthly Review</p>
+                        <p class="text-xs text-text-muted">December 2024</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="max-w-7xl mx-auto px-6 py-6">
+        <!-- File Upload Section -->
+        <div class="bg-bg-surface rounded-lg border-2 border-border-accent p-6 mb-6 shadow-sm">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-bold text-text-primary tracking-wide">EXCEL FILE PROCESSING</h2>
+                <div class="flex items-center space-x-3">
+                    <!-- Financial spreadsheets and reports on a desk -->
+                    <img src="https://images.unsplash.com/photo-1554224155-6726b3ff858f?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=80&h=60" alt="Financial spreadsheets" class="w-16 h-12 rounded object-cover border border-border-primary">
+                    <div class="text-center">
+                        <p class="text-xs text-text-muted font-semibold">LAST UPLOAD</p>
+                        <p class="text-sm font-mono text-text-secondary">Dec 15, 2024</p>
+                    </div>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="border-2 border-dashed border-border-accent rounded-lg p-4 text-center cursor-pointer hover:border-accent-blue transition-colors" onclick="handleClick('file-upload')">
+                    <i class="fas fa-upload text-2xl text-accent-blue mb-2"></i>
+                    <p class="text-sm font-semibold text-text-primary">Upload Monthly Review</p>
+                    <p class="text-xs text-text-muted">Excel (.xlsx) files only</p>
+                </div>
+                <div class="bg-bg-accent rounded-lg p-4">
+                    <h3 class="text-sm font-bold text-text-primary mb-2">PROCESSING STATUS</h3>
+                    <div class="space-y-2 text-xs">
+                        <div class="flex justify-between">
+                            <span class="text-text-secondary">>>Balance Sheet</span>
+                            <i class="fas fa-check-circle text-success-green"></i>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-text-secondary">>>LastMnth P&L</span>
+                            <i class="fas fa-check-circle text-success-green"></i>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-text-secondary">>>T12 Performance</span>
+                            <i class="fas fa-check-circle text-success-green"></i>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-text-secondary">Investments (Manual)</span>
+                            <i class="fas fa-exclamation-triangle text-warning-amber"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-accent-blue bg-opacity-10 rounded-lg p-4">
+                    <h3 class="text-sm font-bold text-text-primary mb-2">DATA HIERARCHY</h3>
+                    <div class="space-y-1 text-xs text-text-secondary">
+                        <p><i class="fas fa-arrow-right text-accent-blue mr-1"></i> API Data (>> prefixed)</p>
+                        <p><i class="fas fa-arrow-right text-warning-amber mr-1"></i> Manual Overrides</p>
+                        <p><i class="fas fa-arrow-right text-text-muted mr-1"></i> Historical Backup</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Portfolio Navigation -->
+        <div class="bg-bg-surface rounded-lg border-2 border-border-accent p-6 mb-6 shadow-sm">
+            <h2 class="text-xl font-bold text-text-primary tracking-wide mb-4">PORTFOLIO SELECTION</h2>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-2 bg-border-primary p-1 rounded-lg">
+                <div class="portfolio-item active bg-bg-surface p-5 cursor-pointer transition-all duration-150 rounded" onclick="handleClick('portfolio-all')">
+                    <div class="text-center">
+                        <p class="text-lg font-bold text-text-primary">ALL PORTFOLIOS</p>
+                        <p class="text-sm text-text-secondary font-mono">109 Units</p>
+                        <p class="text-xs text-text-muted">$985K NOI</p>
+                    </div>
+                </div>
+                <div class="portfolio-item bg-bg-surface p-5 cursor-pointer transition-all duration-150 rounded" onclick="handleClick('portfolio-hartford')">
+                    <div class="text-center">
+                        <p class="text-lg font-bold text-text-primary">HARTFORD 1</p>
+                        <p class="text-sm text-text-secondary font-mono">6 Units</p>
+                        <p class="text-xs text-text-muted">$85K NOI</p>
+                        <span class="note-indicator">ACTIVE</span>
+                    </div>
+                </div>
+                <div class="portfolio-item bg-bg-surface p-5 cursor-pointer transition-all duration-150 rounded" onclick="handleClick('portfolio-south')">
+                    <div class="text-center">
+                        <p class="text-lg font-bold text-text-primary">SOUTH END</p>
+                        <p class="text-sm text-text-secondary font-mono">50 Units</p>
+                        <p class="text-xs text-text-muted">$425K NOI</p>
+                    </div>
+                </div>
+                <div class="portfolio-item bg-bg-surface p-5 cursor-pointer transition-all duration-150 rounded" onclick="handleClick('portfolio-north')">
+                    <div class="text-center">
+                        <p class="text-lg font-bold text-text-primary">NORTH END</p>
+                        <p class="text-sm text-text-secondary font-mono">15 Units</p>
+                        <p class="text-xs text-text-muted">$125K NOI</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hartford 1 Property Details -->
+        <div class="bg-bg-surface rounded-lg border-2 border-border-accent p-6 mb-6 shadow-sm">
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <h2 class="text-2xl font-bold text-text-primary tracking-wide">HARTFORD 1 - S0010</h2>
+                    <p class="text-lg text-text-secondary font-semibold">228 Maple Street</p>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <!-- Business professionals in a meeting reviewing financial documents -->
+                    <img src="https://images.unsplash.com/photo-1559136555-9303baea8ebd?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=120&h=80" alt="Business meeting presentation" class="w-24 h-16 rounded object-cover border border-border-primary">
+                    <div class="text-right">
+                        <p class="text-sm font-bold text-success-green">12.2% CAP RATE</p>
+                        <p class="text-xs text-text-muted">6 Units • $85K NOI</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Property Metrics -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <div class="bg-bg-accent rounded-lg p-4 text-center">
+                    <p class="text-2xl font-bold font-mono text-success-green">$1,700</p>
+                    <p class="text-sm text-text-muted font-semibold">AVG RENT/UNIT</p>
+                </div>
+                <div class="bg-bg-accent rounded-lg p-4 text-center">
+                    <p class="text-2xl font-bold font-mono text-text-primary">96.7%</p>
+                    <p class="text-sm text-text-muted font-semibold">OCCUPANCY</p>
+                </div>
+                <div class="bg-bg-accent rounded-lg p-4 text-center">
+                    <p class="text-2xl font-bold font-mono text-warning-amber">$425</p>
+                    <p class="text-sm text-text-muted font-semibold">OPEX/UNIT</p>
+                    <span class="alert-indicator">WATCH</span>
+                </div>
+                <div class="bg-bg-accent rounded-lg p-4 text-center">
+                    <p class="text-2xl font-bold font-mono text-text-primary">$7,080</p>
+                    <p class="text-sm text-text-muted font-semibold">MONTHLY NOI</p>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex items-center space-x-4 mb-6">
+                <button class="btn-primary text-white px-6 py-3 rounded-lg font-bold text-sm tracking-wide" onclick="handleClick('export-accounting')">
+                    <i class="fas fa-file-excel mr-2"></i>EXPORT ACCOUNTING
+                </button>
+                <button class="bg-bg-surface border-2 border-border-accent text-text-primary px-6 py-3 rounded-lg font-bold text-sm tracking-wide hover:bg-bg-accent transition-colors" onclick="handleClick('export-lender')">
+                    <i class="fas fa-file-pdf mr-2"></i>LENDER PACKAGE
+                </button>
+                <button class="bg-indicator-note text-white px-6 py-3 rounded-lg font-bold text-sm tracking-wide" onclick="handleClick('add-note')">
+                    <i class="fas fa-sticky-note mr-2"></i>ADD NOTE
+                </button>
+                <div class="ml-auto">
+                    <!-- Professional office setting with charts and documents -->
+                    <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=100&h=60" alt="Property management office" class="w-20 h-12 rounded object-cover border border-border-primary">
+                </div>
+            </div>
+        </div>
+
+        <!-- GL Account Data Table -->
+        <div class="bg-bg-surface rounded-lg border-2 border-border-accent p-6 mb-6 shadow-sm">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-xl font-bold text-text-primary tracking-wide">GL ACCOUNT ANALYSIS</h3>
+                <div class="flex items-center space-x-2">
+                    <!-- Multiple spreadsheets and financial documents -->
+                    <img src="https://images.unsplash.com/photo-1551836022-d5d88e9218df?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=80&h=60" alt="Financial spreadsheets" class="w-16 h-12 rounded object-cover border border-border-primary">
+                    <span class="text-xs text-text-muted font-semibold">DECEMBER 2024</span>
+                </div>
+            </div>
+            
+            <table class="data-table w-full">
+                <thead>
+                    <tr>
+                        <th class="table-header text-white py-4 px-3 text-center">GL ACCOUNT</th>
+                        <th class="table-header text-white py-4 px-3 text-center">DESCRIPTION</th>
+                        <th class="table-header text-white py-4 px-3 text-center">AMOUNT</th>
+                        <th class="table-header text-white py-4 px-3 text-center">PER UNIT</th>
+                        <th class="table-header text-white py-4 px-3 text-center">VARIANCE</th>
+                        <th class="table-header text-white py-4 px-3 text-center">NOTES</th>
+                        <th class="table-header text-white py-4 px-3 text-center">ACTION</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Revenue Accounts -->
+                    <tr class="border-b border-border-primary">
+                        <td class="py-4 px-3 text-center font-mono font-semibold text-text-primary cursor-pointer table-cell" onclick="handleClick('gl-4105')">4105</td>
+                        <td class="py-4 px-3 text-left text-text-secondary">Rental Income</td>
+                        <td class="py-4 px-3 text-right font-mono font-bold text-success-green">$10,200</td>
+                        <td class="py-4 px-3 text-right font-mono text-text-secondary">$1,700</td>
+                        <td class="py-4 px-3 text-center text-success-green font-semibold">+2.1%</td>
+                        <td class="py-4 px-3 text-center">
+                            <span class="note-indicator">📝 NOTE</span>
+                        </td>
+                        <td class="py-4 px-3 text-center">
+                            <button class="bg-warning-amber text-white px-3 py-1 rounded text-xs font-bold" onclick="handleClick('flag-4105')">FLAG</button>
+                        </td>
+                    </tr>
+                    
+                    <!-- Operating Expenses -->
+                    <tr class="border-b border-border-primary">
+                        <td class="py-4 px-3 text-center font-mono font-semibold text-text-primary cursor-pointer table-cell" onclick="handleClick('gl-6110')">6110</td>
+                        <td class="py-4 px-3 text-left text-text-secondary">Maintenance & Repairs</td>
+                        <td class="py-4 px-3 text-right font-mono font-bold text-error-red">($1,850)</td>
+                        <td class="py-4 px-3 text-right font-mono text-text-secondary">($308)</td>
+                        <td class="py-4 px-3 text-center text-error-red font-semibold">+15.3%</td>
+                        <td class="py-4 px-3 text-center">
+                            <span class="alert-indicator">⚠️ WATCH</span>
+                        </td>
+                        <td class="py-4 px-3 text-center">
+                            <button class="bg-error-red text-white px-3 py-1 rounded text-xs font-bold" onclick="handleClick('flag-6110')">FLAG</button>
+                        </td>
+                    </tr>
+                    
+                    <tr class="border-b border-border-primary">
+                        <td class="py-4 px-3 text-center font-mono font-semibold text-text-primary cursor-pointer table-cell" onclick="handleClick('gl-6120')">6120</td>
+                        <td class="py-4 px-3 text-left text-text-secondary">Utilities - Water/Sewer</td>
+                        <td class="py-4 px-3 text-right font-mono font-bold text-error-red">($720)</td>
+                        <td class="py-4 px-3 text-right font-mono text-text-secondary">($120)</td>
+                        <td class="py-4 px-3 text-center text-error-red font-semibold">+28.7%</td>
+                        <td class="py-4 px-3 text-center">
+                            <span class="alert-indicator">⚠️ URGENT</span>
+                        </td>
+                        <td class="py-4 px-3 text-center">
+                            <button class="bg-error-red text-white px-3 py-1 rounded text-xs font-bold" onclick="handleClick('flag-6120')">FLAG</button>
+                        </td>
+                    </tr>
+                    
+                    <tr class="border-b border-border-primary">
+                        <td class="py-4 px-3 text-center font-mono font-semibold text-text-primary cursor-pointer table-cell" onclick="handleClick('gl-6130')">6130</td>
+                        <td class="py-4 px-3 text-left text-text-secondary">Property Management</td>
+                        <td class="py-4 px-3 text-right font-mono font-bold text-text-primary">($510)</td>
+                        <td class="py-4 px-3 text-right font-mono text-text-secondary">($85)</td>
+                        <td class="py-4 px-3 text-center text-success-green font-semibold">-1.2%</td>
+                        <td class="py-4 px-3 text-center">—</td>
+                        <td class="py-4 px-3 text-center">
+                            <button class="bg-text-muted text-white px-3 py-1 rounded text-xs font-bold" onclick="handleClick('flag-6130')">FLAG</button>
+                        </td>
+                    </tr>
+                    
+                    <tr class="border-b border-border-primary">
+                        <td class="py-4 px-3 text-center font-mono font-semibold text-text-primary cursor-pointer table-cell" onclick="handleClick('gl-6140')">6140</td>
+                        <td class="py-4 px-3 text-left text-text-secondary">Insurance</td>
+                        <td class="py-4 px-3 text-right font-mono font-bold text-text-primary">($385)</td>
+                        <td class="py-4 px-3 text-right font-mono text-text-secondary">($64)</td>
+                        <td class="py-4 px-3 text-center text-success-green font-semibold">+0.5%</td>
+                        <td class="py-4 px-3 text-center">
+                            <span class="note-indicator">📝 NOTE</span>
+                        </td>
+                        <td class="py-4 px-3 text-center">
+                            <button class="bg-text-muted text-white px-3 py-1 rounded text-xs font-bold" onclick="handleClick('flag-6140')">FLAG</button>
+                        </td>
+                    </tr>
+                    
+                    <tr class="border-b border-border-primary">
+                        <td class="py-4 px-3 text-center font-mono font-semibold text-text-primary cursor-pointer table-cell" onclick="handleClick('gl-6150')">6150</td>
+                        <td class="py-4 px-3 text-left text-text-secondary">Property Taxes</td>
+                        <td class="py-4 px-3 text-right font-mono font-bold text-text-primary">($650)</td>
+                        <td class="py-4 px-3 text-right font-mono text-text-secondary">($108)</td>
+                        <td class="py-4 px-3 text-center text-success-green font-semibold">+1.8%</td>
+                        <td class="py-4 px-3 text-center">—</td>
+                        <td class="py-4 px-3 text-center">
+                            <button class="bg-text-muted text-white px-3 py-1 rounded text-xs font-bold" onclick="handleClick('flag-6150')">FLAG</button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <!-- Net Operating Income Summary -->
+            <div class="mt-6 bg-bg-accent rounded-lg p-4">
+                <div class="flex justify-between items-center">
+                    <span class="text-lg font-bold text-text-primary">NET OPERATING INCOME</span>
+                    <div class="text-right">
+                        <span class="text-2xl font-bold font-mono text-success-green">$6,085</span>
+                        <p class="text-sm text-text-muted">$1,014 per unit</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Items & Notes Panel -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <!-- Action Items -->
+            <div class="bg-bg-surface rounded-lg border-2 border-border-accent p-6 shadow-sm">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-bold text-text-primary tracking-wide">ACTION ITEMS</h3>
+                    <span class="bg-error-red text-white px-3 py-1 rounded-full text-xs font-bold">3 OPEN</span>
+                </div>
+                
+                <div class="space-y-3">
+                    <div class="border-l-4 border-error-red bg-error-red bg-opacity-10 p-3 rounded">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-sm font-semibold text-text-primary">Water/Sewer Spike Investigation</p>
+                                <p class="text-xs text-text-muted">GL 6120 - 28.7% variance</p>
+                                <p class="text-xs text-text-secondary mt-1">Check for leaks in units 3-4</p>
+                            </div>
+                            <span class="bg-error-red text-white px-2 py-1 rounded text-xs font-bold">HIGH</span>
+                        </div>
+                    </div>
+                    
+                    <div class="border-l-4 border-warning-amber bg-warning-amber bg-opacity-10 p-3 rounded">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-sm font-semibold text-text-primary">Maintenance Cost Review</p>
+                                <p class="text-xs text-text-muted">GL 6110 - $1,850 monthly</p>
+                                <p class="text-xs text-text-secondary mt-1">Verify contractor invoices</p>
+                            </div>
+                            <span class="bg-warning-amber text-white px-2 py-1 rounded text-xs font-bold">MED</span>
+                        </div>
+                    </div>
+                    
+                    <div class="border-l-4 border-accent-blue bg-accent-blue bg-opacity-10 p-3 rounded">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-sm font-semibold text-text-primary">Insurance Policy Review</p>
+                                <p class="text-xs text-text-muted">GL 6140 - Premium adjustment</p>
+                                <p class="text-xs text-text-secondary mt-1">Annual renewal documentation</p>
+                            </div>
+                            <span class="bg-accent-blue text-white px-2 py-1 rounded text-xs font-bold">LOW</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Notes -->
+            <div class="bg-bg-surface rounded-lg border-2 border-border-accent p-6 shadow-sm">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-bold text-text-primary tracking-wide">RECENT NOTES</h3>
+                    <!-- Professional financial analysis workspace -->
+                    <img src="https://images.unsplash.com/photo-1563986768609-322da13575f3?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=60&h=40" alt="Financial spreadsheets" class="w-12 h-8 rounded object-cover border border-border-primary">
+                </div>
+                
+                <div class="space-y-3">
+                    <div class="bg-bg-accent p-3 rounded border-l-4 border-indicator-note">
+                        <div class="flex justify-between items-start mb-2">
+                            <span class="text-xs font-bold text-indicator-note">RENTAL INCOME - GL 4105</span>
+                            <span class="text-xs text-text-muted">Dec 15, 10:30 AM</span>
+                        </div>
+                        <p class="text-sm text-text-secondary">Rent increase effective Jan 1st for units 2&4. Updated lease agreements filed.</p>
+                        <p class="text-xs text-text-muted mt-1">— Accounting Team</p>
+                    </div>
+                    
+                    <div class="bg-bg-accent p-3 rounded border-l-4 border-indicator-note">
+                        <div class="flex justify-between items-start mb-2">
+                            <span class="text-xs font-bold text-indicator-note">INSURANCE - GL 6140</span>
+                            <span class="text-xs text-text-muted">Dec 14, 3:45 PM</span>
+                        </div>
+                        <p class="text-sm text-text-secondary">Annual policy renewal processed. Premium increased 2.5% due to market conditions.</p>
+                        <p class="text-xs text-text-muted mt-1">— Property Manager</p>
+                    </div>
+                    
+                    <div class="bg-bg-accent p-3 rounded border-l-4 border-warning-amber">
+                        <div class="flex justify-between items-start mb-2">
+                            <span class="text-xs font-bold text-warning-amber">WATER/SEWER - GL 6120</span>
+                            <span class="text-xs text-text-muted">Dec 13, 9:15 AM</span>
+                        </div>
+                        <p class="text-sm text-text-secondary">Significant spike in water usage. Scheduled plumber inspection for this week.</p>
+                        <p class="text-xs text-text-muted mt-1">— Maintenance Coordinator</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Export & Meeting Section -->
+        <div class="bg-bg-surface rounded-lg border-2 border-border-accent p-6 shadow-sm">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-xl font-bold text-text-primary tracking-wide">EXPORT & REPORTING</h3>
+                <!-- Executive business meeting with financial presentations -->
+                <img src="https://images.unsplash.com/photo-1552664730-d307ca884978?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=120&h=80" alt="Business meeting presentation" class="w-24 h-16 rounded object-cover border border-border-primary">
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Accounting Package -->
+                <div class="bg-success-green bg-opacity-10 rounded-lg p-4 border-2 border-success-green border-opacity-30">
+                    <h4 class="text-lg font-bold text-text-primary mb-3">ACCOUNTING PACKAGE</h4>
+                    <div class="space-y-2 text-sm text-text-secondary mb-4">
+                        <p>✓ GL Account Analysis</p>
+                        <p>✓ Variance Reports</p>
+                        <p>✓ Action Items (3)</p>
+                        <p>✓ Cell Notes (5)</p>
+                    </div>
+                    <button class="btn-primary w-full text-white py-3 rounded-lg font-bold text-sm tracking-wide" onclick="handleClick('export-full-accounting')">
+                        <i class="fas fa-download mr-2"></i>GENERATE EXCEL
+                    </button>
+                </div>
+                
+                <!-- Lender Package -->
+                <div class="bg-accent-blue bg-opacity-10 rounded-lg p-4 border-2 border-accent-blue border-opacity-30">
+                    <h4 class="text-lg font-bold text-text-primary mb-3">LENDER SUBMISSION</h4>
+                    <div class="space-y-2 text-sm text-text-secondary mb-4">
+                        <p>✓ Clean Financial Statements</p>
+                        <p>✓ T12 Performance</p>
+                        <p>✓ Rent Roll Details</p>
+                        <p>✓ Property Metrics</p>
+                    </div>
+                    <button class="bg-accent-blue text-white w-full py-3 rounded-lg font-bold text-sm tracking-wide hover:bg-blue-600 transition-colors" onclick="handleClick('export-lender-package')">
+                        <i class="fas fa-file-pdf mr-2"></i>GENERATE PDF
+                    </button>
+                </div>
+                
+                <!-- Meeting Notes -->
+                <div class="bg-indicator-note bg-opacity-10 rounded-lg p-4 border-2 border-indicator-note border-opacity-30">
+                    <h4 class="text-lg font-bold text-text-primary mb-3">MEETING CAPTURE</h4>
+                    <div class="space-y-2 text-sm text-text-secondary mb-4">
+                        <p>✓ Screen Share Ready</p>
+                        <p>✓ Click Highlighting</p>
+                        <p>✓ Real-time Notes</p>
+                        <p>✓ Action Tracking</p>
+                    </div>
+                    <button class="bg-indicator-note text-white w-full py-3 rounded-lg font-bold text-sm tracking-wide hover:bg-purple-600 transition-colors" onclick="handleClick('start-meeting')">
+                        <i class="fas fa-video mr-2"></i>START MEETING
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-bg-surface border-t-2 border-border-primary mt-12 py-6">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="flex items-center justify-between">
+                <div class="text-sm text-text-muted">
+                    <p>© 2024 Stanton Management LLC • Property Management Dashboard</p>
+                    <p>Last Updated: December 15, 2024 • Version 3.1.2</p>
+                </div>
+                <div class="flex items-center space-x-4 text-xs text-text-muted">
+                    <span>• Excel Processing: ✓ Active</span>
+                    <span>• API Status: ✓ Connected</span>
+                    <span>• Data Sync: ✓ Current</span>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Click highlighting system with 5-second duration
+        let clickedElement = null;
+        let highlightTimeout = null;
+
+        function handleClick(elementId) {
+            // Remove existing highlight
+            if (clickedElement) {
+                const previousElement = document.querySelector(`[onclick*="${clickedElement}"]`);
+                if (previousElement) {
+                    previousElement.classList.remove('click-highlight');
+                }
+            }
+            
+            // Clear existing timeout
+            if (highlightTimeout) {
+                clearTimeout(highlightTimeout);
+            }
+            
+            // Apply new highlight
+            const currentElement = document.querySelector(`[onclick*="${elementId}"]`);
+            if (currentElement) {
+                currentElement.classList.add('click-highlight');
+                clickedElement = elementId;
+                
+                // Remove highlight after 5 seconds
+                highlightTimeout = setTimeout(() => {
+                    currentElement.classList.remove('click-highlight');
+                    clickedElement = null;
+                }, 5000);
+            }
+            
+            // Simulate functionality based on element type
+            switch(elementId) {
+                case 'file-upload':
+                    console.log('File upload dialog would open here');
+                    // TODO: Implement file upload with SheetJS processing
+                    break;
+                case 'export-accounting':
+                case 'export-full-accounting':
+                    console.log('Generating accounting export package...');
+                    // TODO: Implement Excel export with notes and action items
+                    break;
+                case 'export-lender':
+                case 'export-lender-package':
+                    console.log('Generating lender submission package...');
+                    // TODO: Implement PDF export for refinancing
+                    break;
+                case 'add-note':
+                    console.log('Note-taking interface would open here');
+                    // TODO: Implement note capture modal
+                    break;
+                case 'start-meeting':
+                    console.log('Meeting mode activated - enhanced screen sharing');
+                    // TODO: Implement meeting capture system
+                    break;
+                default:
+                    if (elementId.startsWith('gl-')) {
+                        console.log(`GL Account ${elementId.replace('gl-', '')} drill-down`);
+                        // TODO: Implement GL account detail modal
+                    } else if (elementId.startsWith('flag-')) {
+                        console.log(`Flagging issue for GL ${elementId.replace('flag-', '')}`);
+                        // TODO: Implement action item creation
+                    } else if (elementId.startsWith('portfolio-')) {
+                        console.log(`Switching to ${elementId.replace('portfolio-', '')} portfolio`);
+                        // TODO: Implement portfolio switching with data reload
+                    }
+                    break;
+            }
+        }
+
+        // Initialize page with proper focus management
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Stanton Management Dashboard initialized');
+            console.log('Ready for Excel file processing and portfolio management');
+            
+            // Add keyboard navigation support
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Tab') {
+                    // Enhance focus visibility for screen sharing
+                    setTimeout(() => {
+                        const focused = document.activeElement;
+                        if (focused && focused.classList.contains('table-cell')) {
+                            focused.style.outline = '3px solid #3b82f6';
+                        }
+                    }, 10);
+                }
+            });
+        });
+
+        // Simulate real-time data updates (in production, this would be WebSocket or polling)
+        setInterval(() => {
+            // TODO: Implement real-time data refresh for >> prefixed sheets
+            console.log('Data sync check - API connected');
+        }, 30000);
+    </script>
+</body>
+</html>

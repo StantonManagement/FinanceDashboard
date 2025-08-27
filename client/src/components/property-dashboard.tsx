@@ -29,6 +29,7 @@ export function PropertyDashboard({}: PropertyDashboardProps) {
   const [activeTab, setActiveTab] = useState('performance');
   const [clickedElements, setClickedElements] = useState<Set<string>>(new Set());
   const [cellNotes, setCellNotes] = useState<Record<string, string>>({});
+  const [dataSource, setDataSource] = useState<'excel' | 'supabase'>('supabase');
   
   // Column visibility states for different tables
   const [visibleColumns, setVisibleColumns] = useState({
@@ -74,25 +75,73 @@ export function PropertyDashboard({}: PropertyDashboardProps) {
     enabled: !!selectedPortfolio,
   });
 
+  // Conditional properties query based on data source
   const { data: properties = [] } = useQuery({
-    queryKey: ['/api/properties'],
+    queryKey: [dataSource === 'supabase' ? '/api/supabase/properties' : '/api/properties', currentPortfolio?.id],
     queryFn: async () => {
-      if (!currentPortfolio?.id) return [];
-      const response = await fetch(`/api/properties?portfolioId=${currentPortfolio.id}`);
-      if (!response.ok) throw new Error('Failed to fetch properties');
-      return response.json();
+      if (dataSource === 'supabase') {
+        const response = await fetch('/api/supabase/properties');
+        if (!response.ok) throw new Error('Failed to fetch Supabase properties');
+        return response.json();
+      } else {
+        if (!currentPortfolio?.id) return [];
+        const response = await fetch(`/api/properties?portfolioId=${currentPortfolio.id}`);
+        if (!response.ok) throw new Error('Failed to fetch properties');
+        return response.json();
+      }
     },
-    enabled: !!currentPortfolio?.id,
+    enabled: dataSource === 'supabase' || !!currentPortfolio?.id,
   });
 
   // Auto-select first property when portfolio changes
   useEffect(() => {
     if (properties.length > 0 && !selectedPropertyId) {
-      setSelectedPropertyId(properties[0].id);
+      if (dataSource === 'supabase') {
+        setSelectedPropertyId(properties[0].PropertyId?.toString());
+      } else {
+        setSelectedPropertyId(properties[0].id);
+      }
     }
-  }, [properties, selectedPropertyId]);
+  }, [properties, selectedPropertyId, dataSource]);
 
-  const selectedProperty = properties.find((p: Property) => p.id === selectedPropertyId) || properties[0];
+  const selectedProperty = dataSource === 'supabase' 
+    ? properties.find((p: any) => p.PropertyId?.toString() === selectedPropertyId) || properties[0]
+    : properties.find((p: Property) => p.id === selectedPropertyId) || properties[0];
+
+  // Supabase specific queries
+  const { data: supabaseFinancials } = useQuery({
+    queryKey: ['/api/supabase/properties', selectedProperty?.PropertyId || selectedProperty?.id, 'financials'],
+    queryFn: async () => {
+      const propertyId = selectedProperty?.PropertyId || selectedProperty?.id;
+      if (!propertyId) return null;
+      const response = await fetch(`/api/supabase/properties/${propertyId}/financials`);
+      if (!response.ok) throw new Error('Failed to fetch financials');
+      return response.json();
+    },
+    enabled: dataSource === 'supabase' && !!(selectedProperty?.PropertyId || selectedProperty?.id),
+  });
+
+  const { data: supabaseRentRoll } = useQuery({
+    queryKey: ['/api/supabase/properties', selectedProperty?.PropertyId || selectedProperty?.id, 'rent-roll'],
+    queryFn: async () => {
+      const propertyId = selectedProperty?.PropertyId || selectedProperty?.id;
+      if (!propertyId) return [];
+      const response = await fetch(`/api/supabase/properties/${propertyId}/rent-roll`);
+      if (!response.ok) throw new Error('Failed to fetch rent roll');
+      return response.json();
+    },
+    enabled: dataSource === 'supabase' && !!(selectedProperty?.PropertyId || selectedProperty?.id),
+  });
+
+  const { data: portfolioSummary } = useQuery({
+    queryKey: ['/api/supabase/portfolio-summary'],
+    queryFn: async () => {
+      const response = await fetch('/api/supabase/portfolio-summary');
+      if (!response.ok) throw new Error('Failed to fetch portfolio summary');
+      return response.json();
+    },
+    enabled: dataSource === 'supabase',
+  });
 
   const { data: glAccounts = [] } = useQuery({
     queryKey: ['/api/properties', selectedProperty?.id, 'gl-accounts'],
@@ -273,6 +322,41 @@ export function PropertyDashboard({}: PropertyDashboardProps) {
     toast({ title: 'Data refreshed', variant: 'default' });
   };
 
+  // Process existing Excel file
+  const processExistingExcel = async () => {
+    try {
+      const response = await fetch('/api/excel/process-existing', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Processing failed');
+      }
+
+      const result = await response.json();
+      console.log('Excel processing result:', result);
+      
+      // Refresh the data to show updated information
+      queryClient.invalidateQueries();
+      
+      toast({ 
+        title: 'Excel data processed successfully',
+        description: `Processed ${result.comprehensiveData.propertiesProcessed} properties with real financial data`,
+        variant: 'default' 
+      });
+    } catch (error) {
+      console.error('Excel processing error:', error);
+      toast({ 
+        title: 'Failed to process Excel file',
+        description: 'Check console for details',
+        variant: 'destructive' 
+      });
+    }
+  };
+
   // Column visibility toggle functions
   const toggleColumn = (tableType: string, column: string) => {
     setVisibleColumns(prev => ({
@@ -332,7 +416,22 @@ export function PropertyDashboard({}: PropertyDashboardProps) {
               Financial Analysis & Reporting Dashboard
             </div>
           </div>
-          <div className="flex gap-3">
+          <div className="flex gap-3 items-center">
+            {/* Data Source Toggle */}
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-gray-700 uppercase font-semibold">
+                Data Source:
+              </label>
+              <select 
+                value={dataSource} 
+                onChange={(e) => setDataSource(e.target.value as 'excel' | 'supabase')}
+                className="bg-white border border-gray-300 rounded px-2 py-1 text-xs font-semibold"
+              >
+                <option value="supabase">Supabase (AppFolio)</option>
+                <option value="excel">Excel Files</option>
+              </select>
+            </div>
+            
             <div className="relative">
               <input 
                 type="file" 
@@ -349,6 +448,14 @@ export function PropertyDashboard({}: PropertyDashboardProps) {
                 <Upload className="w-4 h-4 mr-2" />
                 UPLOAD EXCEL
               </Button>
+             {/*  <Button
+                onClick={processExistingExcel}
+                className="btn-institutional"
+                size="sm"
+              >
+                <RefreshCw className="w-4 h-4 mr-2" />
+                PROCESS EXISTINGS
+              </Button>*/}
             </div>
             <Button onClick={handleLenderPackageExport} className="btn-institutional" size="sm">
               <FileText className="w-4 h-4 mr-2" />
@@ -427,23 +534,34 @@ export function PropertyDashboard({}: PropertyDashboardProps) {
             </CardHeader>
             <CardContent className="p-0">
               <div className="grid grid-cols-3">
-                {properties.map((property) => (
-                  <button
-                    key={property.id}
-                    onClick={() => selectProperty(property.id)}
-                    className={`property-item border-r border-institutional-border p-4 text-left hover:bg-institutional-accent transition-all ${
-                      selectedPropertyId === property.id ? 'active bg-blue-50 border-l-4 border-blue-600' : ''
-                    }`}
-                  >
-                    <div className="text-sm font-bold text-institutional-black mb-1">
-                      {property.code}
-                    </div>
-                    <div className="text-xs text-gray-700 mb-2">{property.name}</div>
-                    <div className="text-xs text-gray-600">
-                      {property.units} Units • ${property.monthlyNOI?.toLocaleString()} NOI
-                    </div>
-                  </button>
-                ))}
+                {properties.map((property: any) => {
+                  const propertyKey = dataSource === 'supabase' ? property.PropertyId?.toString() : property.id;
+                  const propertyCode = dataSource === 'supabase' ? property.PropertyName : property.code;
+                  const propertyName = dataSource === 'supabase' ? property.PropertyAddress : property.name;
+                  
+                  return (
+                    <button
+                      key={propertyKey}
+                      onClick={() => selectProperty(propertyKey)}
+                      className={`property-item border-r border-institutional-border p-4 text-left hover:bg-institutional-accent transition-all ${
+                        selectedPropertyId === propertyKey ? 'active bg-blue-50 border-l-4 border-blue-600' : ''
+                      }`}
+                    >
+                      <div className="text-sm font-bold text-institutional-black mb-1">
+                        {propertyCode}
+                      </div>
+                      <div className="text-xs text-gray-700 mb-2">
+                        {dataSource === 'supabase' ? property.PropertyAddress : property.name}
+                      </div>
+                      <div className="text-xs text-gray-600">
+                        {dataSource === 'supabase' 
+                          ? `${property.PropertyType} Property`
+                          : `${property.units} Units • $${property.monthlyNOI?.toLocaleString()} NOI`
+                        }
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </CardContent>
           </Card>
@@ -622,10 +740,78 @@ export function PropertyDashboard({}: PropertyDashboardProps) {
                       </tr>
                     </thead>
                     <tbody>
-                      {glAccounts.map((account: GLAccount) => {
-                        const cellId = `gl-${account.code}`;
-                        const hasNote = notes.find((note: Note) => note.cellId === cellId);
-                        const isHighMaintenance = account.code === '6110';
+                      {dataSource === 'supabase' && supabaseFinancials ? (
+                        // Supabase financial data display
+                        <>
+                          <tr>
+                            <td className="font-mono-data font-semibold">4000</td>
+                            <td>Total Revenue</td>
+                            <td className="font-mono-data font-semibold text-success-green">
+                              +${supabaseFinancials.totalRevenue?.toLocaleString()}
+                            </td>
+                            <td className="text-center">
+                              <Badge className="text-[8px] font-bold px-1 py-0 h-4 bg-green-100 text-green-800">
+                                REV
+                              </Badge>
+                            </td>
+                            <td className="text-center">
+                              <Input 
+                                type="text" 
+                                placeholder="Add note..." 
+                                className="text-xs border-institutional-border h-6 px-2" 
+                              />
+                            </td>
+                            <td className="text-center space-x-1">
+                              <Button size="sm" className="btn-success h-6 px-2 text-[10px]">
+                                <MessageSquare className="w-3 h-3" />
+                              </Button>
+                            </td>
+                          </tr>
+                          <tr>
+                            <td className="font-mono-data font-semibold">6000</td>
+                            <td>Total Expenses</td>
+                            <td className="font-mono-data font-semibold text-red-600">
+                              -${supabaseFinancials.totalExpenses?.toLocaleString()}
+                            </td>
+                            <td className="text-center">
+                              <Badge className="text-[8px] font-bold px-1 py-0 h-4 bg-red-100 text-red-800">
+                                EXP
+                              </Badge>
+                            </td>
+                            <td className="text-center">
+                              <Input 
+                                type="text" 
+                                placeholder="Add note..." 
+                                className="text-xs border-institutional-border h-6 px-2" 
+                              />
+                            </td>
+                            <td className="text-center space-x-1">
+                              <Button size="sm" className="btn-success h-6 px-2 text-[10px]">
+                                <MessageSquare className="w-3 h-3" />
+                              </Button>
+                            </td>
+                          </tr>
+                          <tr className="bg-institutional-accent font-bold">
+                            <td className="font-mono-data font-semibold">NOI</td>
+                            <td>Net Operating Income</td>
+                            <td className="font-mono-data font-semibold text-institutional-black">
+                              ${supabaseFinancials.netOperatingIncome?.toLocaleString()}
+                            </td>
+                            <td className="text-center">
+                              <Badge className="text-[8px] font-bold px-1 py-0 h-4 bg-blue-100 text-blue-800">
+                                NOI
+                              </Badge>
+                            </td>
+                            <td></td>
+                            <td></td>
+                          </tr>
+                        </>
+                      ) : (
+                        // Excel-based GL accounts display
+                        glAccounts.map((account: GLAccount) => {
+                          const cellId = `gl-${account.code}`;
+                          const hasNote = notes.find((note: Note) => note.cellId === cellId);
+                          const isHighMaintenance = account.code === '6110';
                         
                         return (
                           <tr key={account.id}>
@@ -694,7 +880,8 @@ export function PropertyDashboard({}: PropertyDashboardProps) {
                             </td>
                           </tr>
                         );
-                      })}
+                      })
+                      )}
                     </tbody>
                   </table>
                 </div>

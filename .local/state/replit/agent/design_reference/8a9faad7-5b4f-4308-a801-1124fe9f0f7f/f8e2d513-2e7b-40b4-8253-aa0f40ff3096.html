@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Property Management Dashboard - Stanton Management LLC</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'inter': ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+                        'mono': ['JetBrains Mono', 'SF Mono', 'Monaco', 'Cascadia Code', 'monospace']
+                    },
+                    colors: {
+                        'primary-bg': '#fafbfc',
+                        'surface-bg': '#ffffff',
+                        'text-primary': '#1a1d21',
+                        'text-secondary': '#404854',
+                        'text-muted': '#6b7280',
+                        'border-primary': '#d1d5db',
+                        'border-accent': '#cbd5e1',
+                        'accent-blue': '#3b82f6',
+                        'success-green': '#059669',
+                        'warning-amber': '#d97706',
+                        'error-red': '#dc2626',
+                        'highlight-bg': '#fef08a',
+                        'highlight-border': '#f59e0b',
+                        'header-gray': '#374151'
+                    }
+                }
+            }
+        };
+    </script>
+</head>
+<body class="bg-primary-bg font-inter">
+    <!-- Main Container -->
+    <div class="max-w-[1600px] mx-auto p-6">
+        
+        <!-- Header Section -->
+        <!-- @COMPONENT: AppHeader [title, user, portfolio selection] -->
+        <header class="bg-surface-bg border-2 border-border-primary mb-6">
+            <div class="bg-header-gray px-6 py-4 flex justify-between items-center">
+                <h1 class="text-white text-xl font-bold tracking-wider uppercase">
+                    Property Management Dashboard - Stanton Management LLC
+                </h1>
+                <div class="text-white text-sm font-medium">
+                    Last Updated: <span class="font-mono">2024-01-15 14:30:15</span>
+                </div>
+            </div>
+            
+            <!-- File Upload Section -->
+            <div class="p-6 border-b border-border-primary">
+                <div class="flex items-center gap-4">
+                    <div class="flex-1">
+                        <label class="text-text-primary text-lg font-semibold mb-2 block">
+                            MONTHLY REVIEW FILE UPLOAD
+                        </label>
+                        <input type="file" accept=".xlsx,.xls" class="w-full border-2 border-border-primary p-3 text-lg font-medium bg-surface-bg text-text-primary file:bg-accent-blue file:text-white file:border-0 file:px-4 file:py-2 file:mr-4 file:font-semibold file:uppercase file:text-sm" />
+                        <!-- TODO: Implement Excel file processing with SheetJS -->
+                    </div>
+                    <button class="bg-accent-blue text-white px-6 py-3 font-bold text-sm uppercase tracking-wide hover:bg-blue-600 transition-all duration-200">
+                        PROCESS FILE
+                    </button>
+                </div>
+                <div class="text-text-muted text-base mt-2">
+                    Upload Monthly Review Excel file with >> prefixed sheets (Balance, LastMnth, T12, Prop Direct, Rent Roll)
+                </div>
+            </div>
+        </header>
+        <!-- @END_COMPONENT: AppHeader -->
+
+        <!-- Portfolio Navigation -->
+        <!-- @COMPONENT: PortfolioNav [portfolios, activePortfolio, onPortfolioChange] -->
+        <section class="bg-surface-bg border-2 border-border-primary mb-6">
+            <div class="bg-header-gray px-6 py-4">
+                <h2 class="text-white text-lg font-bold tracking-wide uppercase">Portfolio Selection</h2>
+            </div>
+            
+            <div class="grid grid-cols-4 border-collapse" id="portfolio-grid">
+                <!-- Portfolio: All Properties -->
+                <div class="bg-surface-bg border border-border-primary p-5 cursor-pointer transition-all duration-150 hover:bg-gray-50" onclick="selectPortfolio('all', this)">
+                    <div class="text-text-primary text-lg font-semibold mb-2">ALL PORTFOLIOS</div>
+                    <table class="w-full text-lg">
+                        <tr><td class="text-text-primary">Total Units</td><td class="text-right font-mono text-text-primary font-semibold">109</td></tr>
+                        <tr><td class="text-text-primary">Monthly NOI</td><td class="text-right font-mono text-success-green font-semibold">$82,080</td></tr>
+                        <tr><td class="text-text-primary">Occupancy</td><td class="text-right font-mono text-text-primary font-semibold">94.5%</td></tr>
+                        <tr><td class="text-text-primary">Cap Rate</td><td class="text-right font-mono text-text-primary font-semibold">9.6%</td></tr>
+                    </table>
+                </div>
+
+                <!-- Portfolio: Hartford 1 (Active) -->
+                <div class="bg-blue-50 border border-border-primary border-l-4 border-l-accent-blue p-5 cursor-pointer transition-all duration-150" onclick="selectPortfolio('hartford1', this)">
+                    <div class="text-text-primary text-lg font-semibold mb-2">HARTFORD 1</div>
+                    <table class="w-full text-lg">
+                        <tr><td class="text-text-primary">Units</td><td class="text-right font-mono text-text-primary font-semibold">6</td></tr>
+                        <tr><td class="text-text-primary">Monthly NOI</td><td class="text-right font-mono text-success-green font-semibold">$7,080</td></tr>
+                        <tr><td class="text-text-primary">Avg Rent/Unit</td><td class="text-right font-mono text-text-primary font-semibold">$1,700</td></tr>
+                        <tr><td class="text-text-primary">OpEx/Unit</td><td class="text-right font-mono text-text-primary font-semibold">$425</td></tr>
+                    </table>
+                </div>
+
+                <!-- Portfolio: South End -->
+                <div class="bg-surface-bg border border-border-primary p-5 cursor-pointer transition-all duration-150 hover:bg-gray-50" onclick="selectPortfolio('southend', this)">
+                    <div class="text-text-primary text-lg font-semibold mb-2">SOUTH END</div>
+                    <table class="w-full text-lg">
+                        <tr><td class="text-text-primary">Units</td><td class="text-right font-mono text-text-primary font-semibold">50</td></tr>
+                        <tr><td class="text-text-primary">Monthly NOI</td><td class="text-right font-mono text-success-green font-semibold">$38,250</td></tr>
+                        <tr><td class="text-text-primary">Avg Rent/Unit</td><td class="text-right font-mono text-text-primary font-semibold">$1,525</td></tr>
+                        <tr><td class="text-text-primary">OpEx/Unit</td><td class="text-right font-mono text-text-primary font-semibold">$390</td></tr>
+                    </table>
+                </div>
+
+                <!-- Portfolio: North End -->
+                <div class="bg-surface-bg border border-border-primary p-5 cursor-pointer transition-all duration-150 hover:bg-gray-50" onclick="selectPortfolio('northend', this)">
+                    <div class="text-text-primary text-lg font-semibold mb-2">NORTH END</div>
+                    <table class="w-full text-lg">
+                        <tr><td class="text-text-primary">Units</td><td class="text-right font-mono text-text-primary font-semibold">15</td></tr>
+                        <tr><td class="text-text-primary">Monthly NOI</td><td class="text-right font-mono text-success-green font-semibold">$11,475</td></tr>
+                        <tr><td class="text-text-primary">Avg Rent/Unit</td><td class="text-right font-mono text-text-primary font-semibold">$1,450</td></tr>
+                        <tr><td class="text-text-primary">OpEx/Unit</td><td class="text-right font-mono text-text-primary font-semibold">$485</td></tr>
+                    </table>
+                </div>
+            </div>
+        </section>
+        <!-- @END_COMPONENT: PortfolioNav -->
+
+        <!-- Hartford 1 Property Detail -->
+        <!-- @COMPONENT: PropertyDetail [property, glAccounts, notes, actionItems] -->
+        <section class="bg-surface-bg border-2 border-border-primary mb-6">
+            <div class="bg-header-gray px-6 py-4 flex justify-between items-center">
+                <h2 class="text-white text-lg font-bold tracking-wide uppercase">S0010 - 228 Maple Street (Hartford 1)</h2>
+                <div class="flex gap-3">
+                    <button class="bg-accent-blue text-white px-4 py-2 text-sm font-bold uppercase tracking-wide hover:bg-blue-600 transition-all duration-200">
+                        <i class="fas fa-download mr-2"></i>Export Package
+                    </button>
+                    <button class="bg-surface-bg text-text-primary border-2 border-border-accent px-4 py-2 text-sm font-bold uppercase tracking-wide hover:bg-gray-100 transition-all duration-200">
+                        <i class="fas fa-file-excel mr-2"></i>Lender Report
+                    </button>
+                </div>
+            </div>
+
+            <!-- Property Summary -->
+            <div class="p-6 border-b border-border-primary">
+                <div class="grid grid-cols-6 gap-8 text-center">
+                    <div>
+                        <div class="text-text-muted text-sm font-semibold uppercase tracking-wide mb-1">Property Type</div>
+                        <div class="text-text-primary text-lg font-semibold">Multi-Family</div>
+                    </div>
+                    <div>
+                        <div class="text-text-muted text-sm font-semibold uppercase tracking-wide mb-1">Total Units</div>
+                        <div class="text-text-primary text-lg font-mono font-bold">6</div>
+                    </div>
+                    <div>
+                        <div class="text-text-muted text-sm font-semibold uppercase tracking-wide mb-1">Occupied Units</div>
+                        <div class="text-success-green text-lg font-mono font-bold">6</div>
+                    </div>
+                    <div>
+                        <div class="text-text-muted text-sm font-semibold uppercase tracking-wide mb-1">Occupancy Rate</div>
+                        <div class="text-success-green text-lg font-mono font-bold">100.0%</div>
+                    </div>
+                    <div>
+                        <div class="text-text-muted text-sm font-semibold uppercase tracking-wide mb-1">Avg Rent/Unit</div>
+                        <div class="text-text-primary text-lg font-mono font-bold">$1,700</div>
+                    </div>
+                    <div>
+                        <div class="text-text-muted text-sm font-semibold uppercase tracking-wide mb-1">Monthly NOI</div>
+                        <div class="text-success-green text-lg font-mono font-bold">$7,080</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <!-- @END_COMPONENT: PropertyDetail -->
+
+        <!-- GL Account Detail Table -->
+        <!-- @COMPONENT: GLAccountTable [glAccounts, notes, onAddNote, onFlagIssue] -->
+        <section class="bg-surface-bg border-2 border-border-primary mb-6">
+            <div class="bg-header-gray px-6 py-4">
+                <h3 class="text-white text-lg font-bold tracking-wide uppercase">GL Account Detail - Current Month</h3>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full border-collapse">
+                    <thead>
+                        <tr class="bg-header-gray">
+                            <th class="text-white p-4 text-sm font-bold uppercase tracking-wide text-center border-r border-gray-600">GL Account</th>
+                            <th class="text-white p-4 text-sm font-bold uppercase tracking-wide text-left border-r border-gray-600">Description</th>
+                            <th class="text-white p-4 text-sm font-bold uppercase tracking-wide text-right border-r border-gray-600">Amount</th>
+                            <th class="text-white p-4 text-sm font-bold uppercase tracking-wide text-left border-r border-gray-600">Variance</th>
+                            <th class="text-white p-4 text-sm font-bold uppercase tracking-wide text-left border-r border-gray-600">Notes</th>
+                            <th class="text-white p-4 text-sm font-bold uppercase tracking-wide text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Revenue Accounts -->
+                        <tr class="border-b border-border-primary hover:bg-gray-50 transition-all duration-150" onclick="highlightCell('gl-4105')">
+                            <td class="p-4 font-mono font-bold text-lg text-center border-r border-border-primary" id="gl-4105" data-mock="true">4105</td>
+                            <td class="p-4 text-lg font-medium border-r border-border-primary" data-mock="true">Rent Income</td>
+                            <td class="p-4 font-mono font-bold text-lg text-right text-success-green border-r border-border-primary" data-bind="hartford1.glAccounts.4105.amount" data-mock="true">+$10,200</td>
+                            <td class="p-4 text-lg border-r border-border-primary" data-mock="true">
+                                <span class="text-success-green font-semibold">+2.1%</span>
+                            </td>
+                            <td class="p-4 border-r border-border-primary">
+                                <input type="text" placeholder="Add accounting note..." class="w-full border border-border-primary p-2 text-base font-medium bg-surface-bg text-text-primary focus:outline-none focus:border-accent-blue" />
+                                <!-- TODO: Implement note-taking system -->
+                            </td>
+                            <td class="p-4 text-center">
+                                <button class="bg-warning-amber text-white px-3 py-2 text-xs font-bold uppercase tracking-wide hover:bg-orange-600 transition-all duration-200" onclick="flagIssue('gl-4105')">
+                                    FLAG ISSUE
+                                </button>
+                            </td>
+                        </tr>
+
+                        <tr class="border-b border-border-primary hover:bg-gray-50 transition-all duration-150" onclick="highlightCell('gl-4110')">
+                            <td class="p-4 font-mono font-bold text-lg text-center border-r border-border-primary" id="gl-4110" data-mock="true">4110</td>
+                            <td class="p-4 text-lg font-medium border-r border-border-primary" data-mock="true">Laundry Income</td>
+                            <td class="p-4 font-mono font-bold text-lg text-right text-success-green border-r border-border-primary" data-mock="true">+$185</td>
+                            <td class="p-4 text-lg border-r border-border-primary" data-mock="true">
+                                <span class="text-success-green font-semibold">+8.2%</span>
+                            </td>
+                            <td class="p-4 border-r border-border-primary">
+                                <input type="text" placeholder="Add accounting note..." class="w-full border border-border-primary p-2 text-base font-medium bg-surface-bg text-text-primary focus:outline-none focus:border-accent-blue" />
+                            </td>
+                            <td class="p-4 text-center">
+                                <button class="bg-warning-amber text-white px-3 py-2 text-xs font-bold uppercase tracking-wide hover:bg-orange-600 transition-all duration-200" onclick="flagIssue('gl-4110')">
+                                    FLAG ISSUE
+                                </button>
+                            </td>
+                        </tr>
+
+                        <tr class="border-b border-border-primary hover:bg-gray-50 transition-all duration-150" onclick="highlightCell('gl-4120')">
+                            <td class="p-4 font-mono font-bold text-lg text-center border-r border-border-primary" id="gl-4120" data-mock="true">4120</td>
+                            <td class="p-4 text-lg font-medium border-r border-border-primary" data-mock="true">Parking Income</td>
+                            <td class="p-4 font-mono font-bold text-lg text-right text-success-green border-r border-border-primary" data-mock="true">+$300</td>
+                            <td class="p-4 text-lg border-r border-border-primary" data-mock="true">
+                                <span class="text-text-muted font-semibold">-</span>
+                            </td>
+                            <td class="p-4 border-r border-border-primary">
+                                <input type="text" placeholder="Add accounting note..." class="w-full border border-border-primary p-2 text-base font-medium bg-surface-bg text-text-primary focus:outline-none focus:border-accent-blue" />
+                            </td>
+                            <td class="p-4 text-center">
+                                <button class="bg-warning-amber text-white px-3 py-2 text-xs font-bold uppercase tracking-wide hover:bg-orange-600 transition-all duration-200" onclick="flagIssue('gl-4120')">
+                                    FLAG ISSUE
+                                </button>
+                            </td>
+                        </tr>
+
+                        <!-- Expense Accounts -->
+                        <tr class="border-b border-border-primary hover:bg-gray-50 transition-all duration-150" onclick="highlightCell('gl-6110')">
+                            <td class="p-4 font-mono font-bold text-lg text-center border-r border-border-primary" id="gl-6110" data-mock="true">6110</td>
+                            <td class="p-4 text-lg font-medium border-r border-border-primary" data-mock="true">Maintenance & Repairs</td>
+                            <td class="p-4 font-mono font-bold text-lg text-right text-error-red border-r border-border-primary" data-mock="true">-$1,850</td>
+                            <td class="p-4 text-lg border-r border-border-primary" data-mock="true">
+                                <span class="text-error-red font-semibold animate-pulse">+45.2%</span>
+                                <span class="bg-error-red text-white text-xs font-bold px-2 py-1 ml-2 uppercase">⚠️ WATCH</span>
+                            </td>
+                            <td class="p-4 border-r border-border-primary">
+                                <input type="text" value="High HVAC repairs - investigate unit 3A heating system" class="w-full border border-border-primary p-2 text-base font-medium bg-surface-bg text-text-primary focus:outline-none focus:border-accent-blue" />
+                                <span class="bg-purple-600 text-white text-xs font-bold px-2 py-1 ml-2 uppercase">📝 NOTE</span>
+                            </td>
+                            <td class="p-4 text-center">
+                                <button class="bg-warning-amber text-white px-3 py-2 text-xs font-bold uppercase tracking-wide hover:bg-orange-600 transition-all duration-200" onclick="flagIssue('gl-6110')">
+                                    FLAG ISSUE
+                                </button>
+                            </td>
+                        </tr>
+
+                        <tr class="border-b border-border-primary hover:bg-gray-50 transition-all duration-150" onclick="highlightCell('gl-6210')">
+                            <td class="p-4 font-mono font-bold text-lg text-center border-r border-border-primary" id="gl-6210" data-mock="true">6210</td>
+                            <td class="p-4 text-lg font-medium border-r border-border-primary" data-mock="true">Water & Sewer</td>
+                            <td class="p-4 font-mono font-bold text-lg text-right text-error-red border-r border-border-primary" data-mock="true">-$425</td>
+                            <td class="p-4 text-lg border-r border-border-primary" data-mock="true">
+                                <span class="text-error-red font-semibold">+22.1%</span>
+                            </td>
+                            <td class="p-4 border-r border-border-primary">
+                                <input type="text" placeholder="Add accounting note..." class="w-full border border-border-primary p-2 text-base font-medium bg-surface-bg text-text-primary focus:outline-none focus:border-accent-blue" />
+                            </td>
+                            <td class="p-4 text-center">
+                                <button class="bg-warning-amber text-white px-3 py-2 text-xs font-bold uppercase tracking-wide hover:bg-orange-600 transition-all duration-200" onclick="flagIssue('gl-6210')">
+                                    FLAG ISSUE
+                                </button>
+                            </td>
+                        </tr>
+
+                        <tr class="border-b border-border-primary hover:bg-gray-50 transition-all duration-150" onclick="highlightCell('gl-6310')">
+                            <td class="p-4 font-mono font-bold text-lg text-center border-r border-border-primary" id="gl-6310" data-mock="true">6310</td>
+                            <td class="p-4 text-lg font-medium border-r border-border-primary" data-mock="true">Property Management Fee</td>
+                            <td class="p-4 font-mono font-bold text-lg text-right text-error-red border-r border-border-primary" data-mock="true">-$612</td>
+                            <td class="p-4 text-lg border-r border-border-primary" data-mock="true">
+                                <span class="text-success-green font-semibold">-1.5%</span>
+                            </td>
+                            <td class="p-4 border-r border-border-primary">
+                                <input type="text" placeholder="Add accounting note..." class="w-full border border-border-primary p-2 text-base font-medium bg-surface-bg text-text-primary focus:outline-none focus:border-accent-blue" />
+                            </td>
+                            <td class="p-4 text-center">
+                                <button class="bg-warning-amber text-white px-3 py-2 text-xs font-bold uppercase tracking-wide hover:bg-orange-600 transition-all duration-200" onclick="flagIssue('gl-6310')">
+                                    FLAG ISSUE
+                                </button>
+                            </td>
+                        </tr>
+
+                        <tr class="border-b border-border-primary hover:bg-gray-50 transition-all duration-150" onclick="highlightCell('gl-6410')">
+                            <td class="p-4 font-mono font-bold text-lg text-center border-r border-border-primary" id="gl-6410" data-mock="true">6410</td>
+                            <td class="p-4 text-lg font-medium border-r border-border-primary" data-mock="true">Insurance</td>
+                            <td class="p-4 font-mono font-bold text-lg text-right text-error-red border-r border-border-primary" data-mock="true">-$285</td>
+                            <td class="p-4 text-lg border-r border-border-primary" data-mock="true">
+                                <span class="text-success-green font-semibold">-5.2%</span>
+                            </td>
+                            <td class="p-4 border-r border-border-primary">
+                                <input type="text" placeholder="Add accounting note..." class="w-full border border-border-primary p-2 text-base font-medium bg-surface-bg text-text-primary focus:outline-none focus:border-accent-blue" />
+                            </td>
+                            <td class="p-4 text-center">
+                                <button class="bg-warning-amber text-white px-3 py-2 text-xs font-bold uppercase tracking-wide hover:bg-orange-600 transition-all duration-200" onclick="flagIssue('gl-6410')">
+                                    FLAG ISSUE
+                                </button>
+                            </td>
+                        </tr>
+
+                        <!-- Net Income Row -->
+                        <tr class="bg-gray-100 border-t-2 border-border-accent">
+                            <td class="p-4 font-mono font-bold text-lg text-center border-r border-border-primary" data-mock="true">NET</td>
+                            <td class="p-4 text-lg font-bold border-r border-border-primary" data-mock="true">NET OPERATING INCOME</td>
+                            <td class="p-4 font-mono font-bold text-xl text-right text-success-green border-r border-border-primary" data-mock="true">+$7,513</td>
+                            <td class="p-4 text-lg border-r border-border-primary" data-mock="true">
+                                <span class="text-success-green font-semibold">+6.5%</span>
+                            </td>
+                            <td class="p-4 border-r border-border-primary">
+                                <span class="text-text-muted font-medium">Monthly performance summary</span>
+                            </td>
+                            <td class="p-4 text-center">
+                                <button class="bg-success-green text-white px-3 py-2 text-xs font-bold uppercase tracking-wide">
+                                    <i class="fas fa-check mr-1"></i>VERIFIED
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+        <!-- @END_COMPONENT: GLAccountTable -->
+
+        <!-- Action Items & Notes Summary -->
+        <!-- @COMPONENT: ActionItemPanel [actionItems, notes, onUpdateStatus] -->
+        <section class="grid grid-cols-2 gap-6 mb-6">
+            <!-- Action Items -->
+            <div class="bg-surface-bg border-2 border-border-primary">
+                <div class="bg-header-gray px-6 py-4">
+                    <h3 class="text-white text-lg font-bold tracking-wide uppercase">Action Items</h3>
+                </div>
+                
+                <div class="p-6">
+                    <!-- @MAP: actionItems.map(item => ( -->
+                    <div class="border border-border-primary p-4 mb-4 bg-yellow-50">
+                        <div class="flex justify-between items-start mb-2">
+                            <span class="bg-error-red text-white text-xs font-bold px-2 py-1 uppercase">HIGH PRIORITY</span>
+                            <span class="text-text-muted text-sm font-mono" data-mock="true">AI-001</span>
+                        </div>
+                        <p class="text-text-primary text-lg font-medium mb-2" data-mock="true">
+                            Investigate Unit 3A HVAC system - excessive maintenance costs
+                        </p>
+                        <div class="flex justify-between items-center">
+                            <span class="text-text-muted text-sm" data-mock="true">Created: 2024-01-15</span>
+                            <select class="border border-border-primary p-2 text-sm font-medium bg-surface-bg">
+                                <option value="OPEN">OPEN</option>
+                                <option value="IN_PROGRESS">IN PROGRESS</option>
+                                <option value="COMPLETED">COMPLETED</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="border border-border-primary p-4 mb-4">
+                        <div class="flex justify-between items-start mb-2">
+                            <span class="bg-warning-amber text-white text-xs font-bold px-2 py-1 uppercase">MEDIUM</span>
+                            <span class="text-text-muted text-sm font-mono" data-mock="true">AI-002</span>
+                        </div>
+                        <p class="text-text-primary text-lg font-medium mb-2" data-mock="true">
+                            Review water usage variance - 22% increase over budget
+                        </p>
+                        <div class="flex justify-between items-center">
+                            <span class="text-text-muted text-sm" data-mock="true">Created: 2024-01-15</span>
+                            <select class="border border-border-primary p-2 text-sm font-medium bg-surface-bg">
+                                <option value="OPEN" selected>OPEN</option>
+                                <option value="IN_PROGRESS">IN PROGRESS</option>
+                                <option value="COMPLETED">COMPLETED</option>
+                            </select>
+                        </div>
+                    </div>
+                    <!-- @END_MAP )) -->
+                    
+                    <button class="w-full bg-accent-blue text-white py-3 font-bold text-sm uppercase tracking-wide hover:bg-blue-600 transition-all duration-200">
+                        <i class="fas fa-plus mr-2"></i>Add Action Item
+                    </button>
+                </div>
+            </div>
+
+            <!-- Notes Summary -->
+            <div class="bg-surface-bg border-2 border-border-primary">
+                <div class="bg-header-gray px-6 py-4">
+                    <h3 class="text-white text-lg font-bold tracking-wide uppercase">Review Notes</h3>
+                </div>
+                
+                <div class="p-6">
+                    <div class="space-y-4">
+                        <div class="border border-border-primary p-4 bg-purple-50">
+                            <div class="flex justify-between items-start mb-2">
+                                <span class="text-text-primary text-sm font-semibold" data-mock="true">GL 6110 - Maintenance & Repairs</span>
+                                <span class="text-text-muted text-xs font-mono" data-mock="true">14:25</span>
+                            </div>
+                            <p class="text-text-secondary text-base mb-2" data-mock="true">
+                                High HVAC repairs - investigate unit 3A heating system. May need contractor assessment.
+                            </p>
+                            <div class="text-text-muted text-sm">
+                                Author: <span class="font-semibold" data-mock="true">J. Smith</span>
+                            </div>
+                        </div>
+                        
+                        <div class="border border-border-primary p-4">
+                            <div class="flex justify-between items-start mb-2">
+                                <span class="text-text-primary text-sm font-semibold" data-mock="true">GL 4105 - Rent Income</span>
+                                <span class="text-text-muted text-xs font-mono" data-mock="true">13:45</span>
+                            </div>
+                            <p class="text-text-secondary text-base mb-2" data-mock="true">
+                                Rent increase effective Jan 1st reflected in income variance
+                            </p>
+                            <div class="text-text-muted text-sm">
+                                Author: <span class="font-semibold" data-mock="true">A. Johnson</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-6 p-4 bg-gray-50 border border-border-accent">
+                        <div class="text-text-primary text-sm font-semibold mb-2">EXPORT SUMMARY</div>
+                        <div class="text-text-secondary text-sm space-y-1">
+                            <div>Total Notes: <span class="font-semibold">2</span></div>
+                            <div>Action Items: <span class="font-semibold">2</span></div>
+                            <div>Properties Reviewed: <span class="font-semibold">Hartford 1</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <!-- @END_COMPONENT: ActionItemPanel -->
+
+        <!-- Export Actions -->
+        <!-- @COMPONENT: ExportActions [onExportAccounting, onExportLender] -->
+        <section class="bg-surface-bg border-2 border-border-primary">
+            <div class="bg-header-gray px-6 py-4">
+                <h3 class="text-white text-lg font-bold tracking-wide uppercase">Export & Reporting</h3>
+            </div>
+            
+            <div class="p-6">
+                <div class="grid grid-cols-3 gap-6">
+                    <button class="bg-accent-blue text-white p-6 text-center font-bold text-sm uppercase tracking-wide hover:bg-blue-600 transition-all duration-200 hover:-translate-y-1" onclick="exportAccountingPackage()">
+                        <i class="fas fa-file-excel text-2xl mb-3 block"></i>
+                        ACCOUNTING EXPORT
+                        <div class="text-xs font-normal mt-2 opacity-80">Excel package with notes & action items</div>
+                    </button>
+                    
+                    <button class="bg-surface-bg text-text-primary border-2 border-border-accent p-6 text-center font-bold text-sm uppercase tracking-wide hover:bg-gray-100 transition-all duration-200 hover:-translate-y-1" onclick="exportLenderPackage()">
+                        <i class="fas fa-file-pdf text-2xl mb-3 block"></i>
+                        LENDER PACKAGE
+                        <div class="text-xs font-normal mt-2 opacity-80">Clean financial package for refinancing</div>
+                    </button>
+                    
+                    <button class="bg-warning-amber text-white p-6 text-center font-bold text-sm uppercase tracking-wide hover:bg-orange-600 transition-all duration-200 hover:-translate-y-1" onclick="scheduleReview()">
+                        <i class="fas fa-calendar text-2xl mb-3 block"></i>
+                        SCHEDULE REVIEW
+                        <div class="text-xs font-normal mt-2 opacity-80">Set up team meeting for action items</div>
+                    </button>
+                </div>
+            </div>
+        </section>
+        <!-- @END_COMPONENT: ExportActions -->
+
+    </div>
+
+    <script>
+        // Click highlighting system
+        let clickedElement = null;
+        
+        function highlightCell(elementId) {
+            // Remove previous highlighting
+            if (clickedElement) {
+                const prevElement = document.getElementById(clickedElement);
+                if (prevElement) {
+                    prevElement.classList.remove('bg-highlight-bg', 'scale-105');
+                    prevElement.style.border = '';
+                    prevElement.style.zIndex = '';
+                }
+            }
+            
+            // Apply highlighting to clicked element
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.classList.add('bg-highlight-bg', 'scale-105');
+                element.style.border = '3px solid #f59e0b';
+                element.style.zIndex = '10';
+                element.style.position = 'relative';
+                
+                clickedElement = elementId;
+                
+                // Remove highlighting after 5 seconds
+                setTimeout(() => {
+                    element.classList.remove('bg-highlight-bg', 'scale-105');
+                    element.style.border = '';
+                    element.style.zIndex = '';
+                    clickedElement = null;
+                }, 5000);
+            }
+        }
+        
+        function selectPortfolio(portfolioId, element) {
+            // Remove active state from all portfolio items
+            document.querySelectorAll('#portfolio-grid > div').forEach(item => {
+                item.classList.remove('bg-blue-50', 'border-l-4', 'border-l-accent-blue');
+                item.classList.add('bg-surface-bg');
+            });
+            
+            // Add active state to selected portfolio
+            element.classList.remove('bg-surface-bg');
+            element.classList.add('bg-blue-50', 'border-l-4', 'border-l-accent-blue');
+            
+            // Click highlighting
+            element.style.background = '#fef08a';
+            element.style.transform = 'scale(1.02)';
+            element.style.boxShadow = '0 4px 12px rgba(245, 158, 11, 0.4)';
+            element.style.border = '3px solid #f59e0b';
+            element.style.zIndex = '10';
+            
+            setTimeout(() => {
+                element.style.background = '#dbeafe';
+                element.style.transform = 'scale(1)';
+                element.style.boxShadow = '';
+                element.style.border = '';
+                element.style.zIndex = '';
+                element.classList.add('border-l-4', 'border-l-accent-blue');
+            }, 3000);
+            
+            // TODO: Update dashboard content based on selected portfolio
+            console.log('Selected portfolio:', portfolioId);
+        }
+        
+        function flagIssue(glAccount) {
+            // TODO: Implement action item creation
+            const description = `Issue flagged for GL Account ${glAccount}`;
+            console.log('Action item created:', description);
+            
+            // Visual feedback
+            const button = event.target;
+            button.style.background = '#ef4444';
+            button.textContent = 'FLAGGED';
+            
+            setTimeout(() => {
+                button.style.background = '#d97706';
+                button.textContent = 'FLAG ISSUE';
+            }, 2000);
+        }
+        
+        function exportAccountingPackage() {
+            // TODO: Implement accounting export functionality
+            console.log('Exporting accounting package...');
+            
+            const exportData = {
+                property: 'S0010 - 228 Maple',
+                totalNotes: 2,
+                totalActionItems: 2,
+                exportDate: new Date().toISOString(),
+                glAccounts: [
+                    { account: '6110', note: 'High HVAC repairs - investigate unit 3A heating system' },
+                    { account: '4105', note: 'Rent increase effective Jan 1st' }
+                ]
+            };
+            
+            // Visual feedback
+            const button = event.target;
+            const originalText = button.innerHTML;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>EXPORTING...';
+            
+            setTimeout(() => {
+                button.innerHTML = '<i class="fas fa-check mr-2"></i>EXPORTED';
+                button.style.background = '#059669';
+                
+                setTimeout(() => {
+                    button.innerHTML = originalText;
+                    button.style.background = '#3b82f6';
+                }, 2000);
+            }, 1500);
+        }
+        
+        function exportLenderPackage() {
+            // TODO: Implement lender export functionality
+            console.log('Exporting lender package...');
+            
+            // Visual feedback
+            const button = event.target;
+            const originalText = button.innerHTML;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>GENERATING...';
+            
+            setTimeout(() => {
+                button.innerHTML = '<i class="fas fa-download mr-2"></i>READY';
+                button.style.background = '#059669';
+                button.style.color = 'white';
+                
+                setTimeout(() => {
+                    button.innerHTML = originalText;
+                    button.style.background = '#ffffff';
+                    button.style.color = '#1a1d21';
+                }, 2000);
+            }, 2000);
+        }
+        
+        function scheduleReview() {
+            // TODO: Implement meeting scheduling
+            console.log('Scheduling review meeting...');
+            
+            // Visual feedback
+            const button = event.target;
+            const originalText = button.innerHTML;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>SCHEDULING...';
+            
+            setTimeout(() => {
+                button.innerHTML = '<i class="fas fa-calendar-check mr-2"></i>SCHEDULED';
+                button.style.background = '#059669';
+                
+                setTimeout(() => {
+                    button.innerHTML = originalText;
+                    button.style.background = '#d97706';
+                }, 2000);
+            }, 1500);
+        }
+        
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Property Management Dashboard loaded');
+            // TODO: Initialize real data from Excel file processing
+        });
+    </script>
+</body>
+</html>

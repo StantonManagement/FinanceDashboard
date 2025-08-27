@@ -1,0 +1,729 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stanton Management LLC - Property Management Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                fontFamily: {
+                    'segoe': ['Segoe UI', 'Arial', 'sans-serif'],
+                    'mono-data': ['Courier New', 'Monaco', 'monospace']
+                },
+                colors: {
+                    'institutional-black': '#000000',
+                    'institutional-white': '#ffffff',
+                    'institutional-accent': '#f8f9fa',
+                    'institutional-border': '#cccccc',
+                    'highlight-yellow': '#ffeb3b',
+                    'success-green': '#006600',
+                    'note-purple': '#8b5cf6',
+                    'alert-red': '#dc2626'
+                }
+            }
+        }
+    };
+    </script>
+    <style>
+        /* Custom institutional styling */
+        .institutional-table {
+            border-collapse: separate;
+            border-spacing: 0;
+            border: 2px solid #000000;
+        }
+        
+        .institutional-table th {
+            background: #000000;
+            color: #ffffff;
+            padding: 16px 12px;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-right: 1px solid #ffffff;
+        }
+        
+        .institutional-table td {
+            background: #ffffff;
+            padding: 14px 12px;
+            border-bottom: 1px solid #cccccc;
+            border-right: 1px solid #cccccc;
+            font-size: 16px;
+            transition: all 0.15s ease;
+        }
+        
+        .click-highlight {
+            background: #ffeb3b !important;
+            transform: scale(1.02);
+            transition: all 0.1s ease;
+            position: relative;
+            z-index: 10;
+        }
+        
+        .note-indicator {
+            background: #8b5cf6;
+            color: #ffffff;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 3px;
+            margin-left: 8px;
+            text-transform: uppercase;
+        }
+        
+        .alert-indicator {
+            background: #dc2626;
+            color: #ffffff;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 3px;
+            margin-left: 8px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        .btn-institutional {
+            background: #000000;
+            color: #ffffff;
+            border: none;
+            padding: 8px 16px;
+            font-size: 10px;
+            text-transform: uppercase;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-institutional:hover {
+            background: #333333;
+        }
+        
+        .btn-secondary {
+            background: #ffffff;
+            color: #000000;
+            border: 2px solid #000000;
+            padding: 8px 16px;
+            font-size: 10px;
+            text-transform: uppercase;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-secondary:hover {
+            background: #f8f9fa;
+        }
+    </style>
+</head>
+<body class="font-segoe bg-institutional-white">
+    <!-- Header -->
+    <div class="bg-institutional-accent border-b-2 border-institutional-black py-4">
+        <div class="max-w-7xl mx-auto px-5 flex justify-between items-center">
+            <div>
+                <div class="text-xl font-bold text-institutional-black uppercase tracking-wide">
+                    Stanton Management LLC
+                </div>
+                <div class="text-xs text-gray-700 uppercase mt-1">
+                    Financial Analysis & Reporting Dashboard
+                </div>
+            </div>
+            <div class="flex gap-3">
+                <!-- File Upload -->
+                <div class="relative">
+                    <input type="file" id="excelUpload" accept=".xlsx,.xls" class="hidden" />
+                    <button onclick="document.getElementById('excelUpload').click()" class="btn-secondary">
+                        UPLOAD EXCEL
+                    </button>
+                </div>
+                <button onclick="exportLenderPackage()" class="btn-institutional">
+                    LENDER PACKAGE
+                </button>
+                <button onclick="exportToExcel()" class="btn-secondary">
+                    EXPORT EXCEL
+                </button>
+                <button onclick="refreshData()" class="btn-secondary">
+                    REFRESH DATA
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto p-5">
+        <!-- Portfolio Navigation -->
+        <div class="bg-institutional-white border-2 border-institutional-black mb-5">
+            <div class="bg-institutional-black text-institutional-white p-3 font-bold text-xs uppercase">
+                Portfolio Selection
+            </div>
+            <div class="grid grid-cols-5 border-t border-institutional-border">
+                <!-- @COMPONENT: PortfolioSelector -->
+                <button id="portfolio-all" onclick="selectPortfolio('all', this)" class="portfolio-item border-r border-institutional-border p-4 text-left hover:bg-institutional-accent transition-all">
+                    <div class="font-bold text-sm text-institutional-black uppercase mb-2">Consolidated</div>
+                    <div class="text-xs text-gray-600 grid grid-cols-3 gap-2">
+                        <span>109 Units</span>
+                        <span>$985K NOI</span>
+                        <span>9.6% Cap</span>
+                    </div>
+                </button>
+                
+                <button id="portfolio-southend" onclick="selectPortfolio('southend', this)" class="portfolio-item border-r border-institutional-border p-4 text-left hover:bg-institutional-accent transition-all">
+                    <div class="font-bold text-sm text-institutional-black uppercase mb-2">South End</div>
+                    <div class="text-xs text-gray-600 grid grid-cols-3 gap-2">
+                        <span>51 Units</span>
+                        <span>$450K NOI</span>
+                        <span>12.1% Cap</span>
+                    </div>
+                </button>
+                
+                <button id="portfolio-northend" onclick="selectPortfolio('northend', this)" class="portfolio-item border-r border-institutional-border p-4 text-left hover:bg-institutional-accent transition-all">
+                    <div class="font-bold text-sm text-institutional-black uppercase mb-2">North End</div>
+                    <div class="text-xs text-gray-600 grid grid-cols-3 gap-2">
+                        <span>40 Units</span>
+                        <span>$385K NOI</span>
+                        <span>11.8% Cap</span>
+                    </div>
+                </button>
+                
+                <button id="portfolio-90park" onclick="selectPortfolio('90park', this)" class="portfolio-item border-r border-institutional-border p-4 text-left hover:bg-institutional-accent transition-all">
+                    <div class="font-bold text-sm text-institutional-black uppercase mb-2">90 Park</div>
+                    <div class="text-xs text-gray-600 grid grid-cols-3 gap-2">
+                        <span>12 Units</span>
+                        <span>$125K NOI</span>
+                        <span>8.9% Cap</span>
+                    </div>
+                </button>
+                
+                <button id="portfolio-hartford1" onclick="selectPortfolio('hartford1', this)" class="portfolio-item bg-blue-50 border-l-4 border-blue-600 p-4 text-left active">
+                    <div class="font-bold text-sm text-institutional-black uppercase mb-2">Hartford 1</div>
+                    <div class="text-xs text-gray-600 grid grid-cols-3 gap-2">
+                        <span>6 Units</span>
+                        <span>$85K NOI</span>
+                        <span>12.2% Cap</span>
+                    </div>
+                </button>
+                <!-- @END_COMPONENT: PortfolioSelector -->
+            </div>
+        </div>
+
+        <!-- Hartford 1 KPI Section -->
+        <div id="hartford1-kpis" class="bg-institutional-accent border-2 border-institutional-black mb-5 p-5">
+            <div class="text-sm font-bold uppercase text-institutional-black mb-4">
+                Hartford 1 Portfolio Metrics - S0010: 228 Maple
+            </div>
+            <div class="grid grid-cols-6 gap-1 bg-institutional-border">
+                <!-- @MAP: kpis.map(kpi => ( -->
+                <div onclick="handleKpiClick('noi', this)" class="kpi-card bg-institutional-white p-4 text-center cursor-pointer hover:bg-institutional-accent transition-all">
+                    <div class="text-xs uppercase text-gray-600 mb-2 font-bold">Monthly NOI</div>
+                    <div class="text-2xl font-bold text-institutional-black font-mono-data mb-1">$6,800</div>
+                    <div class="text-xs font-bold text-success-green">+8.2% MoM</div>
+                </div>
+                
+                <div onclick="handleKpiClick('margin', this)" class="kpi-card bg-institutional-white p-4 text-center cursor-pointer hover:bg-institutional-accent transition-all">
+                    <div class="text-xs uppercase text-gray-600 mb-2 font-bold">NOI Margin</div>
+                    <div class="text-2xl font-bold text-institutional-black font-mono-data mb-1">64.8%</div>
+                    <div class="text-xs font-bold text-success-green">+2.1pp YoY</div>
+                </div>
+                
+                <div onclick="handleKpiClick('occupancy', this)" class="kpi-card bg-institutional-white p-4 text-center cursor-pointer hover:bg-institutional-accent transition-all">
+                    <div class="text-xs uppercase text-gray-600 mb-2 font-bold">Occupancy</div>
+                    <div class="text-2xl font-bold text-institutional-black font-mono-data mb-1">94.5%</div>
+                    <div class="text-xs font-bold text-success-green">+1.2pp MoM</div>
+                </div>
+                
+                <div onclick="handleKpiClick('revenue', this)" class="kpi-card bg-institutional-white p-4 text-center cursor-pointer hover:bg-institutional-accent transition-all">
+                    <div class="text-xs uppercase text-gray-600 mb-2 font-bold">Revenue/Unit</div>
+                    <div class="text-2xl font-bold text-institutional-black font-mono-data mb-1">$1,750</div>
+                    <div class="text-xs font-bold text-success-green">+3.8% MoM</div>
+                </div>
+                
+                <div onclick="handleKpiClick('cap', this)" class="kpi-card bg-institutional-white p-4 text-center cursor-pointer hover:bg-institutional-accent transition-all">
+                    <div class="text-xs uppercase text-gray-600 mb-2 font-bold">Cap Rate</div>
+                    <div class="text-2xl font-bold text-institutional-black font-mono-data mb-1">12.2%</div>
+                    <div class="text-xs font-bold text-success-green">Above Market</div>
+                </div>
+                
+                <div onclick="handleKpiClick('dscr', this)" class="kpi-card bg-institutional-white p-4 text-center cursor-pointer hover:bg-institutional-accent transition-all">
+                    <div class="text-xs uppercase text-gray-600 mb-2 font-bold">DSCR</div>
+                    <div class="text-2xl font-bold text-institutional-black font-mono-data mb-1">2.15x</div>
+                    <div class="text-xs font-bold text-success-green">Strong</div>
+                </div>
+                <!-- @END_MAP -->
+            </div>
+        </div>
+
+        <!-- Tab Navigation -->
+        <div class="bg-institutional-white border-2 border-institutional-black mb-5">
+            <div class="flex bg-institutional-accent border-b border-institutional-border">
+                <!-- @COMPONENT: TabNavigation -->
+                <button id="tab-performance" onclick="switchTab('performance', this)" class="tab-button flex-1 bg-institutional-black text-institutional-white border-r border-institutional-border p-4 font-bold text-xs uppercase cursor-pointer">
+                    Performance Analysis
+                </button>
+                <button id="tab-operations" onclick="switchTab('operations', this)" class="tab-button flex-1 bg-transparent text-gray-700 border-r border-institutional-border p-4 font-bold text-xs uppercase cursor-pointer hover:bg-institutional-accent">
+                    Operational Review
+                </button>
+                <button id="tab-cashflow" onclick="switchTab('cashflow', this)" class="tab-button flex-1 bg-transparent text-gray-700 border-r border-institutional-border p-4 font-bold text-xs uppercase cursor-pointer hover:bg-institutional-accent">
+                    Cash Flow Detail
+                </button>
+                <button id="tab-notes" onclick="switchTab('notes', this)" class="tab-button flex-1 bg-transparent text-gray-700 p-4 font-bold text-xs uppercase cursor-pointer hover:bg-institutional-accent">
+                    Notes & Actions
+                </button>
+                <!-- @END_COMPONENT: TabNavigation -->
+            </div>
+
+            <!-- Tab Content -->
+            <div class="p-5">
+                <!-- Performance Analysis Tab -->
+                <div id="content-performance" class="tab-content">
+                    <h3 class="text-lg font-bold uppercase text-institutional-black mb-4">Hartford 1 - GL Account Detail</h3>
+                    
+                    <!-- @COMPONENT: GLAccountTable -->
+                    <table class="institutional-table w-full">
+                        <thead>
+                            <tr>
+                                <th>GL Account</th>
+                                <th>Description</th>
+                                <th>Amount</th>
+                                <th>Type</th>
+                                <th>Notes</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- @MAP: glAccounts.map(account => ( -->
+                            <tr>
+                                <td onclick="handleCellClick('gl-4105', this)" class="font-mono-data font-semibold cursor-pointer" data-bind="account.code">4105</td>
+                                <td onclick="handleCellClick('desc-4105', this)" class="cursor-pointer" data-bind="account.description">Rent Income</td>
+                                <td onclick="handleCellClick('amt-4105', this)" class="font-mono-data text-success-green font-semibold cursor-pointer" data-bind="account.amount">+$10,200</td>
+                                <td class="text-xs uppercase font-bold" data-bind="account.type">REVENUE</td>
+                                <td class="relative">
+                                    <input type="text" placeholder="Add note..." class="border border-institutional-border p-2 text-sm w-full" onchange="addNote('gl-4105', this.value)" />
+                                    <span id="note-gl-4105" class="note-indicator hidden">📝 NOTE</span>
+                                </td>
+                                <td>
+                                    <button onclick="flagIssue('gl-4105')" class="bg-orange-600 text-institutional-white border-none px-3 py-1 text-xs uppercase font-bold cursor-pointer">FLAG</button>
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td onclick="handleCellClick('gl-4110', this)" class="font-mono-data font-semibold cursor-pointer">4110</td>
+                                <td onclick="handleCellClick('desc-4110', this)" class="cursor-pointer">Section 8 Rent</td>
+                                <td onclick="handleCellClick('amt-4110', this)" class="font-mono-data text-success-green font-semibold cursor-pointer">+$300</td>
+                                <td class="text-xs uppercase font-bold">REVENUE</td>
+                                <td class="relative">
+                                    <input type="text" placeholder="Add note..." class="border border-institutional-border p-2 text-sm w-full" onchange="addNote('gl-4110', this.value)" />
+                                    <span id="note-gl-4110" class="note-indicator hidden">📝 NOTE</span>
+                                </td>
+                                <td>
+                                    <button onclick="flagIssue('gl-4110')" class="bg-orange-600 text-institutional-white border-none px-3 py-1 text-xs uppercase font-bold cursor-pointer">FLAG</button>
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td onclick="handleCellClick('gl-6105', this)" class="font-mono-data font-semibold cursor-pointer">6105</td>
+                                <td onclick="handleCellClick('desc-6105', this)" class="cursor-pointer">Property Management</td>
+                                <td onclick="handleCellClick('amt-6105', this)" class="font-mono-data text-red-600 font-semibold cursor-pointer">-$630</td>
+                                <td class="text-xs uppercase font-bold">EXPENSE</td>
+                                <td class="relative">
+                                    <input type="text" placeholder="Add note..." class="border border-institutional-border p-2 text-sm w-full" onchange="addNote('gl-6105', this.value)" />
+                                    <span id="note-gl-6105" class="note-indicator hidden">📝 NOTE</span>
+                                </td>
+                                <td>
+                                    <button onclick="flagIssue('gl-6105')" class="bg-orange-600 text-institutional-white border-none px-3 py-1 text-xs uppercase font-bold cursor-pointer">FLAG</button>
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td onclick="handleCellClick('gl-6110', this)" class="font-mono-data font-semibold cursor-pointer">6110</td>
+                                <td onclick="handleCellClick('desc-6110', this)" class="cursor-pointer">Maintenance & Repairs</td>
+                                <td onclick="handleCellClick('amt-6110', this)" class="font-mono-data text-red-600 font-semibold cursor-pointer">-$1,850</td>
+                                <td class="text-xs uppercase font-bold">EXPENSE</td>
+                                <td class="relative">
+                                    <input type="text" placeholder="Add note..." class="border border-institutional-border p-2 text-sm w-full" onchange="addNote('gl-6110', this.value)" />
+                                    <span id="note-gl-6110" class="note-indicator hidden">📝 NOTE</span>
+                                    <span class="alert-indicator">⚠️ WATCH</span>
+                                </td>
+                                <td>
+                                    <button onclick="flagIssue('gl-6110')" class="bg-orange-600 text-institutional-white border-none px-3 py-1 text-xs uppercase font-bold cursor-pointer">FLAG</button>
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td onclick="handleCellClick('gl-6120', this)" class="font-mono-data font-semibold cursor-pointer">6120</td>
+                                <td onclick="handleCellClick('desc-6120', this)" class="cursor-pointer">Utilities</td>
+                                <td onclick="handleCellClick('amt-6120', this)" class="font-mono-data text-red-600 font-semibold cursor-pointer">-$420</td>
+                                <td class="text-xs uppercase font-bold">EXPENSE</td>
+                                <td class="relative">
+                                    <input type="text" placeholder="Add note..." class="border border-institutional-border p-2 text-sm w-full" onchange="addNote('gl-6120', this.value)" />
+                                    <span id="note-gl-6120" class="note-indicator hidden">📝 NOTE</span>
+                                </td>
+                                <td>
+                                    <button onclick="flagIssue('gl-6120')" class="bg-orange-600 text-institutional-white border-none px-3 py-1 text-xs uppercase font-bold cursor-pointer">FLAG</button>
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td onclick="handleCellClick('gl-6130', this)" class="font-mono-data font-semibold cursor-pointer">6130</td>
+                                <td onclick="handleCellClick('desc-6130', this)" class="cursor-pointer">Property Insurance</td>
+                                <td onclick="handleCellClick('amt-6130', this)" class="font-mono-data text-red-600 font-semibold cursor-pointer">-$285</td>
+                                <td class="text-xs uppercase font-bold">EXPENSE</td>
+                                <td class="relative">
+                                    <input type="text" placeholder="Add note..." class="border border-institutional-border p-2 text-sm w-full" onchange="addNote('gl-6130', this.value)" />
+                                    <span id="note-gl-6130" class="note-indicator hidden">📝 NOTE</span>
+                                </td>
+                                <td>
+                                    <button onclick="flagIssue('gl-6130')" class="bg-orange-600 text-institutional-white border-none px-3 py-1 text-xs uppercase font-bold cursor-pointer">FLAG</button>
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td onclick="handleCellClick('gl-6140', this)" class="font-mono-data font-semibold cursor-pointer">6140</td>
+                                <td onclick="handleCellClick('desc-6140', this)" class="cursor-pointer">Property Taxes</td>
+                                <td onclick="handleCellClick('amt-6140', this)" class="font-mono-data text-red-600 font-semibold cursor-pointer">-$815</td>
+                                <td class="text-xs uppercase font-bold">EXPENSE</td>
+                                <td class="relative">
+                                    <input type="text" placeholder="Add note..." class="border border-institutional-border p-2 text-sm w-full" onchange="addNote('gl-6140', this.value)" />
+                                    <span id="note-gl-6140" class="note-indicator hidden">📝 NOTE</span>
+                                </td>
+                                <td>
+                                    <button onclick="flagIssue('gl-6140')" class="bg-orange-600 text-institutional-white border-none px-3 py-1 text-xs uppercase font-bold cursor-pointer">FLAG</button>
+                                </td>
+                            </tr>
+                            <!-- @END_MAP -->
+                        </tbody>
+                    </table>
+                    <!-- @END_COMPONENT: GLAccountTable -->
+                </div>
+
+                <!-- Operational Review Tab -->
+                <div id="content-operations" class="tab-content hidden">
+                    <h3 class="text-lg font-bold uppercase text-institutional-black mb-4">Operational Variance Analysis</h3>
+                    
+                    <table class="institutional-table w-full">
+                        <thead>
+                            <tr>
+                                <th>Metric</th>
+                                <th>Current Month</th>
+                                <th>Prior Month</th>
+                                <th>Variance</th>
+                                <th>Threshold</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Maintenance/Unit</td>
+                                <td class="font-mono-data">$308.33</td>
+                                <td class="font-mono-data">$125.00</td>
+                                <td class="font-mono-data text-red-600">+146.7%</td>
+                                <td class="font-mono-data">+25%</td>
+                                <td><span class="alert-indicator">⚠️ REVIEW</span></td>
+                            </tr>
+                            <tr>
+                                <td>Utilities/Unit</td>
+                                <td class="font-mono-data">$70.00</td>
+                                <td class="font-mono-data">$65.00</td>
+                                <td class="font-mono-data text-success-green">+7.7%</td>
+                                <td class="font-mono-data">+15%</td>
+                                <td><span class="text-success-green font-bold">✓ NORMAL</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Cash Flow Detail Tab -->
+                <div id="content-cashflow" class="tab-content hidden">
+                    <h3 class="text-lg font-bold uppercase text-institutional-black mb-4">Monthly Cash Flow Statement</h3>
+                    
+                    <table class="institutional-table w-full">
+                        <thead>
+                            <tr>
+                                <th>Category</th>
+                                <th>Amount</th>
+                                <th>% of Revenue</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="bg-green-50">
+                                <td class="font-bold">TOTAL REVENUE</td>
+                                <td class="font-mono-data font-bold text-success-green">$10,500</td>
+                                <td class="font-mono-data">100.0%</td>
+                            </tr>
+                            <tr class="bg-red-50">
+                                <td class="font-bold">TOTAL EXPENSES</td>
+                                <td class="font-mono-data font-bold text-red-600">($4,000)</td>
+                                <td class="font-mono-data">38.1%</td>
+                            </tr>
+                            <tr class="bg-blue-50">
+                                <td class="font-bold">NET OPERATING INCOME</td>
+                                <td class="font-mono-data font-bold text-institutional-black">$6,500</td>
+                                <td class="font-mono-data">61.9%</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Notes & Actions Tab -->
+                <div id="content-notes" class="tab-content hidden">
+                    <h3 class="text-lg font-bold uppercase text-institutional-black mb-4">Action Items & Notes</h3>
+                    
+                    <div class="grid grid-cols-2 gap-5">
+                        <div>
+                            <h4 class="font-bold text-sm uppercase mb-3">Open Action Items</h4>
+                            <div id="action-items-list" class="space-y-2">
+                                <!-- @STATE: actionItems:array = [] -->
+                                <div class="border border-institutional-border p-3 bg-institutional-accent">
+                                    <div class="text-sm font-bold">AI-001: Review Maintenance Spike</div>
+                                    <div class="text-xs text-gray-600">Property: S0010 | Priority: HIGH | Created: 2024-01-15</div>
+                                    <div class="text-sm mt-1">Investigate 146% increase in maintenance costs</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <h4 class="font-bold text-sm uppercase mb-3">Recent Notes</h4>
+                            <div id="notes-list" class="space-y-2">
+                                <!-- @STATE: cellNotes:object = {} -->
+                                <div class="border border-institutional-border p-3 bg-institutional-accent">
+                                    <div class="text-sm font-bold">GL 6110 Note</div>
+                                    <div class="text-xs text-gray-600">Added: 2024-01-15 10:30 AM</div>
+                                    <div class="text-sm mt-1">Emergency plumbing repair for Unit 3 - water damage mitigation</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Export Summary -->
+        <div class="bg-institutional-accent border-2 border-institutional-black p-4">
+            <div class="flex justify-between items-center">
+                <div class="text-sm font-bold uppercase">
+                    Export Summary: <span id="notes-count">1</span> Notes, <span id="actions-count">1</span> Action Items
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="generateReport()" class="btn-institutional">GENERATE REPORT</button>
+                    <button onclick="emailSummary()" class="btn-secondary">EMAIL SUMMARY</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State management
+        let selectedPortfolio = 'hartford1';
+        let activeTab = 'performance';
+        let cellNotes = {};
+        let actionItems = [];
+        let clickedElement = null;
+
+        // Sample Hartford 1 data structure
+        const hartford1Data = {
+            "S0010": {
+                propertyName: "228 Maple",
+                portfolio: "Hartford 1",
+                units: 6,
+                glAccounts: {
+                    "4105": { description: "Rent Income", amount: 10200, type: "revenue" },
+                    "4110": { description: "Section 8 Rent", amount: 300, type: "revenue" },
+                    "6105": { description: "Property Management", amount: 630, type: "expense" },
+                    "6110": { description: "Maintenance & Repairs", amount: 1850, type: "expense" },
+                    "6120": { description: "Utilities", amount: 420, type: "expense" },
+                    "6130": { description: "Property Insurance", amount: 285, type: "expense" },
+                    "6140": { description: "Property Taxes", amount: 815, type: "expense" }
+                }
+            }
+        };
+
+        // Click highlighting function
+        function handleClick(elementId) {
+            // Remove previous highlighting
+            const previousElement = document.querySelector('.click-highlight');
+            if (previousElement) {
+                previousElement.classList.remove('click-highlight');
+            }
+            
+            // Add highlighting to clicked element
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.classList.add('click-highlight');
+                setTimeout(() => {
+                    element.classList.remove('click-highlight');
+                }, 5000);
+            }
+        }
+
+        // Portfolio selection
+        function selectPortfolio(portfolioKey, element) {
+            // Remove active class from all portfolio items
+            document.querySelectorAll('.portfolio-item').forEach(item => {
+                item.classList.remove('active', 'bg-blue-50', 'border-l-4', 'border-blue-600');
+            });
+            
+            // Add active class to selected portfolio
+            element.classList.add('active', 'bg-blue-50', 'border-l-4', 'border-blue-600');
+            
+            // Add click highlighting
+            element.classList.add('click-highlight');
+            setTimeout(() => {
+                element.classList.remove('click-highlight');
+            }, 5000);
+            
+            selectedPortfolio = portfolioKey;
+            
+            // Show/hide Hartford 1 specific content
+            const hartfordKpis = document.getElementById('hartford1-kpis');
+            if (portfolioKey === 'hartford1') {
+                hartfordKpis.style.display = 'block';
+            } else {
+                hartfordKpis.style.display = 'none';
+            }
+        }
+
+        // Tab switching
+        function switchTab(tabKey, element) {
+            // Update active tab button
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('bg-institutional-black', 'text-institutional-white');
+                btn.classList.add('bg-transparent', 'text-gray-700');
+            });
+            element.classList.add('bg-institutional-black', 'text-institutional-white');
+            element.classList.remove('bg-transparent', 'text-gray-700');
+            
+            // Hide all tab content
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.add('hidden');
+            });
+            
+            // Show selected tab content
+            document.getElementById(`content-${tabKey}`).classList.remove('hidden');
+            
+            // Add click highlighting
+            element.classList.add('click-highlight');
+            setTimeout(() => {
+                element.classList.remove('click-highlight');
+            }, 5000);
+            
+            activeTab = tabKey;
+        }
+
+        // Cell click handling
+        function handleCellClick(cellId, element) {
+            element.classList.add('click-highlight');
+            setTimeout(() => {
+                element.classList.remove('click-highlight');
+            }, 5000);
+        }
+
+        // KPI click handling
+        function handleKpiClick(kpiType, element) {
+            element.classList.add('click-highlight');
+            setTimeout(() => {
+                element.classList.remove('click-highlight');
+            }, 5000);
+        }
+
+        // Note management
+        function addNote(cellId, noteText) {
+            if (noteText.trim()) {
+                cellNotes[cellId] = {
+                    text: noteText,
+                    timestamp: new Date().toISOString(),
+                    author: "User"
+                };
+                
+                // Show note indicator
+                const indicator = document.getElementById(`note-${cellId}`);
+                if (indicator) {
+                    indicator.classList.remove('hidden');
+                }
+                
+                // Update notes count
+                updateNotesCount();
+            }
+        }
+
+        // Flag issue function
+        function flagIssue(cellId) {
+            const description = `Review flagged item for GL account ${cellId}`;
+            addActionItem(description, "HIGH");
+        }
+
+        // Action item management
+        function addActionItem(description, priority = "MEDIUM") {
+            const newItem = {
+                id: `AI-${Date.now()}`,
+                description,
+                property: "S0010",
+                priority,
+                status: "OPEN",
+                createdAt: new Date().toISOString()
+            };
+            actionItems.push(newItem);
+            updateActionsCount();
+        }
+
+        // Update counts
+        function updateNotesCount() {
+            document.getElementById('notes-count').textContent = Object.keys(cellNotes).length;
+        }
+
+        function updateActionsCount() {
+            document.getElementById('actions-count').textContent = actionItems.length;
+        }
+
+        // Export functions
+        function exportLenderPackage() {
+            alert('Generating lender package for Hartford 1 portfolio...');
+            // TODO: Implement lender package generation
+        }
+
+        function exportToExcel() {
+            alert('Exporting to Excel with all notes and action items...');
+            console.log('Notes:', cellNotes);
+            console.log('Action Items:', actionItems);
+            // TODO: Implement Excel export using SheetJS
+        }
+
+        function refreshData() {
+            alert('Refreshing API data from >> sheets...');
+            // TODO: Implement API data refresh
+        }
+
+        function generateReport() {
+            alert('Generating comprehensive report...');
+            // TODO: Implement report generation
+        }
+
+        function emailSummary() {
+            alert('Emailing summary to stakeholders...');
+            // TODO: Implement email functionality
+        }
+
+        // File upload handling
+        document.getElementById('excelUpload').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                alert(`Processing Excel file: ${file.name}`);
+                // TODO: Implement Excel file processing using SheetJS
+                // Process >> prefixed sheets as authoritative data
+            }
+        });
+
+        // Initialize default state
+        document.addEventListener('DOMContentLoaded', function() {
+            // Ensure Hartford 1 is selected by default
+            selectPortfolio('hartford1', document.getElementById('portfolio-hartford1'));
+            
+            // Ensure Performance tab is active by default
+            switchTab('performance', document.getElementById('tab-performance'));
+        });
+    </script>
+</body>
+</html>

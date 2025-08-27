@@ -1,8 +1,13 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import multer from "multer";
+import * as fs from "fs";
+import * as path from "path";
 import { storage } from "./storage";
 import { insertNoteSchema, insertActionItemSchema, insertExcelFileSchema } from "@shared/schema";
+import { loadComprehensiveExcelData } from "./comprehensive-excel-loader";
+import { SUPABASE_QUERIES } from "./supabase-service";
+import { SupabaseIntegration } from "./supabase-integration";
 
 const upload = multer({ 
   storage: multer.memoryStorage(),
@@ -12,13 +17,220 @@ const upload = multer({
         file.mimetype === 'application/vnd.ms-excel') {
       cb(null, true);
     } else {
-      cb(new Error('Only Excel files are allowed'), false);
+      cb(new Error('Only Excel files are allowed') as any, false);
     }
   }
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
+  // Supabase AppFolio Data Routes - Using SupabaseIntegration service
+  app.get("/api/supabase/properties", async (req, res) => {
+    try {
+      const properties = await SupabaseIntegration.getProperties();
+      res.json(properties);
+    } catch (error) {
+      console.error('Error fetching Supabase properties:', error);
+      res.status(500).json({ message: "Failed to fetch properties from Supabase", error: error instanceof Error ? error.message : String(error) });
+    }
+  });
+
+  app.get("/api/supabase/properties/:propertyId/rent-roll", async (req, res) => {
+    try {
+      const propertyId = parseInt(req.params.propertyId);
+      const rentRoll = await SupabaseIntegration.getRentRollByProperty(propertyId);
+      res.json(rentRoll);
+    } catch (error) {
+      console.error('Error fetching rent roll:', error);
+      res.status(500).json({ message: "Failed to fetch rent roll from Supabase" });
+    }
+  });
+
+  app.get("/api/supabase/properties/:propertyId/financials", async (req, res) => {
+    try {
+      const propertyId = parseInt(req.params.propertyId);
+      const year = parseInt(req.query.year as string) || 2024;
+      
+      const financials = await SupabaseIntegration.getPropertyFinancials(propertyId, year);
+      res.json(financials);
+    } catch (error) {
+      console.error('Error fetching property financials:', error);
+      res.status(500).json({ message: "Failed to fetch property financials from Supabase" });
+    }
+  });
+
+  app.get("/api/supabase/portfolio-summary", async (req, res) => {
+    try {
+      const summary = await SupabaseIntegration.getPortfolioSummary();
+      res.json(summary);
+    } catch (error) {
+      console.error('Error fetching portfolio summary:', error);
+      res.status(500).json({ message: "Failed to fetch portfolio summary from Supabase" });
+    }
+  });
+  
+  // Comprehensive Excel Data
+  app.get("/api/excel-data", async (req, res) => {
+    try {
+      const excelData = await loadComprehensiveExcelData();
+      res.json(excelData);
+    } catch (error) {
+      console.error('Error loading Excel data:', error);
+      res.status(500).json({ message: "Failed to load Excel data", error: error instanceof Error ? error.message : String(error) });
+    }
+  });
+
+  // Process existing Excel file and update storage
+  app.post("/api/excel/process-existing", async (req, res) => {
+    try {
+      const filePath = 'd:/WORK Files/Stanton/Monthly Review_DataOnly.xlsx';
+      
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ message: "Excel file not found at expected location" });
+      }
+
+      // Process the comprehensive Excel file
+      const comprehensiveData = await loadComprehensiveExcelData(filePath);
+      
+      console.log('Processing existing Excel file:', {
+        properties: comprehensiveData.properties.length,
+        cashFlowData: comprehensiveData.cashFlowData.length,
+        balanceSheetData: comprehensiveData.balanceSheetData.length,
+        rentRollData: comprehensiveData.rentRollData.length,
+        t12Data: comprehensiveData.t12Data.length
+      });
+
+      // Clear existing GL accounts for all properties
+      const existingProperties = await storage.getAllProperties();
+      for (const prop of existingProperties) {
+        await storage.deleteGLAccountsByProperty(prop.id);
+      }
+
+      const currentMonth = new Date().toISOString().substring(0, 7);
+      let processedProperties = 0;
+      
+      // Process each property's financial data
+      for (const property of comprehensiveData.properties) {
+        // Find corresponding cash flow data
+        const cashFlow = comprehensiveData.cashFlowData.find(cf => cf.assetId === property.assetId);
+        if (cashFlow) {
+          // Find or get the existing property from storage
+          let dbProperty = await storage.getPropertyByCode(property.assetId);
+          
+          if (dbProperty) {
+            processedProperties++;
+            console.log(`Processing financial data for ${property.assetId}: Revenue ${cashFlow.totalOperatingIncome}, Expenses ${cashFlow.totalOperatingExpense}, NOI ${cashFlow.noi}`);
+            
+            // Create GL accounts based on cash flow data
+            if (cashFlow.rentIncome > 0) {
+              await storage.createGLAccount({
+                propertyId: dbProperty.id,
+                code: "4105",
+                description: "Rent Income", 
+                amount: cashFlow.rentIncome,
+                type: "revenue",
+                month: currentMonth
+              });
+            }
+            
+            if (cashFlow.section8Rent > 0) {
+              await storage.createGLAccount({
+                propertyId: dbProperty.id,
+                code: "4110",
+                description: "Section 8 Rent",
+                amount: cashFlow.section8Rent,
+                type: "revenue",
+                month: currentMonth
+              });
+            }
+            
+            // Add expense accounts based on total operating expense
+            if (cashFlow.totalOperatingExpense > 0) {
+              // Estimate breakdown of operating expenses
+              const mgmtFee = cashFlow.totalOperatingExpense * 0.06; // 6% management
+              const maintenance = cashFlow.totalOperatingExpense * 0.25; // 25% maintenance
+              const utilities = cashFlow.totalOperatingExpense * 0.15; // 15% utilities
+              const insurance = cashFlow.totalOperatingExpense * 0.10; // 10% insurance
+              const taxes = cashFlow.totalOperatingExpense * 0.35; // 35% taxes
+              
+              if (mgmtFee > 0) {
+                await storage.createGLAccount({
+                  propertyId: dbProperty.id,
+                  code: "6105",
+                  description: "Property Management",
+                  amount: mgmtFee,
+                  type: "expense",
+                  month: currentMonth
+                });
+              }
+              
+              if (maintenance > 0) {
+                await storage.createGLAccount({
+                  propertyId: dbProperty.id,
+                  code: "6110",
+                  description: "Maintenance & Repairs",
+                  amount: maintenance,
+                  type: "expense",
+                  month: currentMonth
+                });
+              }
+              
+              if (utilities > 0) {
+                await storage.createGLAccount({
+                  propertyId: dbProperty.id,
+                  code: "6120",
+                  description: "Utilities",
+                  amount: utilities,
+                  type: "expense",
+                  month: currentMonth
+                });
+              }
+              
+              if (insurance > 0) {
+                await storage.createGLAccount({
+                  propertyId: dbProperty.id,
+                  code: "6130", 
+                  description: "Property Insurance",
+                  amount: insurance,
+                  type: "expense",
+                  month: currentMonth
+                });
+              }
+              
+              if (taxes > 0) {
+                await storage.createGLAccount({
+                  propertyId: dbProperty.id,
+                  code: "6140",
+                  description: "Property Taxes",
+                  amount: taxes,
+                  type: "expense",
+                  month: currentMonth
+                });
+              }
+            }
+          }
+        }
+      }
+
+      res.json({ 
+        message: "Existing Excel file processed successfully",
+        comprehensiveData: {
+          propertiesFound: comprehensiveData.properties.length,
+          propertiesProcessed: processedProperties,
+          cashFlowRecords: comprehensiveData.cashFlowData.length,
+          balanceSheetRecords: comprehensiveData.balanceSheetData.length,
+          rentRollRecords: comprehensiveData.rentRollData.length,
+          t12Records: comprehensiveData.t12Data.length,
+          portfolioSummary: comprehensiveData.portfolioSummary
+        }
+      });
+      
+    } catch (error) {
+      console.error('Error processing existing Excel file:', error);
+      res.status(500).json({ message: "Failed to process existing Excel file", error: error instanceof Error ? error.message : String(error) });
+    }
+  });
+
   // Portfolios
   app.get("/api/portfolios", async (req, res) => {
     try {
@@ -99,7 +311,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const note = await storage.createNote(validated);
       res.status(201).json(note);
     } catch (error) {
-      res.status(400).json({ message: "Invalid note data", error: error });
+      res.status(400).json({ message: "Invalid note data", error: error instanceof Error ? error.message : String(error) });
     }
   });
 
@@ -112,7 +324,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       res.json(note);
     } catch (error) {
-      res.status(400).json({ message: "Invalid note data", error: error });
+      res.status(400).json({ message: "Invalid note data", error: error instanceof Error ? error.message : String(error) });
     }
   });
 
@@ -150,7 +362,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const item = await storage.createActionItem(validated);
       res.status(201).json(item);
     } catch (error) {
-      res.status(400).json({ message: "Invalid action item data", error: error });
+      res.status(400).json({ message: "Invalid action item data", error: error instanceof Error ? error.message : String(error) });
     }
   });
 
@@ -163,7 +375,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       res.json(item);
     } catch (error) {
-      res.status(400).json({ message: "Invalid action item data", error: error });
+      res.status(400).json({ message: "Invalid action item data", error: error instanceof Error ? error.message : String(error) });
     }
   });
 
@@ -182,23 +394,209 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Excel Upload
   app.post("/api/excel/upload", upload.single('excel'), async (req, res) => {
     try {
+      console.log('Excel upload request received');
+      
       if (!req.file) {
+        console.log('No file in request');
         return res.status(400).json({ message: "No Excel file uploaded" });
       }
 
+      console.log('File received:', req.file.originalname, 'Size:', req.file.size);
+
+      // Save the uploaded file temporarily
+      const tempFilePath = path.join(process.cwd(), 'uploaded_excel.xlsx');
+      console.log('Saving to:', tempFilePath);
+      fs.writeFileSync(tempFilePath, req.file.buffer);
+      console.log('File saved successfully');
+
+      // Process the comprehensive Excel file
+      console.log('Starting Excel processing...');
+      const comprehensiveData = await loadComprehensiveExcelData(tempFilePath);
+      console.log('Excel processing completed');
+      
+      console.log('Comprehensive Excel data loaded:', {
+        properties: comprehensiveData.properties.length,
+        cashFlowData: comprehensiveData.cashFlowData.length,
+        balanceSheetData: comprehensiveData.balanceSheetData.length,
+        rentRollData: comprehensiveData.rentRollData.length,
+        t12Data: comprehensiveData.t12Data.length
+      });
+
+      // Update storage with comprehensive data
+      if (comprehensiveData.properties.length > 0) {
+        // Clear existing data
+        const existingProperties = await storage.getAllProperties();
+        for (const prop of existingProperties) {
+          await storage.deleteGLAccountsByProperty(prop.id);
+        }
+
+        const currentMonth = new Date().toISOString().substring(0, 7);
+        
+        // Process each property's financial data
+        for (const property of comprehensiveData.properties) {
+          // Find corresponding cash flow data
+          const cashFlow = comprehensiveData.cashFlowData.find(cf => cf.assetId === property.assetId);
+          if (cashFlow) {
+            // Find or get the existing property from storage
+            let dbProperty = await storage.getPropertyByCode(property.assetId);
+            
+            // Create property if it doesn't exist
+            if (!dbProperty) {
+              console.log(`Creating new property: ${property.assetId} - ${property.name}`);
+              const portfolios = await storage.getAllPortfolios();
+              let portfolio = portfolios.find(p => p.name === property.portfolio);
+              
+              // If portfolio doesn't exist, create it or use default
+              if (!portfolio) {
+                portfolio = portfolios.find(p => p.key === 'hartford1') || portfolios[0];
+              }
+              
+              if (portfolio) {
+                dbProperty = await storage.createProperty({
+                  code: property.assetId,
+                  name: property.name,
+                  portfolioId: portfolio.id,
+                  units: property.units || 1,
+                  monthlyNOI: cashFlow.noi || 0,
+                  noiMargin: cashFlow.totalOperatingIncome > 0 ? (cashFlow.noi / cashFlow.totalOperatingIncome) * 100 : 0,
+                  occupancy: 95.0,
+                  revenuePerUnit: property.units > 0 ? cashFlow.totalOperatingIncome / property.units : 0,
+                  capRate: 12.0,
+                  dscr: 2.0
+                });
+                console.log(`Created property: ${dbProperty.code} - ${dbProperty.name}`);
+              }
+            }
+            
+            if (dbProperty) {
+              // Create GL accounts based on cash flow data
+              if (cashFlow.rentIncome > 0) {
+                await storage.createGLAccount({
+                  propertyId: dbProperty.id,
+                  code: "4105",
+                  description: "Rent Income",
+                  amount: cashFlow.rentIncome,
+                  type: "revenue",
+                  month: currentMonth
+                });
+              }
+              
+              if (cashFlow.section8Rent > 0) {
+                await storage.createGLAccount({
+                  propertyId: dbProperty.id,
+                  code: "4110", 
+                  description: "Section 8 Rent",
+                  amount: cashFlow.section8Rent,
+                  type: "revenue",
+                  month: currentMonth
+                });
+              }
+              
+              // Add expense accounts based on total operating expense
+              if (cashFlow.totalOperatingExpense > 0) {
+                // Estimate breakdown of operating expenses
+                const mgmtFee = cashFlow.totalOperatingExpense * 0.06; // 6% management
+                const maintenance = cashFlow.totalOperatingExpense * 0.25; // 25% maintenance
+                const utilities = cashFlow.totalOperatingExpense * 0.15; // 15% utilities
+                const insurance = cashFlow.totalOperatingExpense * 0.10; // 10% insurance
+                const taxes = cashFlow.totalOperatingExpense * 0.35; // 35% taxes
+                
+                if (mgmtFee > 0) {
+                  await storage.createGLAccount({
+                    propertyId: dbProperty.id,
+                    code: "6105",
+                    description: "Property Management",
+                    amount: mgmtFee,
+                    type: "expense",
+                    month: currentMonth
+                  });
+                }
+                
+                if (maintenance > 0) {
+                  await storage.createGLAccount({
+                    propertyId: dbProperty.id,
+                    code: "6110",
+                    description: "Maintenance & Repairs",
+                    amount: maintenance,
+                    type: "expense", 
+                    month: currentMonth
+                  });
+                }
+                
+                if (utilities > 0) {
+                  await storage.createGLAccount({
+                    propertyId: dbProperty.id,
+                    code: "6120",
+                    description: "Utilities",
+                    amount: utilities,
+                    type: "expense",
+                    month: currentMonth
+                  });
+                }
+                
+                if (insurance > 0) {
+                  await storage.createGLAccount({
+                    propertyId: dbProperty.id,
+                    code: "6130",
+                    description: "Property Insurance",
+                    amount: insurance,
+                    type: "expense",
+                    month: currentMonth
+                  });
+                }
+                
+                if (taxes > 0) {
+                  await storage.createGLAccount({
+                    propertyId: dbProperty.id,
+                    code: "6140",
+                    description: "Property Taxes",
+                    amount: taxes,
+                    type: "expense",
+                    month: currentMonth
+                  });
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // Keep the uploaded file for future reference
+      const permanentPath = path.join(process.cwd(), `excel_data_${Date.now()}.xlsx`);
+      fs.renameSync(tempFilePath, permanentPath);
+
+      // Save file record
       const excelFile = await storage.createExcelFile({
         filename: req.file.originalname,
-        processedData: null // Will be processed by frontend
+        processedData: JSON.stringify({
+          propertiesCount: comprehensiveData.properties.length,
+          dataProcessed: new Date().toISOString(),
+          portfolioSummary: comprehensiveData.portfolioSummary
+        })
       });
 
       res.json({ 
-        message: "Excel file uploaded successfully", 
+        message: "Excel file uploaded and processed successfully", 
         fileId: excelFile.id,
         filename: excelFile.filename,
-        fileBuffer: req.file.buffer.toString('base64')
+        comprehensiveData: {
+          propertiesLoaded: comprehensiveData.properties.length,
+          cashFlowRecords: comprehensiveData.cashFlowData.length,
+          balanceSheetRecords: comprehensiveData.balanceSheetData.length,
+          rentRollRecords: comprehensiveData.rentRollData.length,
+          t12Records: comprehensiveData.t12Data.length,
+          portfolioSummary: comprehensiveData.portfolioSummary
+        }
       });
+      
     } catch (error) {
-      res.status(500).json({ message: "Failed to upload Excel file", error: error });
+      console.error('Excel upload error:', error);
+      console.error('Error stack:', error instanceof Error ? error.stack : String(error));
+      res.status(500).json({ 
+        message: "Failed to upload and process Excel file", 
+        error: error instanceof Error ? error.message : String(error),
+        stack: process.env.NODE_ENV === 'development' && error instanceof Error ? error.stack : undefined
+      });
     }
   });
 
@@ -223,7 +621,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json(exportData);
     } catch (error) {
-      res.status(500).json({ message: "Failed to generate lender package", error: error });
+      res.status(500).json({ message: "Failed to generate lender package", error: error instanceof Error ? error.message : String(error) });
     }
   });
 
@@ -264,7 +662,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json(exportData);
     } catch (error) {
-      res.status(500).json({ message: "Failed to generate Excel export data", error: error });
+      res.status(500).json({ message: "Failed to generate Excel export data", error: error instanceof Error ? error.message : String(error) });
     }
   });
 
