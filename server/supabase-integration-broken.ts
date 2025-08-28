@@ -19,36 +19,36 @@ const mcpClient: MCPSupabaseClient = {
       if (query.includes('AF_RentRoll') && query.includes('DISTINCT')) {
         // Properties query
         return [
-          {
-            PropertyId: 142,
-            PropertyName: "S0020 - 31 Park",
-            PropertyAddress: "31-33 Park St Hartford, CT 06106",
-            PropertyStreet1: "31-33 Park St",
-            PropertyCity: "Hartford",
-            PropertyState: "CT",
-            PropertyZip: "06106",
-            PropertyType: "Residential"
-          },
-          {
-            PropertyId: 22,
-            PropertyName: "S0006 - 15 Whit",
-            PropertyAddress: "15-17 Whitmore Street Hartford, CT 06114",
-            PropertyStreet1: "15-17 Whitmore Street",
-            PropertyCity: "Hartford", 
-            PropertyState: "CT",
-            PropertyZip: "06114",
-            PropertyType: "Residential"
-          },
-          {
-            PropertyId: 145,
-            PropertyName: "S0024 - 10 Wolcott",
-            PropertyAddress: "10 Wolcott St Hartford, CT 06106",
-            PropertyStreet1: "10 Wolcott St",
-            PropertyCity: "Hartford",
-            PropertyState: "CT", 
-            PropertyZip: "06106",
-            PropertyType: "Residential"
-          }
+        {
+          PropertyId: 142,
+          PropertyName: "S0020 - 31 Park",
+          PropertyAddress: "31-33 Park St Hartford, CT 06106",
+          PropertyStreet1: "31-33 Park St",
+          PropertyCity: "Hartford",
+          PropertyState: "CT",
+          PropertyZip: "06106",
+          PropertyType: "Residential"
+        },
+        {
+          PropertyId: 22,
+          PropertyName: "S0006 - 15 Whit",
+          PropertyAddress: "15-17 Whitmore Street Hartford, CT 06114",
+          PropertyStreet1: "15-17 Whitmore Street",
+          PropertyCity: "Hartford", 
+          PropertyState: "CT",
+          PropertyZip: "06114",
+          PropertyType: "Residential"
+        },
+        {
+          PropertyId: 145,
+          PropertyName: "S0024 - 10 Wolcott",
+          PropertyAddress: "10 Wolcott St Hartford, CT 06106",
+          PropertyStreet1: "10 Wolcott St",
+          PropertyCity: "Hartford",
+          PropertyState: "CT", 
+          PropertyZip: "06106",
+          PropertyType: "Residential"
+        }
         ];
       } 
       
@@ -57,68 +57,68 @@ const mcpClient: MCPSupabaseClient = {
         return [
           {
             PropertyId: 142,
-            PropertyName: "S0020 - 31 Park",
-            PropertyAddress: "31-33 Park St Hartford, CT 06106",
-            Unit: "1A",
-            UnitType: "2BR/1BA", 
-            Tenant: "John Smith",
-            Status: "Occupied",
-            Rent: 1200,
-            MarketRent: 1250,
-            SquareFt: 850,
-            LeaseFrom: "2024-01-01",
-            LeaseTo: "2024-12-31",
-            MoveIn: "2024-01-01",
-            MoveOut: null,
-            PastDue: 0
-          },
-          {
-            PropertyId: 142,
-            PropertyName: "S0020 - 31 Park", 
-            PropertyAddress: "31-33 Park St Hartford, CT 06106",
-            Unit: "2A",
-            UnitType: "1BR/1BA",
-            Tenant: "Jane Doe", 
-            Status: "Occupied",
-            Rent: 950,
-            MarketRent: 1000,
-            SquareFt: 650,
-            LeaseFrom: "2024-03-01",
-            LeaseTo: "2025-02-28", 
-            MoveIn: "2024-03-01",
-            MoveOut: null,
-            PastDue: 150
-          }
-        ];
-      }
+          PropertyName: "S0020 - 31 Park",
+          PropertyAddress: "31-33 Park St Hartford, CT 06106",
+          Unit: "1A",
+          UnitType: "2BR/1BA", 
+          Tenant: "John Smith",
+          Status: "Occupied",
+          Rent: 1200,
+          MarketRent: 1250,
+          SquareFt: 850,
+          LeaseFrom: "2024-01-01",
+          LeaseTo: "2024-12-31",
+          MoveIn: "2024-01-01",
+          MoveOut: null,
+          PastDue: 0
+        },
+        {
+          PropertyId: 142,
+          PropertyName: "S0020 - 31 Park", 
+          PropertyAddress: "31-33 Park St Hartford, CT 06106",
+          Unit: "2A",
+          UnitType: "1BR/1BA",
+          Tenant: "Jane Doe", 
+          Status: "Occupied",
+          Rent: 950,
+          MarketRent: 1000,
+          SquareFt: 650,
+          LeaseFrom: "2024-03-01",
+          LeaseTo: "2025-02-28", 
+          MoveIn: "2024-03-01",
+          MoveOut: null,
+          PastDue: 150
+        }
+      ];
+    }
 
-      if (query.includes('AF_GeneralLedger')) {
-        // GL transactions
-        return [
-          {
-            PropertyId: 142,
-            PropertyName: "S0020 - 31 Park",
-            GlAccountName: "Rent Income",
-            PostDate: "2024-01-01",
-            Month: "January",
-            Year: 2024,
-            Type: "Revenue", 
-            Amount: 2150,
-            Description: "Monthly rent collection"
-          },
-          {
-            PropertyId: 142,
-            PropertyName: "S0020 - 31 Park",
-            GlAccountName: "Property Management",
-            PostDate: "2024-01-01", 
-            Month: "January",
-            Year: 2024,
-            Type: "Expense",
-            Amount: 129,
-            Description: "Management fee"
-          }
-        ];
-      }
+    if (query.includes('AF_GeneralLedger')) {
+      // GL transactions
+      return [
+        {
+          PropertyId: 142,
+          PropertyName: "S0020 - 31 Park",
+          GlAccountName: "Rent Income",
+          PostDate: "2024-01-01",
+          Month: "January",
+          Year: 2024,
+          Type: "Revenue", 
+          Amount: 2150,
+          Description: "Monthly rent collection"
+        },
+        {
+          PropertyId: 142,
+          PropertyName: "S0020 - 31 Park",
+          GlAccountName: "Property Management",
+          PostDate: "2024-01-01", 
+          Month: "January",
+          Year: 2024,
+          Type: "Expense",
+          Amount: 129,
+          Description: "Management fee"
+        }
+      ];
+    }
 
       return [];
     } catch (error) {
@@ -238,7 +238,7 @@ export class SupabaseIntegration {
   }
 }
 
-// In production, replace mcpClient with actual MCP server calls like:
+// In production, replace mockMCPClient with actual MCP server calls like:
 /*
 const actualMCPClient = {
   async execute_sql(projectId: string, query: string) {

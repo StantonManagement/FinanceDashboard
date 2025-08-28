@@ -2,6 +2,9 @@
   "permissions": {
     "additionalDirectories": [
       "D:\\WORK Files\\Stanton"
+    ],
+    "allow": [
+      "mcp__wonderwhy-er-desktop-commander__interact_with_process"
     ]
   }
 }

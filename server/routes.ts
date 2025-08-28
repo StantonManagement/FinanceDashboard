@@ -8,6 +8,8 @@ import { insertNoteSchema, insertActionItemSchema, insertExcelFileSchema } from 
 import { loadComprehensiveExcelData } from "./comprehensive-excel-loader";
 import { SUPABASE_QUERIES } from "./supabase-service";
 import { SupabaseIntegration } from "./supabase-integration";
+import { INVESTMENT_QUERIES, SUPABASE_PROJECT_ID } from "./investments-service";
+import { supabase } from "./supabase-client";
 
 const upload = multer({ 
   storage: multer.memoryStorage(),
@@ -23,6 +25,12 @@ const upload = multer({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  
+  // Add request logging for debugging
+  app.use('/api/investments', (req, res, next) => {
+    console.log('🌐 Incoming request:', req.method, req.url, 'Full path:', req.path);
+    next();
+  });
   
   // Supabase AppFolio Data Routes - Using SupabaseIntegration service
   app.get("/api/supabase/properties", async (req, res) => {
@@ -66,6 +74,290 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error fetching portfolio summary:', error);
       res.status(500).json({ message: "Failed to fetch portfolio summary from Supabase" });
+    }
+  });
+
+  // NEW PORTFOLIO ROUTES - Portfolio-level aggregated data from investments table
+
+  // Get portfolio summary with aggregated data
+  app.get("/api/investments/portfolio-summary", async (req, res) => {
+    console.log('🔵 HIT /api/investments/portfolio-summary endpoint');
+    try {
+      const portfolioFilter = req.query.portfolio as string;
+      console.log('📊 Portfolio filter:', portfolioFilter);
+      
+      let query = supabase
+        .from('investments')
+        .select('noi, proforma_revenue, proforma_operating_expenses, exp_tax_prop, exp_prop_ins, exp_rm, debt_service, units, going_in_cap_rate');
+
+      if (portfolioFilter && portfolioFilter !== 'all') {
+        query = query.ilike('portfolio_name', `%${portfolioFilter}%`);
+      }
+
+      const { data: investments, error } = await query;
+      
+      if (error) throw error;
+
+      // Calculate portfolio totals
+      const summary = {
+        total_properties: investments.length,
+        total_units: investments.reduce((sum, inv) => sum + (inv.units || 0), 0),
+        total_noi: investments.reduce((sum, inv) => sum + (inv.noi || 0), 0),
+        total_revenue: investments.reduce((sum, inv) => sum + (inv.proforma_revenue || 0), 0),
+        total_operating_expenses: investments.reduce((sum, inv) => sum + (inv.proforma_operating_expenses || 0), 0),
+        total_property_tax: investments.reduce((sum, inv) => sum + (inv.exp_tax_prop || 0), 0),
+        total_insurance: investments.reduce((sum, inv) => sum + (inv.exp_prop_ins || 0), 0),
+        total_maintenance: investments.reduce((sum, inv) => sum + (inv.exp_rm || 0), 0),
+        total_debt_service: investments.reduce((sum, inv) => sum + (inv.debt_service || 0), 0),
+        avg_cap_rate: investments.reduce((sum, inv) => sum + (inv.going_in_cap_rate || 0), 0) / investments.length,
+        avg_occupancy: 95 // Placeholder - would need actual occupancy data
+      };
+
+      console.log('📊 Portfolio summary calculated:', summary);
+      res.json(summary);
+    } catch (error) {
+      console.error('❌ Error fetching portfolio summary:', error);
+      res.status(500).json({ message: "Failed to fetch portfolio summary", error: error instanceof Error ? error.message : String(error) });
+    }
+  });
+
+  // Get portfolio financials aggregated
+  app.get("/api/investments/portfolio-financials", async (req, res) => {
+    console.log('🔵 HIT /api/investments/portfolio-financials endpoint');
+    try {
+      const portfolioFilter = req.query.portfolio as string;
+      console.log('📊 Portfolio filter:', portfolioFilter);
+      
+      let query = supabase
+        .from('investments')
+        .select('*');
+
+      if (portfolioFilter && portfolioFilter !== 'all') {
+        query = query.ilike('portfolio_name', `%${portfolioFilter}%`);
+      }
+
+      const { data: investments, error } = await query;
+      
+      if (error) throw error;
+
+      // Calculate aggregated financials
+      const financials = {
+        total_proforma_revenue: investments.reduce((sum, inv) => sum + (inv.proforma_revenue || 0), 0),
+        total_operating_expenses: investments.reduce((sum, inv) => sum + (inv.proforma_operating_expenses || 0), 0),
+        total_property_tax: investments.reduce((sum, inv) => sum + (inv.exp_tax_prop || 0), 0),
+        total_insurance: investments.reduce((sum, inv) => sum + (inv.exp_prop_ins || 0), 0),
+        total_maintenance: investments.reduce((sum, inv) => sum + (inv.exp_rm || 0), 0),
+        total_debt_service: investments.reduce((sum, inv) => sum + (inv.debt_service || 0), 0),
+        total_noi: investments.reduce((sum, inv) => sum + (inv.noi || 0), 0),
+        property_count: investments.length
+      };
+
+      console.log('📊 Portfolio financials calculated:', financials);
+      res.json(financials);
+    } catch (error) {
+      console.error('❌ Error fetching portfolio financials:', error);
+      res.status(500).json({ message: "Failed to fetch portfolio financials", error: error instanceof Error ? error.message : String(error) });
+    }
+  });
+  
+  // Investment Portfolios - Get portfolios from AF_Investments_export table (MUST be before :assetId route)
+  app.get("/api/investments/portfolios", async (req, res) => {
+    console.log('🔵 HIT /api/investments/portfolios endpoint');
+    try {
+      console.log('📊 Querying AF_Investments_export for portfolio data...');
+      const { data: portfolioData, error } = await supabase
+        .from('AF_Investments_export')
+        .select('"Portfolio Name", "Units", "NOI", "Going-In Cap Rate"')
+        .not('Portfolio Name', 'is', null);
+      
+      console.log('📊 Supabase query result:', { 
+        dataCount: portfolioData?.length, 
+        error: error?.message,
+        firstItem: portfolioData?.[0] 
+      });
+      
+      if (error) throw error;
+      
+      console.log('🔄 Processing portfolio data, grouping by Portfolio Name...');
+      // Group by portfolio and calculate totals
+      const portfolioMap = new Map();
+      portfolioData.forEach(item => {
+        const name = item['Portfolio Name'];
+        if (!name) return; // Skip if no portfolio name
+        
+        if (!portfolioMap.has(name)) {
+          portfolioMap.set(name, {
+            name,
+            totalUnits: 0,
+            totalNOI: 0,
+            totalCapRate: 0,
+            count: 0
+          });
+        }
+        const portfolio = portfolioMap.get(name);
+        portfolio.totalUnits += parseInt(item['Units']) || 0;
+        portfolio.totalNOI += parseFloat(item['NOI']?.replace(/[\$,]/g, '')) || 0;
+        const capRate = parseFloat(item['Going-In Cap Rate']?.replace('%', ''));
+        if (!isNaN(capRate)) {
+          portfolio.totalCapRate += capRate;
+          portfolio.count += 1;
+        }
+      });
+      
+      // Transform to expected format
+      const portfolios = Array.from(portfolioMap.values()).map((portfolio, index) => ({
+        key: portfolio.name.toLowerCase().replace(/\s+/g, ''),
+        id: `portfolio-${index + 1}`,
+        name: portfolio.name,
+        totalUnits: portfolio.totalUnits,
+        totalNOI: portfolio.totalNOI,
+        capRate: portfolio.count > 0 ? (portfolio.totalCapRate / portfolio.count) : 0
+      }));
+      
+      console.log('✅ Successfully processed portfolios:', portfolios.length, 'portfolios found');
+      console.log('📋 Portfolio names:', portfolios.map(p => p.name));
+      
+      res.json(portfolios);
+    } catch (error) {
+      console.error('❌ Error fetching investment portfolios:', error);
+      res.status(500).json({ message: "Failed to fetch investment portfolios", error: error instanceof Error ? error.message : String(error) });
+    }
+  });
+
+  // Investment Properties Routes - Using Supabase client
+  app.get("/api/investments", async (req, res) => {
+    try {
+      const { portfolio, search } = req.query;
+      
+      let query = supabase
+        .from('AF_Investments_export')
+        .select('*')
+        .order('"Asset ID"');
+      
+      if (portfolio) {
+        query = query.ilike('"Portfolio Name"', `%${portfolio}%`);
+      }
+      
+      if (search) {
+        query = query.or(`"Asset ID + Name".ilike.%${search}%,"Address".ilike.%${search}%,"Portfolio Name".ilike.%${search}%`);
+      }
+      
+      const { data: properties, error } = await query;
+      
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
+      
+      res.json(properties || []);
+    } catch (error) {
+      console.error('Error fetching investment properties:', error);
+      res.status(500).json({ message: "Failed to fetch investment properties", error: error instanceof Error ? error.message : String(error) });
+    }
+  });
+
+  app.get("/api/investments/:assetId", async (req, res) => {
+    console.log('🔴 HIT /api/investments/:assetId endpoint with assetId:', req.params.assetId);
+    try {
+      const { assetId } = req.params;
+      
+      const { data: property, error } = await supabase
+        .from('AF_Investments_export')
+        .select('*')
+        .eq('"Asset ID"', assetId)
+        .single();
+      
+      if (error) {
+        console.error('Supabase error:', error);
+        if (error.code === 'PGRST116') {
+          return res.status(404).json({ message: "Investment property not found" });
+        }
+        throw error;
+      }
+      
+      res.json(property);
+    } catch (error) {
+      console.error('Error fetching investment property:', error);
+      res.status(500).json({ message: "Failed to fetch investment property", error: error instanceof Error ? error.message : String(error) });
+    }
+  });
+
+  app.get("/api/investments/summary/portfolio", async (req, res) => {
+    try {
+      // Get portfolio summary
+      const { data: summaryData, error: summaryError } = await supabase
+        .from('investments')
+        .select('units, noi, proforma_revenue, going_in_cap_rate')
+        .not('units', 'is', null);
+      
+      if (summaryError) throw summaryError;
+      
+      const summary = {
+        total_properties: summaryData.length,
+        total_units: summaryData.reduce((sum, item) => sum + (parseInt(item.units) || 0), 0),
+        total_noi: summaryData.reduce((sum, item) => sum + (parseFloat(item.noi) || 0), 0),
+        total_revenue: summaryData.reduce((sum, item) => sum + (parseFloat(item.proforma_revenue) || 0), 0),
+        avg_cap_rate: summaryData.filter(item => item.going_in_cap_rate).length > 0 
+          ? summaryData.reduce((sum, item) => sum + (parseFloat(item.going_in_cap_rate) || 0), 0) / summaryData.filter(item => item.going_in_cap_rate).length
+          : 0
+      };
+      
+      // Get portfolio breakdown
+      const { data: breakdownData, error: breakdownError } = await supabase
+        .from('investments')
+        .select('portfolio_name, units, noi')
+        .not('portfolio_name', 'is', null);
+      
+      if (breakdownError) throw breakdownError;
+      
+      const portfolioMap = new Map();
+      breakdownData.forEach(item => {
+        const name = item.portfolio_name;
+        if (!name) return; // Skip if no portfolio name
+        
+        if (!portfolioMap.has(name)) {
+          portfolioMap.set(name, { name, property_count: 0, total_units: 0, total_noi: 0 });
+        }
+        const portfolio = portfolioMap.get(name);
+        portfolio.property_count += 1;
+        portfolio.total_units += parseInt(item.units) || 0;
+        portfolio.total_noi += parseFloat(item.noi) || 0;
+      });
+      
+      const breakdown = Array.from(portfolioMap.values());
+      
+      res.json({
+        summary,
+        portfolios: breakdown
+      });
+    } catch (error) {
+      console.error('Error fetching investment summary:', error);
+      res.status(500).json({ message: "Failed to fetch investment summary", error: error instanceof Error ? error.message : String(error) });
+    }
+  });
+
+  app.get("/api/investments/:assetId/financials", async (req, res) => {
+    try {
+      const { assetId } = req.params;
+      
+      const { data: financials, error } = await supabase
+        .from('AF_Investments_export')
+        .select('"Asset ID", "Asset ID + Name", "NOI", "Proforma Revenue", "Proforma Operating Expenses", "Going-In Cap Rate", "Debt Service", "LTV Ratio", "DSV Ratio", "Debt1 - Int Rate"')
+        .eq('"Asset ID"', assetId)
+        .single();
+      
+      if (error) {
+        console.error('Supabase error:', error);
+        if (error.code === 'PGRST116') {
+          return res.status(404).json({ message: "Investment financials not found" });
+        }
+        throw error;
+      }
+      
+      res.json(financials);
+    } catch (error) {
+      console.error('Error fetching investment financials:', error);
+      res.status(500).json({ message: "Failed to fetch investment financials", error: error instanceof Error ? error.message : String(error) });
     }
   });
   
