@@ -87,11 +87,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('📊 Portfolio filter:', portfolioFilter);
       
       let query = supabase
-        .from('AF_Investments_export')
-        .select('"NOI", "Proforma Revenue", "Proforma Operating Expenses", "Exp - Tax - Prop", "Exp - Prop Ins", "Exp - R&M", "Debt Service", "Units", "Going-In Cap Rate"');
+        .from('investments')
+        .select('noi, proforma_revenue, proforma_operating_expenses, exp_tax_prop, exp_prop_ins, exp_rm, debt_service, units, going_in_cap_rate');
 
       if (portfolioFilter && portfolioFilter !== 'all') {
-        query = query.ilike('"Portfolio Name"', `%${portfolioFilter}%`);
+        query = query.ilike('portfolio_name', `%${portfolioFilter}%`);
       }
 
       const { data: investments, error } = await query;
@@ -101,15 +101,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Calculate portfolio totals
       const summary = {
         total_properties: investments.length,
-        total_units: investments.reduce((sum, inv) => sum + (parseInt(inv.Units) || 0), 0),
-        total_noi: investments.reduce((sum, inv) => sum + (parseFloat(inv.NOI?.replace(/[\$,]/g, '')) || 0), 0),
-        total_revenue: investments.reduce((sum, inv) => sum + (parseFloat(inv['Proforma Revenue']?.replace(/[\$,]/g, '')) || 0), 0),
-        total_operating_expenses: investments.reduce((sum, inv) => sum + (parseFloat(inv['Proforma Operating Expenses']?.replace(/[\$,]/g, '')) || 0), 0),
-        total_property_tax: investments.reduce((sum, inv) => sum + (parseFloat(inv['Exp - Tax - Prop']?.replace(/[\$,]/g, '')) || 0), 0),
-        total_insurance: investments.reduce((sum, inv) => sum + (parseFloat(inv['Exp - Prop Ins']?.replace(/[\$,]/g, '')) || 0), 0),
-        total_maintenance: investments.reduce((sum, inv) => sum + (parseFloat(inv['Exp - R&M']?.replace(/[\$,]/g, '')) || 0), 0),
-        total_debt_service: investments.reduce((sum, inv) => sum + (parseFloat(inv['Debt Service']?.replace(/[\$,]/g, '')) || 0), 0),
-        avg_cap_rate: investments.length > 0 ? investments.reduce((sum, inv) => sum + (parseFloat(inv['Going-In Cap Rate']?.replace('%', '')) || 0), 0) / investments.length : 0,
+        total_units: investments.reduce((sum, inv) => sum + (inv.units || 0), 0),
+        total_noi: investments.reduce((sum, inv) => sum + (inv.noi || 0), 0),
+        total_revenue: investments.reduce((sum, inv) => sum + (inv.proforma_revenue || 0), 0),
+        total_operating_expenses: investments.reduce((sum, inv) => sum + (inv.proforma_operating_expenses || 0), 0),
+        total_property_tax: investments.reduce((sum, inv) => sum + (inv.exp_tax_prop || 0), 0),
+        total_insurance: investments.reduce((sum, inv) => sum + (inv.exp_prop_ins || 0), 0),
+        total_maintenance: investments.reduce((sum, inv) => sum + (inv.exp_rm || 0), 0),
+        total_debt_service: investments.reduce((sum, inv) => sum + (inv.debt_service || 0), 0),
+        avg_cap_rate: investments.reduce((sum, inv) => sum + (inv.going_in_cap_rate || 0), 0) / investments.length,
         avg_occupancy: 95 // Placeholder - would need actual occupancy data
       };
 
@@ -129,11 +129,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('📊 Portfolio filter:', portfolioFilter);
       
       let query = supabase
-        .from('AF_Investments_export')
-        .select('"Proforma Revenue", "Proforma Operating Expenses", "Exp - Tax - Prop", "Exp - Prop Ins", "Exp - R&M", "Debt Service", "NOI"');
+        .from('investments')
+        .select('*');
 
       if (portfolioFilter && portfolioFilter !== 'all') {
-        query = query.ilike('"Portfolio Name"', `%${portfolioFilter}%`);
+        query = query.ilike('portfolio_name', `%${portfolioFilter}%`);
       }
 
       const { data: investments, error } = await query;
@@ -142,13 +142,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Calculate aggregated financials
       const financials = {
-        total_proforma_revenue: investments.reduce((sum, inv) => sum + (parseFloat(inv['Proforma Revenue']?.replace(/[\$,]/g, '')) || 0), 0),
-        total_operating_expenses: investments.reduce((sum, inv) => sum + (parseFloat(inv['Proforma Operating Expenses']?.replace(/[\$,]/g, '')) || 0), 0),
-        total_property_tax: investments.reduce((sum, inv) => sum + (parseFloat(inv['Exp - Tax - Prop']?.replace(/[\$,]/g, '')) || 0), 0),
-        total_insurance: investments.reduce((sum, inv) => sum + (parseFloat(inv['Exp - Prop Ins']?.replace(/[\$,]/g, '')) || 0), 0),
-        total_maintenance: investments.reduce((sum, inv) => sum + (parseFloat(inv['Exp - R&M']?.replace(/[\$,]/g, '')) || 0), 0),
-        total_debt_service: investments.reduce((sum, inv) => sum + (parseFloat(inv['Debt Service']?.replace(/[\$,]/g, '')) || 0), 0),
-        total_noi: investments.reduce((sum, inv) => sum + (parseFloat(inv.NOI?.replace(/[\$,]/g, '')) || 0), 0),
+        total_proforma_revenue: investments.reduce((sum, inv) => sum + (inv.proforma_revenue || 0), 0),
+        total_operating_expenses: investments.reduce((sum, inv) => sum + (inv.proforma_operating_expenses || 0), 0),
+        total_property_tax: investments.reduce((sum, inv) => sum + (inv.exp_tax_prop || 0), 0),
+        total_insurance: investments.reduce((sum, inv) => sum + (inv.exp_prop_ins || 0), 0),
+        total_maintenance: investments.reduce((sum, inv) => sum + (inv.exp_rm || 0), 0),
+        total_debt_service: investments.reduce((sum, inv) => sum + (inv.debt_service || 0), 0),
+        total_noi: investments.reduce((sum, inv) => sum + (inv.noi || 0), 0),
         property_count: investments.length
       };
 
