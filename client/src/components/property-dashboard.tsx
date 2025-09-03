@@ -30,6 +30,7 @@ export function PropertyDashboard({}: PropertyDashboardProps) {
   
   // State management
   const [selectedPortfolio, setSelectedPortfolio] = useState('');
+  const [selectedProperty, setSelectedProperty] = useState<any>(null);
   const [activeTab, setActiveTab] = useState('performance');
   const [clickedElements, setClickedElements] = useState<Set<string>>(new Set());
   const [cellNotes, setCellNotes] = useState<Record<string, string>>({});
@@ -90,6 +91,27 @@ export function PropertyDashboard({}: PropertyDashboardProps) {
     },
     enabled: !!selectedPortfolio,
   });
+
+  // Fetch properties for the selected portfolio
+  const { data: portfolioProperties = [] } = useQuery({
+    queryKey: ['/api/investments', selectedPortfolio],
+    queryFn: async () => {
+      const url = selectedPortfolio !== 'all' 
+        ? `/api/investments?portfolio=${encodeURIComponent(currentPortfolio?.name || selectedPortfolio)}`
+        : '/api/investments';
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('Failed to fetch portfolio properties');
+      return response.json();
+    },
+    enabled: !!selectedPortfolio,
+  });
+
+  // Auto-select first property when portfolio changes
+  useEffect(() => {
+    if (portfolioProperties.length > 0 && (!selectedProperty || !portfolioProperties.find((p: any) => p["Asset ID"] === selectedProperty?.["Asset ID"]))) {
+      setSelectedProperty(portfolioProperties[0]);
+    }
+  }, [portfolioProperties]);
 
   const { data: notes = [] } = useQuery<{ text: string; id: string; propertyId: string; cellId: string; author: string; createdAt: Date; }[]>({
     queryKey: ['/api/notes'],
@@ -248,6 +270,29 @@ export function PropertyDashboard({}: PropertyDashboardProps) {
           clickedElements={clickedElements}
         />
 
+        {/* Property Selection */}
+        {portfolioProperties.length > 0 && (
+          <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+            <div className="flex items-center space-x-4">
+              <label className="text-sm font-medium text-gray-700">Select Property:</label>
+              <select 
+                value={selectedProperty?.["Asset ID"] || ''} 
+                onChange={(e) => {
+                  const property = portfolioProperties.find((p: any) => p["Asset ID"] === e.target.value);
+                  setSelectedProperty(property);
+                }}
+                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {portfolioProperties.map((property: any) => (
+                  <option key={property["Asset ID"]} value={property["Asset ID"]}>
+                    {property["Asset ID + Name"]}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        )}
+
         {/* Portfolio KPI Section */}
         <KPIMetrics
           currentPortfolio={currentPortfolio}
@@ -338,7 +383,11 @@ export function PropertyDashboard({}: PropertyDashboardProps) {
 
               {/* Balance Sheet Tab */}
               <TabsContent value="balance" className="mt-0">
-                <BalanceSheetTab portfolioSummary={portfolioSummary} />
+                <BalanceSheetTab 
+                  selectedProperty={selectedProperty}
+                  getCellComments={() => []}
+                  handleCommentAdded={() => {}}
+                />
               </TabsContent>
 
               {/* T12 Performance Tab */}

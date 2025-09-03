@@ -87,11 +87,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('📊 Portfolio filter:', portfolioFilter);
       
       let query = supabase
-        .from('investments')
-        .select('noi, proforma_revenue, proforma_operating_expenses, exp_tax_prop, exp_prop_ins, exp_rm, debt_service, units, going_in_cap_rate');
+        .from('AF_Investments_export')
+        .select('"NOI", "Proforma Revenue", "Proforma Operating Expenses", "Exp - Tax - Prop", "Exp - Prop Ins", "Exp - R&M", "Debt Service", "Units", "Going-In Cap Rate"');
 
       if (portfolioFilter && portfolioFilter !== 'all') {
-        query = query.ilike('portfolio_name', `%${portfolioFilter}%`);
+        query = query.ilike('"Portfolio Name"', `%${portfolioFilter}%`);
       }
 
       const { data: investments, error } = await query;
@@ -101,15 +101,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Calculate portfolio totals
       const summary = {
         total_properties: investments.length,
-        total_units: investments.reduce((sum, inv) => sum + (inv.units || 0), 0),
-        total_noi: investments.reduce((sum, inv) => sum + (inv.noi || 0), 0),
-        total_revenue: investments.reduce((sum, inv) => sum + (inv.proforma_revenue || 0), 0),
-        total_operating_expenses: investments.reduce((sum, inv) => sum + (inv.proforma_operating_expenses || 0), 0),
-        total_property_tax: investments.reduce((sum, inv) => sum + (inv.exp_tax_prop || 0), 0),
-        total_insurance: investments.reduce((sum, inv) => sum + (inv.exp_prop_ins || 0), 0),
-        total_maintenance: investments.reduce((sum, inv) => sum + (inv.exp_rm || 0), 0),
-        total_debt_service: investments.reduce((sum, inv) => sum + (inv.debt_service || 0), 0),
-        avg_cap_rate: investments.reduce((sum, inv) => sum + (inv.going_in_cap_rate || 0), 0) / investments.length,
+        total_units: investments.reduce((sum, inv) => sum + (parseInt(inv.Units) || 0), 0),
+        total_noi: investments.reduce((sum, inv) => sum + (parseFloat(inv.NOI?.replace(/[\$,]/g, '')) || 0), 0),
+        total_revenue: investments.reduce((sum, inv) => sum + (parseFloat(inv['Proforma Revenue']?.replace(/[\$,]/g, '')) || 0), 0),
+        total_operating_expenses: investments.reduce((sum, inv) => sum + (parseFloat(inv['Proforma Operating Expenses']?.replace(/[\$,]/g, '')) || 0), 0),
+        total_property_tax: investments.reduce((sum, inv) => sum + (parseFloat(inv['Exp - Tax - Prop']?.replace(/[\$,]/g, '')) || 0), 0),
+        total_insurance: investments.reduce((sum, inv) => sum + (parseFloat(inv['Exp - Prop Ins']?.replace(/[\$,]/g, '')) || 0), 0),
+        total_maintenance: investments.reduce((sum, inv) => sum + (parseFloat(inv['Exp - R&M']?.replace(/[\$,]/g, '')) || 0), 0),
+        total_debt_service: investments.reduce((sum, inv) => sum + (parseFloat(inv['Debt Service']?.replace(/[\$,]/g, '')) || 0), 0),
+        avg_cap_rate: investments.length > 0 ? investments.reduce((sum, inv) => sum + (parseFloat(inv['Going-In Cap Rate']?.replace('%', '')) || 0), 0) / investments.length : 0,
         avg_occupancy: 95 // Placeholder - would need actual occupancy data
       };
 
@@ -129,11 +129,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('📊 Portfolio filter:', portfolioFilter);
       
       let query = supabase
-        .from('investments')
-        .select('*');
+        .from('AF_Investments_export')
+        .select('"Proforma Revenue", "Proforma Operating Expenses", "Exp - Tax - Prop", "Exp - Prop Ins", "Exp - R&M", "Debt Service", "NOI"');
 
       if (portfolioFilter && portfolioFilter !== 'all') {
-        query = query.ilike('portfolio_name', `%${portfolioFilter}%`);
+        query = query.ilike('"Portfolio Name"', `%${portfolioFilter}%`);
       }
 
       const { data: investments, error } = await query;
@@ -142,13 +142,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Calculate aggregated financials
       const financials = {
-        total_proforma_revenue: investments.reduce((sum, inv) => sum + (inv.proforma_revenue || 0), 0),
-        total_operating_expenses: investments.reduce((sum, inv) => sum + (inv.proforma_operating_expenses || 0), 0),
-        total_property_tax: investments.reduce((sum, inv) => sum + (inv.exp_tax_prop || 0), 0),
-        total_insurance: investments.reduce((sum, inv) => sum + (inv.exp_prop_ins || 0), 0),
-        total_maintenance: investments.reduce((sum, inv) => sum + (inv.exp_rm || 0), 0),
-        total_debt_service: investments.reduce((sum, inv) => sum + (inv.debt_service || 0), 0),
-        total_noi: investments.reduce((sum, inv) => sum + (inv.noi || 0), 0),
+        total_proforma_revenue: investments.reduce((sum, inv) => sum + (parseFloat(inv['Proforma Revenue']?.replace(/[\$,]/g, '')) || 0), 0),
+        total_operating_expenses: investments.reduce((sum, inv) => sum + (parseFloat(inv['Proforma Operating Expenses']?.replace(/[\$,]/g, '')) || 0), 0),
+        total_property_tax: investments.reduce((sum, inv) => sum + (parseFloat(inv['Exp - Tax - Prop']?.replace(/[\$,]/g, '')) || 0), 0),
+        total_insurance: investments.reduce((sum, inv) => sum + (parseFloat(inv['Exp - Prop Ins']?.replace(/[\$,]/g, '')) || 0), 0),
+        total_maintenance: investments.reduce((sum, inv) => sum + (parseFloat(inv['Exp - R&M']?.replace(/[\$,]/g, '')) || 0), 0),
+        total_debt_service: investments.reduce((sum, inv) => sum + (parseFloat(inv['Debt Service']?.replace(/[\$,]/g, '')) || 0), 0),
+        total_noi: investments.reduce((sum, inv) => sum + (parseFloat(inv.NOI?.replace(/[\$,]/g, '')) || 0), 0),
         property_count: investments.length
       };
 
@@ -160,6 +160,283 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Test Supabase connection
+  app.get("/api/test-supabase", async (req, res) => {
+    try {
+      console.log('🔵 Testing Supabase connection...');
+      
+      // Test basic connection
+      const { data, error } = await supabase
+        .from('AF_Investments_export')
+        .select('"Asset ID"')
+        .limit(1);
+      
+      if (error) {
+        console.error('❌ Supabase connection failed:', error);
+        return res.status(500).json({ 
+          success: false, 
+          message: 'Supabase connection failed', 
+          error: error.message 
+        });
+      }
+      
+      console.log('✅ Supabase connection successful');
+      res.json({ 
+        success: true, 
+        message: 'Supabase connection working', 
+        sampleData: data 
+      });
+    } catch (error) {
+      console.error('❌ Connection test error:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Connection test failed', 
+        error: error instanceof Error ? error.message : String(error) 
+      });
+    }
+  });
+
+  // Balance Sheet Routes (MUST be before :assetId routes to avoid conflicts)
+  app.get("/api/balance-sheet/:assetId", async (req, res) => {
+    console.log(`🔵 Balance Sheet API called for asset: ${req.params.assetId}`);
+    
+    try {
+      const { assetId } = req.params;
+      
+      console.log('📊 Querying AF_Investments_export for asset:', assetId);
+      
+      // First, get the proper asset name from AF_Investments_export
+      const { data: assetData, error: assetError } = await supabase
+        .from('AF_Investments_export')
+        .select('"Asset ID", "Asset ID + Name"')
+        .eq('"Asset ID"', assetId)
+        .single();
+      
+      console.log('📊 Asset lookup result:', { assetData, assetError });
+      
+      if (assetError) {
+        console.error('❌ Asset lookup error:', assetError);
+        return res.status(500).json({ 
+          message: "Database error while looking up asset", 
+          error: assetError.message,
+          details: assetError 
+        });
+      }
+      
+      if (!assetData) {
+        console.error('❌ Asset not found:', assetId);
+        return res.status(404).json({ message: "Asset ID not found in investments data" });
+      }
+      
+      const assetColumnName = assetData['Asset ID + Name'];
+      console.log('📊 Asset column name:', assetColumnName);
+      
+      // First, let's try different table names to see which one exists
+      console.log('📊 Testing different table name variations...');
+      
+      // Try AF_Balance (case sensitive)
+      let balanceSheetData: any = null;
+      let error: any = null;
+      try {
+        console.log('📊 Trying AF_Balance...');
+        const result = await supabase.from('AF_Balance').select('*').limit(1);
+        console.log('📊 AF_Balance result:', { count: result.data?.length, error: result.error?.message });
+        
+        if (!result.error && result.data?.length === 0) {
+          console.log('📊 AF_Balance table exists but is empty, trying full query...');
+          const fullResult = await supabase.from('AF_Balance').select('*');
+          balanceSheetData = fullResult.data;
+          error = fullResult.error;
+          console.log('📊 Full AF_Balance query:', { count: fullResult.data?.length, error: fullResult.error?.message });
+        } else if (!result.error) {
+          const fullResult = await supabase.from('AF_Balance').select('*');
+          balanceSheetData = fullResult.data;
+          error = fullResult.error;
+        } else {
+          // Table doesn't exist or has permission issues, try lowercase
+          console.log('📊 AF_Balance failed, trying af_balance...');
+          const lowerResult = await supabase.from('af_balance').select('*').limit(1);
+          console.log('📊 af_balance result:', { count: lowerResult.data?.length, error: lowerResult.error?.message });
+          
+          if (!lowerResult.error) {
+            const fullResult = await supabase.from('af_balance').select('*');
+            balanceSheetData = fullResult.data;
+            error = fullResult.error;
+          } else {
+            balanceSheetData = result.data;
+            error = result.error;
+          }
+        }
+      } catch (e) {
+        console.error('📊 Exception during table check:', e);
+        error = e;
+      }
+      
+      console.log('📊 Final balance sheet query result:', { 
+        recordCount: balanceSheetData?.length, 
+        error: error?.message,
+        errorCode: error?.code,
+        errorDetails: error?.details,
+        firstRowColumns: balanceSheetData?.[0] ? Object.keys(balanceSheetData[0]).slice(0, 5) : []
+      });
+      
+      if (error) {
+        console.error('❌ Balance sheet query error:', error);
+        return res.status(500).json({ 
+          message: "Database error while querying balance sheet", 
+          error: error.message,
+          details: error 
+        });
+      }
+      
+      // Verify the column exists in AF_Balance
+      if (!balanceSheetData || balanceSheetData.length === 0) {
+        console.error('❌ No balance sheet data found');
+        return res.status(404).json({ message: "No balance sheet data available" });
+      }
+      
+      if (!(assetColumnName in balanceSheetData[0])) {
+        console.error('❌ Asset column not found in balance sheet:', assetColumnName);
+        console.log('📊 Available columns:', Object.keys(balanceSheetData[0]));
+        return res.status(404).json({ 
+          message: `Balance sheet column '${assetColumnName}' not found`,
+          availableColumns: Object.keys(balanceSheetData[0]).filter(col => col.includes('S'))
+        });
+      }
+      
+      // Process the balance sheet data
+      const processedData = {
+        assetId,
+        assetColumn: assetColumnName,
+        assets: {} as Record<string, any>,
+        liabilities: {} as Record<string, any>,
+        equity: {} as Record<string, any>,
+        rawData: [] as any[]
+      };
+      
+      let currentSection = '';
+      
+      balanceSheetData.forEach((row: any) => {
+        const accountName = row['Account Name'];
+        const value = row[assetColumnName];
+        
+        if (!accountName) return;
+        
+        // Track sections
+        if (accountName === 'ASSETS') {
+          currentSection = 'assets';
+        } else if (accountName === 'LIABILITIES') {
+          currentSection = 'liabilities';
+        } else if (accountName === 'EQUITY') {
+          currentSection = 'equity';
+        }
+        
+        // Parse monetary values
+        const cleanValue = value?.toString().replace(/[(),\s]/g, '').replace(/,/g, '') || '0';
+        const numericValue = parseFloat(cleanValue) || 0;
+        const isNegative = value?.toString().includes('(');
+        const finalValue = isNegative ? -Math.abs(numericValue) : numericValue;
+        
+        const item = {
+          accountName,
+          value: value?.toString().trim() || '',
+          numericValue: finalValue,
+          section: currentSection
+        };
+        
+        processedData.rawData.push(item);
+        
+        // Categorize into sections
+        if (currentSection === 'assets' && accountName !== 'ASSETS') {
+          processedData.assets[accountName] = item;
+        } else if (currentSection === 'liabilities' && accountName !== 'LIABILITIES') {
+          processedData.liabilities[accountName] = item;
+        } else if (currentSection === 'equity' && accountName !== 'EQUITY') {
+          processedData.equity[accountName] = item;
+        }
+      });
+      
+      console.log('✅ Balance sheet data processed successfully');
+      res.json(processedData);
+    } catch (error) {
+      console.error('❌ Unexpected error in balance sheet API:', error);
+      console.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace');
+      res.status(500).json({ 
+        message: "Failed to fetch balance sheet data", 
+        error: error instanceof Error ? error.message : String(error),
+        stack: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.stack : undefined) : undefined
+      });
+    }
+  });
+
+  // Combined Asset and Balance Sheet Data
+  app.get("/api/asset-complete/:assetId", async (req, res) => {
+    try {
+      const { assetId } = req.params;
+      
+      // Get investment data
+      const { data: investmentData, error: invError } = await supabase
+        .from('AF_Investments_export')
+        .select('*')
+        .eq('"Asset ID"', assetId)
+        .single();
+      
+      if (invError || !investmentData) {
+        return res.status(404).json({ message: "Asset not found in investments data" });
+      }
+      
+      // Get balance sheet data using the Asset ID + Name as column
+      const assetColumnName = investmentData['Asset ID + Name'];
+      const { data: balanceSheetData, error: balanceError } = await supabase
+        .from('AF_Balance')
+        .select('*');
+      
+      let processedBalanceSheet = null;
+      
+      if (!balanceError && balanceSheetData?.[0] && assetColumnName in balanceSheetData[0]) {
+        const assets: Record<string, any> = {};
+        const liabilities: Record<string, any> = {};
+        const equity: Record<string, any> = {};
+        let currentSection = '';
+        
+        balanceSheetData.forEach(row => {
+          const accountName = row['Account Name'];
+          const value = row[assetColumnName];
+          
+          if (!accountName) return;
+          
+          if (accountName === 'ASSETS') currentSection = 'assets';
+          else if (accountName === 'LIABILITIES') currentSection = 'liabilities';
+          else if (accountName === 'EQUITY') currentSection = 'equity';
+          
+          const cleanValue = value?.toString().replace(/[(),\s]/g, '').replace(/,/g, '') || '0';
+          const numericValue = parseFloat(cleanValue) || 0;
+          const isNegative = value?.toString().includes('(');
+          const finalValue = isNegative ? -Math.abs(numericValue) : numericValue;
+          
+          const item = { accountName, value: value?.toString().trim() || '', numericValue: finalValue };
+          
+          if (currentSection === 'assets' && accountName !== 'ASSETS') assets[accountName] = item;
+          else if (currentSection === 'liabilities' && accountName !== 'LIABILITIES') liabilities[accountName] = item;
+          else if (currentSection === 'equity' && accountName !== 'EQUITY') equity[accountName] = item;
+        });
+        
+        processedBalanceSheet = { assetId, assetColumn: assetColumnName, assets, liabilities, equity };
+      }
+      
+      res.json({
+        assetId,
+        investment: investmentData,
+        balanceSheet: processedBalanceSheet,
+        hasBalanceSheet: !!processedBalanceSheet
+      });
+      
+    } catch (error) {
+      console.error('Error fetching complete asset data:', error);
+      res.status(500).json({ message: "Failed to fetch complete asset data", error: error instanceof Error ? error.message : String(error) });
+    }
+  });
+
   // Investment Portfolios - Get portfolios from AF_Investments_export table (MUST be before :assetId route)
   app.get("/api/investments/portfolios", async (req, res) => {
     console.log('🔵 HIT /api/investments/portfolios endpoint');
@@ -358,6 +635,254 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error fetching investment financials:', error);
       res.status(500).json({ message: "Failed to fetch investment financials", error: error instanceof Error ? error.message : String(error) });
+    }
+  });
+
+  // Enhanced Asset Lookup - Get detailed property information
+  app.get("/api/assets/:assetId/details", async (req, res) => {
+    console.log('🔵 HIT /api/assets/:assetId/details endpoint with assetId:', req.params.assetId);
+    try {
+      const { assetId } = req.params;
+      
+      // Get comprehensive property data from investments table
+      const { data: property, error } = await supabase
+        .from('investments')
+        .select('*')
+        .eq('asset_id', assetId)
+        .single();
+      
+      if (error) {
+        console.error('Supabase error:', error);
+        if (error.code === 'PGRST116') {
+          return res.status(404).json({ message: "Asset not found" });
+        }
+        throw error;
+      }
+      
+      // Structure the response with organized data
+      const assetDetails = {
+        basic: {
+          assetId: property.asset_id,
+          name: property.asset_id_plus_name,
+          portfolio: property.portfolio_name,
+          address: property.address_full,
+          propertyType: property.property_type,
+          units: property.units,
+          manager: property.manager,
+          ownerLLC: property.owner_llc
+        },
+        financial: {
+          noi: property.noi,
+          proformaRevenue: property.proforma_revenue,
+          egi: property.egi,
+          operatingExpenses: property.proforma_operating_expenses,
+          capRate: property.going_in_cap_rate,
+          debtService: property.debt_service,
+          ltvRatio: property.ltv_ratio,
+          dscRatio: property.dsv_ratio
+        },
+        expenses: {
+          propertyTax: property.exp_tax_prop,
+          insurance: property.exp_prop_ins,
+          utilities: property.exp_utilities,
+          maintenance: property.exp_rm,
+          payroll: property.exp_payroll,
+          garbage: property.exp_garbage,
+          managementFee: property.exp_pm_fee_admin
+        },
+        property: {
+          built: property.built,
+          renovated: property.renovated_last,
+          buildingSF: property.building_sf,
+          landSF: property.land_sf,
+          stories: property.stories,
+          roofType: property.roof_type,
+          heatType: property.heat_type,
+          acIncluded: property.ac_included,
+          parkingSpots: property.parking_spots_count
+        }
+      };
+      
+      res.json(assetDetails);
+    } catch (error) {
+      console.error('Error fetching asset details:', error);
+      res.status(500).json({ message: "Failed to fetch asset details", error: error instanceof Error ? error.message : String(error) });
+    }
+  });
+
+  // Asset Expense Lookup - Get expenses by category and time period
+  app.get("/api/assets/:assetId/expenses", async (req, res) => {
+    console.log('🔵 HIT /api/assets/:assetId/expenses endpoint with assetId:', req.params.assetId);
+    try {
+      const { assetId } = req.params;
+      const { category, month, year, startDate, endDate } = req.query;
+      
+      console.log('Query params:', { category, month, year, startDate, endDate });
+      
+      // First, try to get data from AF_GeneralLedger table if it exists
+      let query = supabase
+        .from('AF_GeneralLedger')
+        .select('*');
+
+      // Find property by asset ID first to get PropertyId
+      const { data: property, error: propError } = await supabase
+        .from('investments')
+        .select('id, asset_id')
+        .eq('asset_id', assetId)
+        .single();
+        
+      if (propError || !property) {
+        // Fallback: return current static expense data from investments table
+        console.log('Property not found or GL table not available, returning static data');
+        
+        const { data: investmentData, error: invError } = await supabase
+          .from('investments')
+          .select('asset_id, asset_id_plus_name, exp_tax_prop, exp_prop_ins, exp_utilities, exp_rm, exp_payroll, exp_garbage, exp_pm_fee_admin')
+          .eq('asset_id', assetId)
+          .single();
+          
+        if (invError) {
+          return res.status(404).json({ message: "Asset not found" });
+        }
+        
+        // Create mock time-based data for demonstration
+        const currentYear = new Date().getFullYear();
+        const expenseCategories = [
+          { category: 'Property Tax', amount: investmentData.exp_tax_prop || 0, code: 'tax' },
+          { category: 'Insurance', amount: investmentData.exp_prop_ins || 0, code: 'insurance' },
+          { category: 'Utilities', amount: investmentData.exp_utilities || 0, code: 'utilities' },
+          { category: 'Maintenance', amount: investmentData.exp_rm || 0, code: 'maintenance' },
+          { category: 'Payroll', amount: investmentData.exp_payroll || 0, code: 'payroll' },
+          { category: 'Garbage', amount: investmentData.exp_garbage || 0, code: 'garbage' },
+          { category: 'Management Fee', amount: investmentData.exp_pm_fee_admin || 0, code: 'management' },
+          { category: 'Landscaping', amount: (investmentData.exp_rm || 0) * 0.15, code: 'landscaping' } // 15% of maintenance
+        ];
+        
+        // Filter by category if specified
+        let filteredExpenses = expenseCategories;
+        if (category && category !== 'all' && typeof category === 'string') {
+          filteredExpenses = expenseCategories.filter(exp => 
+            exp.code.toLowerCase().includes(category.toLowerCase()) ||
+            exp.category.toLowerCase().includes(category.toLowerCase())
+          );
+        }
+        
+        // Generate monthly breakdown (mock data)
+        const expenseHistory = filteredExpenses.map(expense => ({
+          assetId: investmentData.asset_id,
+          assetName: investmentData.asset_id_plus_name,
+          category: expense.category,
+          categoryCode: expense.code,
+          amount: expense.amount,
+          year: year ? parseInt(year as string) : currentYear,
+          month: month ? parseInt(month as string) : null,
+          monthName: month ? new Date(0, parseInt(month as string) - 1).toLocaleDateString('en', {month: 'long'}) : null,
+          date: year && month ? `${year}-${month.toString().padStart(2, '0')}-01` : `${currentYear}-01-01`,
+          description: `${expense.category} expense for ${investmentData.asset_id_plus_name}`
+        }));
+        
+        const response = {
+          assetId: investmentData.asset_id,
+          assetName: investmentData.asset_id_plus_name,
+          expenses: expenseHistory,
+          totalAmount: filteredExpenses.reduce((sum, exp) => sum + (exp.amount || 0), 0),
+          query: { category, month, year, startDate, endDate },
+          dataSource: 'static' // Indicates this is from investments table, not time-series data
+        };
+        
+        return res.json(response);
+      }
+      
+      // If we have property data, try to query GL table (this would work when AppFolio data is available)
+      console.log('Found property, querying GL data...');
+      query = query.eq('PropertyId', property.id);
+      
+      // Apply time filters
+      if (year) {
+        query = query.eq('Year', parseInt(year as string));
+      }
+      if (month) {
+        query = query.eq('Month', parseInt(month as string));
+      }
+      if (startDate && endDate) {
+        query = query.gte('PostDate', startDate).lte('PostDate', endDate);
+      }
+      
+      // Apply category filter
+      if (category && category !== 'all') {
+        query = query.ilike('GlAccountName', `%${category}%`);
+      }
+      
+      const { data: expenses, error } = await query;
+      
+      if (error) {
+        console.error('GL query error:', error);
+        throw error;
+      }
+      
+      const response = {
+        assetId,
+        expenses: expenses || [],
+        totalAmount: (expenses || []).reduce((sum, exp) => sum + (exp.Amount || 0), 0),
+        query: { category, month, year, startDate, endDate },
+        dataSource: 'appfolio'
+      };
+      
+      res.json(response);
+    } catch (error) {
+      console.error('Error fetching asset expenses:', error);
+      res.status(500).json({ message: "Failed to fetch asset expenses", error: error instanceof Error ? error.message : String(error) });
+    }
+  });
+
+  // Asset Search - Search assets by various criteria
+  app.get("/api/assets/search", async (req, res) => {
+    console.log('🔵 HIT /api/assets/search endpoint');
+    try {
+      const { q, portfolio, propertyType, minUnits, maxUnits } = req.query;
+      
+      let query = supabase
+        .from('investments')
+        .select('asset_id, asset_id_plus_name, portfolio_name, property_type, address, units, noi, proforma_revenue');
+      
+      // Apply search filters
+      if (q) {
+        query = query.or(`asset_id.ilike.%${q}%,asset_id_plus_name.ilike.%${q}%,address.ilike.%${q}%`);
+      }
+      
+      if (portfolio && portfolio !== 'all') {
+        query = query.ilike('portfolio_name', `%${portfolio}%`);
+      }
+      
+      if (propertyType && propertyType !== 'all') {
+        query = query.ilike('property_type', `%${propertyType}%`);
+      }
+      
+      if (minUnits) {
+        query = query.gte('units', parseInt(minUnits as string));
+      }
+      
+      if (maxUnits) {
+        query = query.lte('units', parseInt(maxUnits as string));
+      }
+      
+      query = query.order('asset_id').limit(50);
+      
+      const { data: assets, error } = await query;
+      
+      if (error) {
+        console.error('Asset search error:', error);
+        throw error;
+      }
+      
+      res.json({
+        assets: assets || [],
+        count: assets?.length || 0,
+        query: { q, portfolio, propertyType, minUnits, maxUnits }
+      });
+    } catch (error) {
+      console.error('Error searching assets:', error);
+      res.status(500).json({ message: "Failed to search assets", error: error instanceof Error ? error.message : String(error) });
     }
   });
   

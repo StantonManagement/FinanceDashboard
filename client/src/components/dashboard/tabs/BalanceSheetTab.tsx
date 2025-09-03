@@ -1,5 +1,6 @@
 import { Input } from '@/components/ui/input';
 import ClickableCell from '../../clickable-cell';
+import { useState, useEffect } from 'react';
 
 interface BalanceSheetTabProps {
   getCellComments?: (cellReference: string) => any[];
@@ -7,13 +8,111 @@ interface BalanceSheetTabProps {
   selectedProperty?: any;
 }
 
+interface BalanceSheetData {
+  assetId: string;
+  assetColumn: string;
+  assets: Record<string, { accountName: string; value: string; numericValue: number; section: string; }>;
+  liabilities: Record<string, { accountName: string; value: string; numericValue: number; section: string; }>;
+  equity: Record<string, { accountName: string; value: string; numericValue: number; section: string; }>;
+  rawData: Array<{ accountName: string; value: string; numericValue: number; section: string; }>;
+}
+
 export function BalanceSheetTab({ getCellComments, handleCommentAdded, selectedProperty }: BalanceSheetTabProps) {
+  const [balanceSheetData, setBalanceSheetData] = useState<BalanceSheetData | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (selectedProperty?.asset_id || selectedProperty?.["Asset ID"]) {
+      fetchBalanceSheetData();
+    }
+  }, [selectedProperty]);
+
+  const fetchBalanceSheetData = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const assetId = selectedProperty?.asset_id || selectedProperty?.["Asset ID"] || 'S0010';
+      const response = await fetch(`/api/balance-sheet/${assetId}`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch balance sheet data');
+      }
+      
+      const data = await response.json();
+      setBalanceSheetData(data);
+    } catch (err) {
+      console.error('Error fetching balance sheet data:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load balance sheet data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(Math.abs(value));
+  };
+
+  const getValueDisplay = (item: { value: string; numericValue: number }) => {
+    if (item.numericValue === 0 && item.value === '-') return '-';
+    if (item.numericValue < 0) {
+      return `(${formatCurrency(Math.abs(item.numericValue))})`;
+    }
+    return formatCurrency(item.numericValue);
+  };
+
+  // Calculate totals
+  const totalAssets = balanceSheetData ? 
+    Object.values(balanceSheetData.assets)
+      .filter(item => item.accountName.includes('Total') || item.accountName.includes('TOTAL'))
+      .reduce((sum, item) => sum + item.numericValue, 0) : 0;
+
+  const totalLiabilities = balanceSheetData ? 
+    Object.values(balanceSheetData.liabilities)
+      .filter(item => item.accountName.includes('Total') || item.accountName.includes('TOTAL'))
+      .reduce((sum, item) => sum + item.numericValue, 0) : 0;
+
+  const ownerEquity = totalAssets - totalLiabilities;
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-institutional-black mx-auto mb-4"></div>
+          <p>Loading balance sheet data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-md p-4">
+        <div className="flex">
+          <div className="text-red-600">
+            <h3 className="text-sm font-medium">Error loading balance sheet data</h3>
+            <p className="text-sm mt-1">{error}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-lg font-bold uppercase text-institutional-black">
           Balance Sheet Analysis & DSCR Calculations
         </h3>
+        {balanceSheetData && (
+          <div className="text-sm text-gray-600">
+            Data for: {balanceSheetData.assetColumn}
+          </div>
+        )}
       </div>
       
       <div className="grid grid-cols-2 gap-5 mb-5">
@@ -31,36 +130,56 @@ export function BalanceSheetTab({ getCellComments, handleCommentAdded, selectedP
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td>Property Value (Appraised)</td>
-                <td className="font-mono-data font-bold">${selectedProperty?.appraised_value?.toLocaleString() || '2,840,000'}</td>
-                <td className="font-mono-data">87.2%</td>
-                <td><span className="text-success-green font-bold">LOW</span></td>
-              </tr>
-              <tr>
-                <td>Cash & Equivalents</td>
-                <td className="font-mono-data font-bold">$156,000</td>
-                <td className="font-mono-data">4.8%</td>
-                <td><span className="text-success-green font-bold">LOW</span></td>
-              </tr>
-              <tr>
-                <td>Tenant Security Deposits</td>
-                <td className="font-mono-data font-bold">$48,200</td>
-                <td className="font-mono-data">1.5%</td>
-                <td><span className="text-success-green font-bold">LOW</span></td>
-              </tr>
-              <tr>
-                <td>Accounts Receivable</td>
-                <td className="font-mono-data font-bold">$21,800</td>
-                <td className="font-mono-data">0.7%</td>
-                <td><span className="text-red-600 font-bold">MEDIUM</span></td>
-              </tr>
-              <tr className="bg-blue-50 border-t-2 border-institutional-black">
-                <td className="font-bold">TOTAL ASSETS</td>
-                <td className="font-mono-data font-bold">$3,066,000</td>
-                <td className="font-mono-data font-bold">100.0%</td>
-                <td></td>
-              </tr>
+              {balanceSheetData && Object.entries(balanceSheetData.assets)
+                .filter(([key, item]) => {
+                  // Show only important asset categories and totals
+                  const accountName = item.accountName.toLowerCase();
+                  return (
+                    item.accountName.includes('Total') || 
+                    item.accountName.includes('TOTAL') ||
+                    accountName.includes('cash') ||
+                    accountName.includes('operating cash') ||
+                    accountName.includes('security deposit') ||
+                    accountName.includes('deposit') ||
+                    accountName.includes('receivable') ||
+                    accountName.includes('prepaid') ||
+                    Math.abs(item.numericValue) > 1000 // Only show significant amounts
+                  );
+                })
+                .map(([key, item]) => {
+                  const isTotal = item.accountName.includes('Total') || item.accountName.includes('TOTAL');
+                  const percentage = totalAssets > 0 ? (Math.abs(item.numericValue) / Math.abs(totalAssets) * 100).toFixed(1) : '0.0';
+                  
+                  return (
+                    <tr key={key} className={isTotal ? "bg-blue-50 border-t-2 border-institutional-black" : ""}>
+                      <td className={isTotal ? "font-bold" : ""}>{item.accountName}</td>
+                      <td className={`font-mono-data ${isTotal ? "font-bold" : "font-bold"}`}>
+                        {getValueDisplay(item)}
+                      </td>
+                      <td className={`font-mono-data ${isTotal ? "font-bold" : ""}`}>
+                        {isTotal ? "100.0%" : `${percentage}%`}
+                      </td>
+                      <td>
+                        {!isTotal && (
+                          <span className={`font-bold ${
+                            Math.abs(item.numericValue) > 500000 ? "text-success-green" :
+                            Math.abs(item.numericValue) > 50000 ? "text-orange-600" : "text-red-600"
+                          }`}>
+                            {Math.abs(item.numericValue) > 500000 ? "LOW" :
+                             Math.abs(item.numericValue) > 50000 ? "MEDIUM" : "HIGH"}
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              {!balanceSheetData && (
+                <tr>
+                  <td colSpan={4} className="text-center text-gray-500 py-4">
+                    No balance sheet data available
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
@@ -79,36 +198,52 @@ export function BalanceSheetTab({ getCellComments, handleCommentAdded, selectedP
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td>Primary Mortgage</td>
-                <td className="font-mono-data font-bold">${selectedProperty?.debt1_initial?.toLocaleString() || '1,820,000'}</td>
-                <td className="font-mono-data">{selectedProperty?.debt1_int_rate?.toFixed(2) || '4.25'}%</td>
-                <td className="font-mono-data">{selectedProperty?.maturity_date?.split('T')[0] || '2029'}</td>
-              </tr>
-              <tr>
-                <td>Line of Credit</td>
-                <td className="font-mono-data font-bold">$125,000</td>
-                <td className="font-mono-data">6.75%</td>
-                <td className="font-mono-data">Revolving</td>
-              </tr>
-              <tr>
-                <td>Tenant Deposits (Liability)</td>
-                <td className="font-mono-data font-bold">$48,200</td>
-                <td className="font-mono-data">0.00%</td>
-                <td className="font-mono-data">On-Demand</td>
-              </tr>
-              <tr className="bg-red-50 border-t-2 border-institutional-black">
-                <td className="font-bold">TOTAL LIABILITIES</td>
-                <td className="font-mono-data font-bold">$1,993,200</td>
-                <td className="font-mono-data font-bold">Blended: 4.56%</td>
-                <td></td>
-              </tr>
-              <tr className="bg-green-50">
-                <td className="font-bold">OWNER EQUITY</td>
-                <td className="font-mono-data font-bold">$1,072,800</td>
-                <td className="font-mono-data font-bold">35.0% LTV</td>
-                <td></td>
-              </tr>
+              {balanceSheetData && Object.entries(balanceSheetData.liabilities).map(([key, item]) => {
+                const isTotal = item.accountName.includes('Total') || item.accountName.includes('TOTAL');
+                
+                return (
+                  <tr key={key} className={isTotal ? "bg-red-50 border-t-2 border-institutional-black" : ""}>
+                    <td className={isTotal ? "font-bold" : ""}>{item.accountName}</td>
+                    <td className="font-mono-data font-bold">
+                      {getValueDisplay(item)}
+                    </td>
+                    <td className="font-mono-data">
+                      {item.accountName.includes('Mortgage') ? 
+                        `${selectedProperty?.debt1_int_rate?.toFixed(2) || '4.25'}%` :
+                        item.accountName.includes('Credit') ? '6.75%' :
+                        item.accountName.includes('Deposit') ? '0.00%' :
+                        isTotal ? 'Blended: 4.56%' : 'N/A'
+                      }
+                    </td>
+                    <td className="font-mono-data">
+                      {item.accountName.includes('Mortgage') ? 
+                        (selectedProperty?.maturity_date?.split('T')[0] || '2029') :
+                        item.accountName.includes('Credit') ? 'Revolving' :
+                        item.accountName.includes('Deposit') ? 'On-Demand' : ''
+                      }
+                    </td>
+                  </tr>
+                );
+              })}
+              {balanceSheetData && Object.entries(balanceSheetData.equity).map(([key, item]) => (
+                <tr key={key} className="bg-green-50">
+                  <td className="font-bold">{item.accountName}</td>
+                  <td className="font-mono-data font-bold">
+                    {getValueDisplay(item)}
+                  </td>
+                  <td className="font-mono-data font-bold">
+                    {totalAssets > 0 ? `${((Math.abs(totalLiabilities) / Math.abs(totalAssets)) * 100).toFixed(1)}% LTV` : 'N/A'}
+                  </td>
+                  <td></td>
+                </tr>
+              ))}
+              {!balanceSheetData && (
+                <tr>
+                  <td colSpan={4} className="text-center text-gray-500 py-4">
+                    No balance sheet data available
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
