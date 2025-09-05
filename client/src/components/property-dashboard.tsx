@@ -378,6 +378,7 @@ export function PropertyDashboard({}: PropertyDashboardProps) {
                   onHandleClick={handleClick}
                   onHandleNoteChange={handleNoteChange}
                   onFlagIssue={flagIssue}
+                  selectedProperty={selectedProperty}
                 />
               </TabsContent>
 
@@ -392,7 +393,7 @@ export function PropertyDashboard({}: PropertyDashboardProps) {
 
               {/* T12 Performance Tab */}
               <TabsContent value="t12" className="mt-0">
-                <T12PerformanceTab onFlagIssue={flagIssue} />
+                <T12PerformanceTab onFlagIssue={flagIssue} selectedProperty={selectedProperty} />
               </TabsContent>
 
               {/* Notes & Actions Tab */}

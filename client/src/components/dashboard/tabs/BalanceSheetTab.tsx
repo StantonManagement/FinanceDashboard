@@ -23,24 +23,113 @@ export function BalanceSheetTab({ getCellComments, handleCommentAdded, selectedP
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (selectedProperty?.asset_id || selectedProperty?.["Asset ID"]) {
-      fetchBalanceSheetData();
-    }
+    fetchBalanceSheetData();
   }, [selectedProperty]);
 
   const fetchBalanceSheetData = async () => {
     setLoading(true);
     setError(null);
     try {
-      const assetId = selectedProperty?.asset_id || selectedProperty?.["Asset ID"] || 'S0010';
-      const response = await fetch(`/api/balance-sheet/${assetId}`);
+      const propertyId = selectedProperty?.PropertyId;
+      console.log('🏢 Selected property:', selectedProperty);
+      console.log('🆔 Property ID for Balance Sheet fetch:', propertyId);
+      
+      const url = propertyId 
+        ? `/api/appfolio/balance-sheet?propertyId=${propertyId}`
+        : '/api/appfolio/balance-sheet';
+        
+      console.log('📡 Fetching Balance Sheet data from:', url);
+      const response = await fetch(url);
       
       if (!response.ok) {
         throw new Error('Failed to fetch balance sheet data');
       }
       
       const data = await response.json();
-      setBalanceSheetData(data);
+      
+      // Transform Appfolio data to match the expected BalanceSheetData interface
+      const transformedData: BalanceSheetData = {
+        assetId: selectedProperty?.["Asset ID"] || 'Unknown',
+        assetColumn: selectedProperty?.["Asset ID + Name"] || 'Selected Property',
+        assets: {},
+        liabilities: {},
+        equity: {},
+        rawData: []
+      };
+
+      // Transform assets
+      data.assets.current.forEach((item: any, index: number) => {
+        transformedData.assets[`current_${index}`] = {
+          accountName: item.AccountName,
+          value: item.Balance,
+          numericValue: parseFloat(item.Balance?.replace(/[^\d.-]/g, '') || '0'),
+          section: 'Current Assets'
+        };
+      });
+
+      data.assets.fixed.forEach((item: any, index: number) => {
+        transformedData.assets[`fixed_${index}`] = {
+          accountName: item.AccountName,
+          value: item.Balance,
+          numericValue: parseFloat(item.Balance?.replace(/[^\d.-]/g, '') || '0'),
+          section: 'Fixed Assets'
+        };
+      });
+
+      // Add assets total
+      transformedData.assets['total_assets'] = {
+        accountName: 'Total Assets',
+        value: data.assets.total.toString(),
+        numericValue: data.assets.total,
+        section: 'Total'
+      };
+
+      // Transform liabilities
+      data.liabilities.current.forEach((item: any, index: number) => {
+        transformedData.liabilities[`current_${index}`] = {
+          accountName: item.AccountName,
+          value: item.Balance,
+          numericValue: parseFloat(item.Balance?.replace(/[^\d.-]/g, '') || '0'),
+          section: 'Current Liabilities'
+        };
+      });
+
+      data.liabilities.longTerm.forEach((item: any, index: number) => {
+        transformedData.liabilities[`longterm_${index}`] = {
+          accountName: item.AccountName,
+          value: item.Balance,
+          numericValue: parseFloat(item.Balance?.replace(/[^\d.-]/g, '') || '0'),
+          section: 'Long-term Liabilities'
+        };
+      });
+
+      // Add liabilities total
+      transformedData.liabilities['total_liabilities'] = {
+        accountName: 'Total Liabilities',
+        value: data.liabilities.total.toString(),
+        numericValue: data.liabilities.total,
+        section: 'Total'
+      };
+
+      // Transform equity
+      data.equity.items.forEach((item: any, index: number) => {
+        transformedData.equity[`equity_${index}`] = {
+          accountName: item.AccountName,
+          value: item.Balance,
+          numericValue: parseFloat(item.Balance?.replace(/[^\d.-]/g, '') || '0'),
+          section: 'Equity'
+        };
+      });
+
+      // Add equity total
+      transformedData.equity['total_equity'] = {
+        accountName: 'Total Equity',
+        value: data.equity.total.toString(),
+        numericValue: data.equity.total,
+        section: 'Total'
+      };
+
+      setBalanceSheetData(transformedData);
     } catch (err) {
       console.error('Error fetching balance sheet data:', err);
       setError(err instanceof Error ? err.message : 'Failed to load balance sheet data');

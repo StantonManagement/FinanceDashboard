@@ -10,6 +10,7 @@ import { SUPABASE_QUERIES } from "./supabase-service";
 import { SupabaseIntegration } from "./supabase-integration";
 import { INVESTMENT_QUERIES, SUPABASE_PROJECT_ID } from "./investments-service";
 import { supabase } from "./supabase-client";
+import { AppfolioService } from "./appfolio-service";
 
 const upload = multer({ 
   storage: multer.memoryStorage(),
@@ -191,6 +192,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ 
         success: false, 
         message: 'Connection test failed', 
+        error: error instanceof Error ? error.message : String(error) 
+      });
+    }
+  });
+
+  // Appfolio API Routes
+  app.get("/api/appfolio/t12-cashflow", async (req, res) => {
+    console.log('🔵 T12 Cash Flow API called');
+    const { propertyId } = req.query;
+    console.log('🔍 Query params:', { propertyId });
+    console.log('🔍 Environment check:', {
+      CLIENT_ID: process.env.APPFOLIO_CLIENT_ID,
+      CLIENT_SECRET: process.env.APPFOLIO_CLIENT_SECRET ? 'SET' : 'NOT SET',
+      NODE_ENV: process.env.NODE_ENV
+    });
+    
+    try {
+      const t12Data = await AppfolioService.fetchT12CashFlow(propertyId as string);
+      res.json(t12Data);
+    } catch (error) {
+      console.error('❌ Error fetching T12 cash flow data:', error);
+      res.status(500).json({ 
+        message: "Failed to fetch T12 cash flow data from Appfolio", 
+        error: error instanceof Error ? error.message : String(error) 
+      });
+    }
+  });
+
+  // Appfolio Balance Sheet API
+  app.get("/api/appfolio/balance-sheet", async (req, res) => {
+    console.log('🔵 Balance Sheet API called');
+    const { propertyId } = req.query;
+    console.log('🔍 Query params:', { propertyId });
+    
+    try {
+      const balanceSheetData = await AppfolioService.fetchBalanceSheet(propertyId as string);
+      res.json(balanceSheetData);
+    } catch (error) {
+      console.error('❌ Error fetching Balance Sheet data:', error);
+      res.status(500).json({ 
+        message: "Failed to fetch Balance Sheet data from Appfolio", 
+        error: error instanceof Error ? error.message : String(error) 
+      });
+    }
+  });
+
+  // Appfolio Cash Flow API
+  app.get("/api/appfolio/cash-flow", async (req, res) => {
+    console.log('🔵 Cash Flow API called');
+    const { propertyId, fromDate, toDate } = req.query;
+    console.log('🔍 Query params:', { propertyId, fromDate, toDate });
+    
+    try {
+      const cashFlowData = await AppfolioService.fetchCashFlow(
+        propertyId as string, 
+        fromDate as string, 
+        toDate as string
+      );
+      res.json(cashFlowData);
+    } catch (error) {
+      console.error('❌ Error fetching Cash Flow data:', error);
+      res.status(500).json({ 
+        message: "Failed to fetch Cash Flow data from Appfolio", 
         error: error instanceof Error ? error.message : String(error) 
       });
     }
