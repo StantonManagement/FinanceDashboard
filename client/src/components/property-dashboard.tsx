@@ -366,7 +366,14 @@ export function PropertyDashboard({}: PropertyDashboardProps) {
 
               {/* Operational Review Tab */}
               <TabsContent value="operations" className="mt-0">
-                <OperationsTab />
+                <OperationsTab
+                  notes={notes}
+                  clickedElements={clickedElements}
+                  onHandleClick={handleClick}
+                  onHandleNoteChange={handleNoteChange}
+                  onFlagIssue={flagIssue}
+                  selectedProperty={selectedProperty}
+                />
               </TabsContent>
 
               {/* Cash Flow Detail Tab */}
