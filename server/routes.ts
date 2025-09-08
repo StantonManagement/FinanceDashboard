@@ -200,8 +200,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Appfolio API Routes
   app.get("/api/appfolio/t12-cashflow", async (req, res) => {
     console.log('🔵 T12 Cash Flow API called');
-    const { propertyId } = req.query;
-    console.log('🔍 Query params:', { propertyId });
+    const { propertyId, from_date, to_date } = req.query;
+    console.log('🔍 Query params:', { propertyId, from_date, to_date });
     console.log('🔍 Environment check:', {
       CLIENT_ID: process.env.APPFOLIO_CLIENT_ID,
       CLIENT_SECRET: process.env.APPFOLIO_CLIENT_SECRET ? 'SET' : 'NOT SET',
@@ -209,7 +209,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
     
     try {
-      const t12Data = await AppfolioService.fetchT12CashFlow(propertyId as string);
+      const t12Data = await AppfolioService.fetchT12CashFlow(
+        propertyId as string,
+        from_date as string,
+        to_date as string
+      );
       res.json(t12Data);
     } catch (error) {
       console.error('❌ Error fetching T12 cash flow data:', error);
@@ -223,11 +227,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Appfolio Balance Sheet API
   app.get("/api/appfolio/balance-sheet", async (req, res) => {
     console.log('🔵 Balance Sheet API called');
-    const { propertyId } = req.query;
-    console.log('🔍 Query params:', { propertyId });
+    const { properties, from_date, to_date } = req.query;
+    console.log('🔍 Query params:', { properties, from_date, to_date });
     
     try {
-      const balanceSheetData = await AppfolioService.fetchBalanceSheet(propertyId as string);
+      const balanceSheetData = await AppfolioService.fetchBalanceSheet(
+        properties as string,
+        from_date as string,
+        to_date as string
+      );
       res.json(balanceSheetData);
     } catch (error) {
       console.error('❌ Error fetching Balance Sheet data:', error);
@@ -567,6 +575,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Investment Properties Routes - Using Supabase client
   app.get("/api/investments", async (req, res) => {
+    console.log('🔵 HIT /api/investments endpoint with query:', req.query);
     try {
       const { portfolio, search } = req.query;
       
@@ -575,8 +584,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .select('*')
         .order('"Asset ID"');
       
-      if (portfolio) {
+      // Only apply portfolio filter if it's not 'all' (treat 'all' as no filter)
+      if (portfolio && portfolio !== 'all') {
+        console.log('🔍 Applying portfolio filter:', portfolio);
         query = query.ilike('"Portfolio Name"', `%${portfolio}%`);
+      } else {
+        console.log('📋 Fetching all investments (no portfolio filter)');
       }
       
       if (search) {
@@ -586,9 +599,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { data: properties, error } = await query;
       
       if (error) {
-        console.error('Supabase error:', error);
+        console.error('❌ Supabase error:', error);
         throw error;
       }
+      
+      console.log('✅ Investments data fetched:', {
+        count: properties?.length || 0,
+        firstProperty: properties?.[0] ? {
+          assetId: properties[0]["Asset ID"],
+          propertyId: properties[0].PropertyId,
+          name: properties[0]["Asset ID + Name"]
+        } : null
+      });
       
       res.json(properties || []);
     } catch (error) {

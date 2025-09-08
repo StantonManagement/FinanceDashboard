@@ -1,6 +1,7 @@
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import ClickableCell from '../../clickable-cell';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 interface BalanceSheetTabProps {
   getCellComments?: (cellReference: string) => any[];
@@ -21,22 +22,53 @@ export function BalanceSheetTab({ getCellComments, handleCommentAdded, selectedP
   const [balanceSheetData, setBalanceSheetData] = useState<BalanceSheetData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasInitialLoad, setHasInitialLoad] = useState(false);
+  
+  // Date range state - default to current month
+  const [fromDate, setFromDate] = useState(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+  });
+  const [toDate, setToDate] = useState(() => {
+    return new Date().toISOString().split('T')[0];
+  });
 
+  // Lazy loading - only fetch when property changes, not on initial mount
   useEffect(() => {
-    fetchBalanceSheetData();
+    if (selectedProperty && !hasInitialLoad) {
+      setHasInitialLoad(true);
+    }
   }, [selectedProperty]);
 
+  // Debounced fetch function for better performance
+  const debouncedFetch = useCallback(() => {
+    const timeoutId = setTimeout(() => {
+      if (hasInitialLoad) {
+        fetchBalanceSheetData();
+      }
+    }, 500); // 500ms delay for lazy loading
+    
+    return () => clearTimeout(timeoutId);
+  }, [hasInitialLoad, fromDate, toDate, selectedProperty]);
+
   const fetchBalanceSheetData = async () => {
+    if (!selectedProperty) {
+      setError('No property selected');
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
       const propertyId = selectedProperty?.PropertyId;
-      console.log('🏢 Selected property:', selectedProperty);
+      console.log('🏢 Selected property for Balance Sheet:', selectedProperty);
       console.log('🆔 Property ID for Balance Sheet fetch:', propertyId);
+      console.log('📅 Date range:', fromDate, 'to', toDate);
       
-      const url = propertyId 
-        ? `/api/appfolio/balance-sheet?propertyId=${propertyId}`
-        : '/api/appfolio/balance-sheet';
+      let url = `/api/appfolio/balance-sheet?from_date=${fromDate}&to_date=${toDate}`;
+      if (propertyId) {
+        url += `&properties=${propertyId}`;
+      }
         
       console.log('📡 Fetching Balance Sheet data from:', url);
       const response = await fetch(url);
@@ -57,75 +89,88 @@ export function BalanceSheetTab({ getCellComments, handleCommentAdded, selectedP
         rawData: []
       };
 
-      // Transform assets
-      data.assets.current.forEach((item: any, index: number) => {
-        transformedData.assets[`current_${index}`] = {
-          accountName: item.AccountName,
-          value: item.Balance,
-          numericValue: parseFloat(item.Balance?.replace(/[^\d.-]/g, '') || '0'),
-          section: 'Current Assets'
-        };
+      // Categorize accounts based on account number and name
+      let assetsTotal = 0;
+      let liabilitiesTotal = 0;
+      let equityTotal = 0;
+
+      data.forEach((item: any, index: number) => {
+        const accountNumber = item.AccountNumber;
+        const accountName = item.AccountName;
+        const numericValue = parseFloat(item.Balance?.replace(/[^\d.-]/g, '') || '0');
+        
+        // Categorize based on account number (typical accounting standards)
+        if (accountNumber && accountNumber.startsWith('1')) {
+          // Assets (1xxx accounts)
+          transformedData.assets[`asset_${index}`] = {
+            accountName,
+            value: item.Balance,
+            numericValue,
+            section: accountNumber.startsWith('11') || accountNumber.startsWith('12') || accountNumber.startsWith('13') || 
+                     accountName.toLowerCase().includes('cash') || accountName.toLowerCase().includes('receivable') ? 
+                     'Current Assets' : 'Fixed Assets'
+          };
+          assetsTotal += numericValue;
+        } else if (accountNumber && accountNumber.startsWith('2')) {
+          // Liabilities (2xxx accounts)
+          transformedData.liabilities[`liability_${index}`] = {
+            accountName,
+            value: item.Balance,
+            numericValue,
+            section: accountNumber.startsWith('22') || accountNumber.startsWith('23') || 
+                     accountName.toLowerCase().includes('deposit') || accountName.toLowerCase().includes('payable') ?
+                     'Current Liabilities' : 'Long-term Liabilities'
+          };
+          liabilitiesTotal += numericValue;
+        } else if (accountNumber && accountNumber.startsWith('3')) {
+          // Equity (3xxx accounts)
+          transformedData.equity[`equity_${index}`] = {
+            accountName,
+            value: item.Balance,
+            numericValue,
+            section: 'Equity'
+          };
+          equityTotal += numericValue;
+        } else if (!accountNumber || accountName.toLowerCase().includes('retained') || accountName.toLowerCase().includes('earning')) {
+          // Handle calculated retained earnings and other equity items
+          transformedData.equity[`equity_${index}`] = {
+            accountName,
+            value: item.Balance,
+            numericValue,
+            section: 'Equity'
+          };
+          equityTotal += numericValue;
+        } else {
+          // Default to assets for unclassified accounts
+          transformedData.assets[`asset_${index}`] = {
+            accountName,
+            value: item.Balance,
+            numericValue,
+            section: 'Other Assets'
+          };
+          assetsTotal += numericValue;
+        }
       });
 
-      data.assets.fixed.forEach((item: any, index: number) => {
-        transformedData.assets[`fixed_${index}`] = {
-          accountName: item.AccountName,
-          value: item.Balance,
-          numericValue: parseFloat(item.Balance?.replace(/[^\d.-]/g, '') || '0'),
-          section: 'Fixed Assets'
-        };
-      });
-
-      // Add assets total
+      // Add calculated totals
       transformedData.assets['total_assets'] = {
         accountName: 'Total Assets',
-        value: data.assets.total.toString(),
-        numericValue: data.assets.total,
+        value: assetsTotal.toFixed(2),
+        numericValue: assetsTotal,
         section: 'Total'
       };
 
-      // Transform liabilities
-      data.liabilities.current.forEach((item: any, index: number) => {
-        transformedData.liabilities[`current_${index}`] = {
-          accountName: item.AccountName,
-          value: item.Balance,
-          numericValue: parseFloat(item.Balance?.replace(/[^\d.-]/g, '') || '0'),
-          section: 'Current Liabilities'
-        };
-      });
-
-      data.liabilities.longTerm.forEach((item: any, index: number) => {
-        transformedData.liabilities[`longterm_${index}`] = {
-          accountName: item.AccountName,
-          value: item.Balance,
-          numericValue: parseFloat(item.Balance?.replace(/[^\d.-]/g, '') || '0'),
-          section: 'Long-term Liabilities'
-        };
-      });
-
-      // Add liabilities total
       transformedData.liabilities['total_liabilities'] = {
         accountName: 'Total Liabilities',
-        value: data.liabilities.total.toString(),
-        numericValue: data.liabilities.total,
+        value: liabilitiesTotal.toFixed(2),
+        numericValue: liabilitiesTotal,
         section: 'Total'
       };
 
-      // Transform equity
-      data.equity.items.forEach((item: any, index: number) => {
-        transformedData.equity[`equity_${index}`] = {
-          accountName: item.AccountName,
-          value: item.Balance,
-          numericValue: parseFloat(item.Balance?.replace(/[^\d.-]/g, '') || '0'),
-          section: 'Equity'
-        };
-      });
-
-      // Add equity total
       transformedData.equity['total_equity'] = {
         accountName: 'Total Equity',
-        value: data.equity.total.toString(),
-        numericValue: data.equity.total,
+        value: equityTotal.toFixed(2),
+        numericValue: equityTotal,
         section: 'Total'
       };
 
@@ -185,6 +230,12 @@ export function BalanceSheetTab({ getCellComments, handleCommentAdded, selectedP
           <div className="text-red-600">
             <h3 className="text-sm font-medium">Error loading balance sheet data</h3>
             <p className="text-sm mt-1">{error}</p>
+            <button 
+              onClick={fetchBalanceSheetData}
+              className="mt-2 text-sm text-red-600 hover:text-red-800 underline"
+            >
+              Try again
+            </button>
           </div>
         </div>
       </div>
@@ -195,14 +246,66 @@ export function BalanceSheetTab({ getCellComments, handleCommentAdded, selectedP
     <div>
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-lg font-bold uppercase text-institutional-black">
-          Balance Sheet Analysis & DSCR Calculations
+          {selectedProperty ? `Balance Sheet - ${selectedProperty["Asset ID + Name"] || 'Selected Property'}` : 'Balance Sheet Analysis & DSCR Calculations'}
         </h3>
-        {balanceSheetData && (
-          <div className="text-sm text-gray-600">
-            Data for: {balanceSheetData.assetColumn}
+        
+        {/* Date Range Picker Controls */}
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium text-gray-700">From:</label>
+            <Input
+              type="date"
+              value={fromDate}
+              onChange={(e) => setFromDate(e.target.value)}
+              className="w-40 text-sm"
+            />
           </div>
-        )}
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium text-gray-700">To:</label>
+            <Input
+              type="date"
+              value={toDate}
+              onChange={(e) => setToDate(e.target.value)}
+              className="w-40 text-sm"
+            />
+          </div>
+          <Button 
+            onClick={fetchBalanceSheetData}
+            variant="outline"
+            size="sm"
+            className="text-xs"
+            disabled={loading || !hasInitialLoad}
+          >
+            {loading ? 'Loading...' : 'Update Report'}
+          </Button>
+          <Button 
+            onClick={() => {
+              const now = new Date();
+              const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+              const today = new Date().toISOString().split('T')[0];
+              setFromDate(firstDayOfMonth);
+              setToDate(today);
+              setTimeout(() => fetchBalanceSheetData(), 100);
+            }}
+            variant="outline"
+            size="sm"
+            className="text-xs"
+          >
+            Current Month
+          </Button>
+        </div>
       </div>
+
+      {!hasInitialLoad && (
+        <div className="bg-blue-50 border border-blue-200 rounded-md p-4 mb-4">
+          <div className="flex">
+            <div className="text-blue-600">
+              <h3 className="text-sm font-medium">Select a Property</h3>
+              <p className="text-sm mt-1">Choose a property above to view its balance sheet data</p>
+            </div>
+          </div>
+        </div>
+      )}
       
       <div className="grid grid-cols-2 gap-5 mb-5">
         <div className="overflow-hidden border-2 border-institutional-black">

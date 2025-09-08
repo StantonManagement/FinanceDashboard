@@ -1,5 +1,6 @@
 import { Button } from '@/components/ui/button';
-import { Flag } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Flag, RefreshCw } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 interface T12PerformanceTabProps {
@@ -39,6 +40,14 @@ export function T12PerformanceTab({ onFlagIssue, selectedProperty }: T12Performa
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Date range state for T12 analysis - from Jan 1, 2025 to today
+  const [fromDate, setFromDate] = useState(() => {
+    return '2025-01-01';
+  });
+  const [toDate, setToDate] = useState(() => {
+    return new Date().toISOString().split('T')[0];
+  });
+
   useEffect(() => {
     fetchT12Data();
   }, [selectedProperty]);
@@ -50,11 +59,14 @@ export function T12PerformanceTab({ onFlagIssue, selectedProperty }: T12Performa
       const propertyId = selectedProperty?.PropertyId;
       console.log('🏢 Selected property:', selectedProperty);
       console.log('🆔 Property ID for T12 fetch:', propertyId);
+      console.log('📅 Date range for T12:', `${fromDate} to ${toDate}`);
       
-      const url = propertyId 
-        ? `/api/appfolio/t12-cashflow?propertyId=${propertyId}`
-        : '/api/appfolio/t12-cashflow';
-        
+      const params = new URLSearchParams();
+      if (propertyId) params.append('propertyId', propertyId.toString());
+      params.append('from_date', fromDate);
+      params.append('to_date', toDate);
+      
+      const url = `/api/appfolio/t12-cashflow?${params.toString()}`;
       console.log('📡 Fetching T12 data from:', url);
       const response = await fetch(url);
       
@@ -70,6 +82,13 @@ export function T12PerformanceTab({ onFlagIssue, selectedProperty }: T12Performa
     } finally {
       setLoading(false);
     }
+  };
+
+  const setPresetDateRange = (monthsBack: number) => {
+    const now = new Date();
+    const pastDate = new Date(now.getFullYear(), now.getMonth() - monthsBack, now.getDate());
+    setFromDate(pastDate.toISOString().split('T')[0]);
+    setToDate(now.toISOString().split('T')[0]);
   };
 
   const formatCurrency = (value: number) => {
@@ -130,9 +149,79 @@ export function T12PerformanceTab({ onFlagIssue, selectedProperty }: T12Performa
   }
   return (
     <div>
-      <h3 className="text-lg font-bold uppercase text-institutional-black mb-4">
-        Trailing 12-Month Performance Analysis
-      </h3>
+      {/* Date Range Controls */}
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-bold uppercase text-institutional-black">
+            Trailing 12-Month Performance Analysis
+          </h3>
+          <Button
+            onClick={fetchT12Data}
+            disabled={loading}
+            className="btn-institutional flex items-center gap-2"
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            Update
+          </Button>
+        </div>
+        
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium text-gray-700">From:</label>
+            <Input
+              type="date"
+              value={fromDate}
+              onChange={(e) => setFromDate(e.target.value)}
+              className="w-40 text-sm"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium text-gray-700">To:</label>
+            <Input
+              type="date"
+              value={toDate}
+              onChange={(e) => setToDate(e.target.value)}
+              className="w-40 text-sm"
+            />
+          </div>
+          <Button 
+            onClick={fetchT12Data}
+            variant="outline"
+            size="sm"
+            className="text-xs"
+            disabled={loading}
+          >
+            {loading ? 'Loading...' : 'Update Report'}
+          </Button>
+        </div>
+        
+        <div className="flex gap-2 mt-3">
+          <Button 
+            onClick={() => setPresetDateRange(12)} 
+            variant="outline" 
+            size="sm" 
+            className="text-xs"
+          >
+            Last 12 Months
+          </Button>
+          <Button 
+            onClick={() => setPresetDateRange(6)} 
+            variant="outline" 
+            size="sm" 
+            className="text-xs"
+          >
+            Last 6 Months
+          </Button>
+          <Button 
+            onClick={() => setPresetDateRange(3)} 
+            variant="outline" 
+            size="sm" 
+            className="text-xs"
+          >
+            Last 3 Months
+          </Button>
+        </div>
+      </div>
       
       <div className="grid grid-cols-2 gap-5 mb-5">
         <div className="overflow-hidden border-2 border-institutional-black">
@@ -216,32 +305,70 @@ export function T12PerformanceTab({ onFlagIssue, selectedProperty }: T12Performa
             </thead>
             <tbody>
               {t12Data && (() => {
-                // Calculate quarterly averages
-                const quarters = [
-                  { name: 'Q1 (Jan-Mar)', months: [0, 1, 2] },
-                  { name: 'Q2 (Apr-Jun)', months: [3, 4, 5] },
-                  { name: 'Q3 (Jul-Sep)', months: [6, 7, 8] },
-                  { name: 'Q4 (Oct-Dec)', months: [9, 10, 11] }
-                ];
-                
+                const monthlyData = t12Data.netIncome.monthlyData;
+                const totalMonths = monthlyData.length;
                 const annualAvg = t12Data.netIncome.average;
                 
-                return quarters.map((quarter, index) => {
-                  const qAvg = quarter.months.reduce((sum, monthIdx) => 
-                    sum + (t12Data.netIncome.monthlyData[monthIdx] || 0), 0) / 3;
-                  const vsAnnual = ((qAvg - annualAvg) / annualAvg) * 100;
-                  const pattern = Math.abs(vsAnnual) < 2 ? 'NORMAL' : 
-                                 vsAnnual > 5 ? 'PEAK SEASON' : 
-                                 vsAnnual < -5 ? 'HIGH EXPENSES' : 'STABLE';
-                  const patternColor = Math.abs(vsAnnual) < 2 ? 'text-success-green' :
-                                     vsAnnual > 0 ? 'text-success-green' : 'text-orange-600';
+                // Dynamically create periods based on available data
+                const periods = [];
+                
+                if (totalMonths >= 3) {
+                  // First period (first 3 months)
+                  const period1Avg = monthlyData.slice(0, 3).reduce((sum, val) => sum + val, 0) / 3;
+                  const period1VsAnnual = ((period1Avg - annualAvg) / annualAvg) * 100;
+                  periods.push({
+                    name: 'Period 1 (Months 1-3)',
+                    avg: period1Avg,
+                    vsAnnual: period1VsAnnual
+                  });
+                }
+                
+                if (totalMonths >= 6) {
+                  // Second period (months 4-6)
+                  const period2Avg = monthlyData.slice(3, 6).reduce((sum, val) => sum + val, 0) / 3;
+                  const period2VsAnnual = ((period2Avg - annualAvg) / annualAvg) * 100;
+                  periods.push({
+                    name: 'Period 2 (Months 4-6)',
+                    avg: period2Avg,
+                    vsAnnual: period2VsAnnual
+                  });
+                }
+                
+                if (totalMonths >= 9) {
+                  // Third period (months 7-9)
+                  const period3Avg = monthlyData.slice(6, 9).reduce((sum, val) => sum + val, 0) / 3;
+                  const period3VsAnnual = ((period3Avg - annualAvg) / annualAvg) * 100;
+                  periods.push({
+                    name: 'Period 3 (Months 7-9)',
+                    avg: period3Avg,
+                    vsAnnual: period3VsAnnual
+                  });
+                }
+                
+                if (totalMonths >= 12) {
+                  // Fourth period (months 10-12)
+                  const period4Avg = monthlyData.slice(9, 12).reduce((sum, val) => sum + val, 0) / 3;
+                  const period4VsAnnual = ((period4Avg - annualAvg) / annualAvg) * 100;
+                  periods.push({
+                    name: 'Period 4 (Months 10-12)',
+                    avg: period4Avg,
+                    vsAnnual: period4VsAnnual
+                  });
+                }
+                
+                return periods.map((period, index) => {
+                  const pattern = Math.abs(period.vsAnnual) < 2 ? 'NORMAL' : 
+                                 period.vsAnnual > 5 ? 'PEAK SEASON' : 
+                                 period.vsAnnual < -5 ? 'HIGH EXPENSES' : 'STABLE';
+                  const patternColor = Math.abs(period.vsAnnual) < 2 ? 'text-success-green' :
+                                     period.vsAnnual > 0 ? 'text-success-green' : 'text-orange-600';
                   
                   return (
                     <tr key={index}>
-                      <td>{quarter.name}</td>
-                      <td className="font-mono-data">{formatCurrency(qAvg)}</td>
-                      <td className={`font-mono-data ${vsAnnual >= 0 ? 'text-success-green' : 'text-red-600'}`}>
-                        {vsAnnual >= 0 ? '+' : ''}{vsAnnual.toFixed(1)}%
+                      <td>{period.name}</td>
+                      <td className="font-mono-data">{formatCurrency(period.avg)}</td>
+                      <td className={`font-mono-data ${period.vsAnnual >= 0 ? 'text-success-green' : 'text-red-600'}`}>
+                        {period.vsAnnual >= 0 ? '+' : ''}{period.vsAnnual.toFixed(1)}%
                       </td>
                       <td><span className={`${patternColor} font-bold`}>{pattern}</span></td>
                     </tr>

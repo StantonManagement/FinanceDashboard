@@ -299,6 +299,7 @@ export function PropertyDashboard({}: PropertyDashboardProps) {
           portfolioSummary={portfolioSummary}
           clickedElements={clickedElements}
           onHandleClick={handleClick}
+          selectedProperty={selectedProperty}
         />
 
         {/* Tab Navigation */}
@@ -361,6 +362,7 @@ export function PropertyDashboard({}: PropertyDashboardProps) {
                   onHandleClick={handleClick}
                   onHandleNoteChange={handleNoteChange}
                   onFlagIssue={flagIssue}
+                  selectedProperty={selectedProperty}
                 />
               </TabsContent>
 
