@@ -27,18 +27,14 @@ interface CellComment {
 
 interface PropertyManagementNote {
   id: string;
-  propertyId: string;
-  propertyCode: string;
-  propertyName: string;
-  category: 'MAINTENANCE' | 'TENANT' | 'MARKETING' | 'INSPECTION' | 'OTHER';
-  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
-  title: string;
-  description: string;
-  status: 'OPEN' | 'IN_PROGRESS' | 'COMPLETED';
-  assignedTo?: string;
-  dueDate?: string;
-  createdAt: string;
-  updatedAt: string;
+  property_id: number;
+  note_text: string;
+  category: string;
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  created_at: string;
+  updated_at: string;
+  created_by: string;
+  is_archived: boolean;
 }
 
 export default function PropertyManagementNotesDashboard() {
@@ -52,56 +48,39 @@ export default function PropertyManagementNotesDashboard() {
   // Fetch Property Management comments (blue highlighted ones)
   const { data: pmComments = [] } = useQuery<CellComment[]>({
     queryKey: ['/api/cell-comments'],
+    queryFn: async () => {
+      const response = await fetch('/api/cell-comments');
+      if (!response.ok) throw new Error('Failed to fetch comments');
+      return response.json();
+    }
   });
 
-  // Mock Property Management Notes data (would come from API)
-  const mockPMNotes: PropertyManagementNote[] = [
-    {
-      id: '1',
-      propertyId: 'd593a444-01a7-4132-858a-d2efdc07f597',
-      propertyCode: 'S0010',
-      propertyName: '228 Maple',
-      category: 'MAINTENANCE',
-      priority: 'HIGH',
-      title: 'HVAC System Maintenance Required',
-      description: 'Unit 3A HVAC showing efficiency decline. Schedule professional service.',
-      status: 'OPEN',
-      assignedTo: 'Mike Johnson',
-      dueDate: '2025-08-25',
-      createdAt: '2025-08-20T10:00:00Z',
-      updatedAt: '2025-08-20T10:00:00Z'
-    },
-    {
-      id: '2',
-      propertyId: 'd593a444-01a7-4132-858a-d2efdc07f597',
-      propertyCode: 'S0010',
-      propertyName: '228 Maple',
-      category: 'TENANT',
-      priority: 'MEDIUM',
-      title: 'Lease Renewal - Unit 2B',
-      description: 'Tenant lease expires 9/30. Begin renewal process.',
-      status: 'IN_PROGRESS',
-      assignedTo: 'Sarah Chen',
-      dueDate: '2025-08-30',
-      createdAt: '2025-08-18T14:30:00Z',
-      updatedAt: '2025-08-20T09:15:00Z'
-    },
-    {
-      id: '3',
-      propertyId: 'd593a444-01a7-4132-858a-d2efdc07f597',
-      propertyCode: 'S0010',
-      propertyName: '228 Maple',
-      category: 'MARKETING',
-      priority: 'LOW',
-      title: 'Update Property Photos',
-      description: 'Refresh online listing photos for marketing materials.',
-      status: 'COMPLETED',
-      assignedTo: 'Lisa Park',
-      dueDate: '2025-08-15',
-      createdAt: '2025-08-10T11:00:00Z',
-      updatedAt: '2025-08-14T16:45:00Z'
+  // Fetch Property Management Notes from API
+  const { data: pmNotes = [], refetch: refetchNotes } = useQuery<PropertyManagementNote[]>({
+    queryKey: ['/api/property-notes'],
+    queryFn: async () => {
+      const response = await fetch('/api/property-notes');
+      if (!response.ok) throw new Error('Failed to fetch property notes');
+      return response.json();
     }
-  ];
+  });
+
+  // Create new note mutation
+  const createNoteMutation = useMutation({
+    mutationFn: async (noteData: { property_id: number; note_text: string; category: string; priority: string }) => {
+      const response = await fetch('/api/property-notes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(noteData)
+      });
+      if (!response.ok) throw new Error('Failed to create note');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/property-notes'] });
+      refetchNotes();
+    }
+  });
 
   // Filter Property Management comments only
   const pmCommentsFiltered = pmComments.filter(comment => 
@@ -112,47 +91,37 @@ export default function PropertyManagementNotesDashboard() {
   );
 
   // Filter Property Management notes
-  const filteredPMNotes = mockPMNotes.filter(note => {
+  const filteredPMNotes = pmNotes.filter(note => {
     const matchesSearch = searchTerm === '' || 
-      note.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      note.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      note.propertyCode.toLowerCase().includes(searchTerm.toLowerCase());
+      note.note_text.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      note.category.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesStatus = statusFilter === 'ALL' || note.status === statusFilter;
-    const matchesCategory = categoryFilter === 'ALL' || note.category === categoryFilter;
-    const matchesPriority = priorityFilter === 'ALL' || note.priority === priorityFilter;
+    const matchesCategory = categoryFilter === 'ALL' || note.category.toLowerCase() === categoryFilter.toLowerCase();
+    const matchesPriority = priorityFilter === 'ALL' || note.priority.toLowerCase() === priorityFilter.toLowerCase();
     
-    return matchesSearch && matchesStatus && matchesCategory && matchesPriority;
+    return matchesSearch && matchesCategory && matchesPriority;
   });
 
   const getCategoryIcon = (category: string) => {
-    switch(category) {
-      case 'MAINTENANCE': return <Wrench className="w-4 h-4" />;
-      case 'TENANT': return <MessageSquare className="w-4 h-4" />;
-      case 'MARKETING': return <ExternalLink className="w-4 h-4" />;
-      case 'INSPECTION': return <CheckCircle className="w-4 h-4" />;
+    switch(category.toLowerCase()) {
+      case 'maintenance': return <Wrench className="w-4 h-4" />;
+      case 'tenant': return <MessageSquare className="w-4 h-4" />;
+      case 'marketing': return <ExternalLink className="w-4 h-4" />;
+      case 'inspection': return <CheckCircle className="w-4 h-4" />;
       default: return <AlertTriangle className="w-4 h-4" />;
     }
   };
 
   const getPriorityColor = (priority: string) => {
-    switch(priority) {
-      case 'URGENT': return 'bg-red-600 text-white';
-      case 'HIGH': return 'bg-orange-500 text-white';
-      case 'MEDIUM': return 'bg-yellow-500 text-black';
-      case 'LOW': return 'bg-green-500 text-white';
+    switch(priority.toLowerCase()) {
+      case 'urgent': return 'bg-red-600 text-white';
+      case 'high': return 'bg-orange-500 text-white';
+      case 'medium': return 'bg-yellow-500 text-black';
+      case 'low': return 'bg-green-500 text-white';
       default: return 'bg-gray-500 text-white';
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch(status) {
-      case 'COMPLETED': return 'bg-green-100 text-green-800 border-green-300';
-      case 'IN_PROGRESS': return 'bg-blue-100 text-blue-800 border-blue-300';
-      case 'OPEN': return 'bg-gray-100 text-gray-800 border-gray-300';
-      default: return 'bg-gray-100 text-gray-800 border-gray-300';
-    }
-  };
 
   return (
     <div className="min-h-screen bg-white">
@@ -203,11 +172,11 @@ export default function PropertyManagementNotesDashboard() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="ALL">All Categories</SelectItem>
-                  <SelectItem value="MAINTENANCE">Maintenance</SelectItem>
-                  <SelectItem value="TENANT">Tenant</SelectItem>
-                  <SelectItem value="MARKETING">Marketing</SelectItem>
-                  <SelectItem value="INSPECTION">Inspection</SelectItem>
-                  <SelectItem value="OTHER">Other</SelectItem>
+                  <SelectItem value="maintenance">Maintenance</SelectItem>
+                  <SelectItem value="tenant">Tenant</SelectItem>
+                  <SelectItem value="marketing">Marketing</SelectItem>
+                  <SelectItem value="inspection">Inspection</SelectItem>
+                  <SelectItem value="general">General</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={priorityFilter} onValueChange={setPriorityFilter}>
@@ -216,16 +185,92 @@ export default function PropertyManagementNotesDashboard() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="ALL">All Priorities</SelectItem>
-                  <SelectItem value="URGENT">Urgent</SelectItem>
-                  <SelectItem value="HIGH">High</SelectItem>
-                  <SelectItem value="MEDIUM">Medium</SelectItem>
-                  <SelectItem value="LOW">Low</SelectItem>
+                  <SelectItem value="urgent">Urgent</SelectItem>
+                  <SelectItem value="high">High</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="low">Low</SelectItem>
                 </SelectContent>
               </Select>
-              <Button className="bg-blue-600 text-white hover:bg-blue-700">
-                <ExternalLink className="w-4 h-4 mr-2" />
-                New Task
-              </Button>
+              <Dialog open={newNoteDialog} onOpenChange={setNewNoteDialog}>
+                <DialogTrigger asChild>
+                  <Button className="bg-blue-600 text-white hover:bg-blue-700">
+                    <Plus className="w-4 h-4 mr-2" />
+                    New Note
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Add New Property Note</DialogTitle>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="property_id">Property ID</Label>
+                      <Input
+                        id="property_id"
+                        type="number"
+                        placeholder="Enter Property ID"
+                        value={newNote.property_id}
+                        onChange={(e) => setNewNote({...newNote, property_id: e.target.value})}
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="category">Category</Label>
+                      <Select value={newNote.category} onValueChange={(value) => setNewNote({...newNote, category: value})}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="general">General</SelectItem>
+                          <SelectItem value="maintenance">Maintenance</SelectItem>
+                          <SelectItem value="tenant">Tenant</SelectItem>
+                          <SelectItem value="marketing">Marketing</SelectItem>
+                          <SelectItem value="inspection">Inspection</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="priority">Priority</Label>
+                      <Select value={newNote.priority} onValueChange={(value) => setNewNote({...newNote, priority: value})}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="low">Low</SelectItem>
+                          <SelectItem value="medium">Medium</SelectItem>
+                          <SelectItem value="high">High</SelectItem>
+                          <SelectItem value="urgent">Urgent</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="note_text">Note</Label>
+                      <Textarea
+                        id="note_text"
+                        placeholder="Enter your note here..."
+                        value={newNote.note_text}
+                        onChange={(e) => setNewNote({...newNote, note_text: e.target.value})}
+                        rows={4}
+                      />
+                    </div>
+                    <Button 
+                      onClick={() => {
+                        createNoteMutation.mutate({
+                          property_id: parseInt(newNote.property_id),
+                          note_text: newNote.note_text,
+                          category: newNote.category,
+                          priority: newNote.priority
+                        });
+                        setNewNoteDialog(false);
+                        setNewNote({ property_id: '', note_text: '', category: 'general', priority: 'medium' });
+                      }}
+                      disabled={!newNote.property_id || !newNote.note_text || createNoteMutation.isPending}
+                      className="w-full"
+                    >
+                      {createNoteMutation.isPending ? 'Creating...' : 'Create Note'}
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
           </CardContent>
         </Card>
@@ -297,45 +342,41 @@ export default function PropertyManagementNotesDashboard() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-gray-50">
-                  <TableHead className="font-bold text-xs uppercase">Property</TableHead>
+                  <TableHead className="font-bold text-xs uppercase">Property ID</TableHead>
                   <TableHead className="font-bold text-xs uppercase">Category</TableHead>
                   <TableHead className="font-bold text-xs uppercase">Priority</TableHead>
-                  <TableHead className="font-bold text-xs uppercase">Title</TableHead>
-                  <TableHead className="font-bold text-xs uppercase">Assigned To</TableHead>
-                  <TableHead className="font-bold text-xs uppercase">Due Date</TableHead>
-                  <TableHead className="font-bold text-xs uppercase">Status</TableHead>
+                  <TableHead className="font-bold text-xs uppercase">Note</TableHead>
+                  <TableHead className="font-bold text-xs uppercase">Created By</TableHead>
+                  <TableHead className="font-bold text-xs uppercase">Created</TableHead>
+                  <TableHead className="font-bold text-xs uppercase">Updated</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredPMNotes.map((note) => (
                   <TableRow key={note.id} className="hover:bg-blue-50">
                     <TableCell>
-                      <div className="font-bold">{note.propertyCode}</div>
-                      <div className="text-sm text-gray-600">{note.propertyName}</div>
+                      <div className="font-bold text-blue-600">{note.property_id}</div>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         {getCategoryIcon(note.category)}
-                        <span className="text-sm">{note.category}</span>
+                        <span className="text-sm capitalize">{note.category}</span>
                       </div>
                     </TableCell>
                     <TableCell>
                       <Badge className={`text-xs ${getPriorityColor(note.priority)}`}>
-                        {note.priority}
+                        {note.priority.toUpperCase()}
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <div className="font-bold text-sm">{note.title}</div>
-                      <div className="text-xs text-gray-600 max-w-md">{note.description}</div>
+                      <div className="text-sm max-w-md">{note.note_text}</div>
                     </TableCell>
-                    <TableCell className="text-sm">{note.assignedTo || 'Unassigned'}</TableCell>
+                    <TableCell className="text-sm">{note.created_by}</TableCell>
                     <TableCell className="text-sm">
-                      {note.dueDate ? new Date(note.dueDate).toLocaleDateString() : 'No due date'}
+                      {new Date(note.created_at).toLocaleDateString()}
                     </TableCell>
-                    <TableCell>
-                      <Badge className={`text-xs border ${getStatusColor(note.status)}`}>
-                        {note.status}
-                      </Badge>
+                    <TableCell className="text-sm">
+                      {new Date(note.updated_at).toLocaleDateString()}
                     </TableCell>
                   </TableRow>
                 ))}

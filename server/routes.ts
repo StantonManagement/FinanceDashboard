@@ -560,7 +560,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         name: portfolio.name,
         totalUnits: portfolio.totalUnits,
         totalNOI: portfolio.totalNOI,
-        capRate: portfolio.count > 0 ? (portfolio.totalCapRate / portfolio.count) : 0
+        capRate: portfolio.count > 0 ? Math.round((portfolio.totalCapRate / portfolio.count) * 100) / 100 : 0
       }));
       
       console.log('✅ Successfully processed portfolios:', portfolios.length, 'portfolios found');
@@ -1679,6 +1679,255 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(204).send();
     } catch (error) {
       res.status(500).json({ message: "Failed to delete cell comment" });
+    }
+  });
+
+  // Cell Comments Routes (Supabase) - For inline notes in financial tables
+  app.get("/api/supabase-cell-comments", async (req, res) => {
+    try {
+      const { propertyId, cellId, tabSection } = req.query;
+      
+      let query = supabase
+        .from('cell_comments')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (propertyId) {
+        query = query.eq('property_id', propertyId);
+      }
+      
+      if (cellId) {
+        query = query.eq('cell_id', cellId);
+      }
+      
+      if (tabSection) {
+        query = query.eq('tab_section', tabSection);
+      }
+      
+      const { data: comments, error } = await query;
+      
+      if (error) {
+        console.error('Error fetching cell comments:', error);
+        throw error;
+      }
+      
+      res.json(comments || []);
+    } catch (error) {
+      console.error('Error fetching cell comments:', error);
+      res.status(500).json({ message: "Failed to fetch cell comments", error: error instanceof Error ? error.message : String(error) });
+    }
+  });
+
+  app.post("/api/supabase-cell-comments", async (req, res) => {
+    try {
+      const { property_id, cell_id, cell_value, tab_section, comment_text, comment_type, priority, created_by } = req.body;
+      
+      if (!property_id || !cell_id || !comment_text) {
+        return res.status(400).json({ message: "property_id, cell_id, and comment_text are required" });
+      }
+      
+      const { data: comment, error } = await supabase
+        .from('cell_comments')
+        .insert({
+          property_id,
+          cell_id,
+          cell_value: cell_value || null,
+          tab_section: tab_section || 'performance',
+          comment_text,
+          comment_type: comment_type || 'GENERAL',
+          priority: priority || 'medium',
+          created_by: created_by || 'user'
+        })
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('Error creating cell comment:', error);
+        throw error;
+      }
+      
+      res.status(201).json(comment);
+    } catch (error) {
+      console.error('Error creating cell comment:', error);
+      res.status(500).json({ message: "Failed to create cell comment", error: error instanceof Error ? error.message : String(error) });
+    }
+  });
+
+  app.put("/api/supabase-cell-comments/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { comment_text, status, is_resolved } = req.body;
+      
+      const updates: any = {};
+      if (comment_text !== undefined) updates.comment_text = comment_text;
+      if (status !== undefined) updates.status = status;
+      if (is_resolved !== undefined) updates.is_resolved = is_resolved;
+      
+      const { data: comment, error } = await supabase
+        .from('cell_comments')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('Error updating cell comment:', error);
+        throw error;
+      }
+      
+      if (!comment) {
+        return res.status(404).json({ message: "Cell comment not found" });
+      }
+      
+      res.json(comment);
+    } catch (error) {
+      console.error('Error updating cell comment:', error);
+      res.status(500).json({ message: "Failed to update cell comment", error: error instanceof Error ? error.message : String(error) });
+    }
+  });
+
+  app.delete("/api/supabase-cell-comments/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      
+      const { error } = await supabase
+        .from('cell_comments')
+        .delete()
+        .eq('id', id);
+      
+      if (error) {
+        console.error('Error deleting cell comment:', error);
+        throw error;
+      }
+      
+      res.status(204).send();
+    } catch (error) {
+      console.error('Error deleting cell comment:', error);
+      res.status(500).json({ message: "Failed to delete cell comment", error: error instanceof Error ? error.message : String(error) });
+    }
+  });
+
+  // Property Notes Routes (Supabase)
+  app.get("/api/property-notes", async (req, res) => {
+    try {
+      const { propertyId, category, priority } = req.query;
+      
+      let query = supabase
+        .from('property_notes')
+        .select('*')
+        .eq('is_archived', false)
+        .order('created_at', { ascending: false });
+      
+      if (propertyId) {
+        query = query.eq('property_id', propertyId);
+      }
+      
+      if (category && category !== 'ALL') {
+        query = query.eq('category', category);
+      }
+      
+      if (priority && priority !== 'ALL') {
+        query = query.eq('priority', priority);
+      }
+      
+      const { data: notes, error } = await query;
+      
+      if (error) {
+        console.error('Error fetching property notes:', error);
+        throw error;
+      }
+      
+      res.json(notes || []);
+    } catch (error) {
+      console.error('Error fetching property notes:', error);
+      res.status(500).json({ message: "Failed to fetch property notes", error: error instanceof Error ? error.message : String(error) });
+    }
+  });
+
+  app.post("/api/property-notes", async (req, res) => {
+    try {
+      const { property_id, note_text, category, priority, created_by } = req.body;
+      
+      if (!property_id || !note_text) {
+        return res.status(400).json({ message: "property_id and note_text are required" });
+      }
+      
+      const { data: note, error } = await supabase
+        .from('property_notes')
+        .insert({
+          property_id,
+          note_text,
+          category: category || 'general',
+          priority: priority || 'medium',
+          created_by: created_by || 'system'
+        })
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('Error creating property note:', error);
+        throw error;
+      }
+      
+      res.status(201).json(note);
+    } catch (error) {
+      console.error('Error creating property note:', error);
+      res.status(500).json({ message: "Failed to create property note", error: error instanceof Error ? error.message : String(error) });
+    }
+  });
+
+  app.put("/api/property-notes/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { note_text, category, priority, is_archived } = req.body;
+      
+      const updates: any = {};
+      if (note_text !== undefined) updates.note_text = note_text;
+      if (category !== undefined) updates.category = category;
+      if (priority !== undefined) updates.priority = priority;
+      if (is_archived !== undefined) updates.is_archived = is_archived;
+      
+      const { data: note, error } = await supabase
+        .from('property_notes')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('Error updating property note:', error);
+        throw error;
+      }
+      
+      if (!note) {
+        return res.status(404).json({ message: "Property note not found" });
+      }
+      
+      res.json(note);
+    } catch (error) {
+      console.error('Error updating property note:', error);
+      res.status(500).json({ message: "Failed to update property note", error: error instanceof Error ? error.message : String(error) });
+    }
+  });
+
+  app.delete("/api/property-notes/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      
+      const { error } = await supabase
+        .from('property_notes')
+        .delete()
+        .eq('id', id);
+      
+      if (error) {
+        console.error('Error deleting property note:', error);
+        throw error;
+      }
+      
+      res.status(204).send();
+    } catch (error) {
+      console.error('Error deleting property note:', error);
+      res.status(500).json({ message: "Failed to delete property note", error: error instanceof Error ? error.message : String(error) });
     }
   });
 

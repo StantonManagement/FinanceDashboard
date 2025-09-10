@@ -171,7 +171,7 @@ export function CashFlowTab({
             className="text-xs"
             disabled={loading}
           >
-            {loading ? 'Updating...' : 'Update'}
+            {loading ? 'Refreshing...' : 'Refresh'}
           </Button>
           <Button 
             onClick={() => {
@@ -181,8 +181,6 @@ export function CashFlowTab({
               const newToDate = new Date().toISOString().split('T')[0];
               setFromDate(newFromDate);
               setToDate(newToDate);
-              // Auto-trigger update with new dates
-              setTimeout(() => fetchCashFlowData(), 100);
             }}
             variant="outline"
             size="sm"
@@ -200,8 +198,6 @@ export function CashFlowTab({
               const newToDate = today.toISOString().split('T')[0];
               setFromDate(newFromDate);
               setToDate(newToDate);
-              // Auto-trigger update with new dates
-              setTimeout(() => fetchCashFlowData(), 100);
             }}
             variant="outline"
             size="sm"
@@ -232,10 +228,11 @@ export function CashFlowTab({
               </thead>
               <tbody>
                 {cashFlowData.operatingActivities.items.map((item, index) => {
-                  const amount = parseAmount(item.FiscalYearToDate);
+                  const amount = item.CashFlowAmount || parseAmount(item.SelectedPeriod);
                   const cellId = `cashflow-operating-${item.AccountCode || index}`;
                   const hasNote = notes.some((note: Note) => note.cellId === cellId);
                   const isPositive = amount >= 0;
+                  const flowType = item.CashFlowType || (isPositive ? 'IN' : 'OUT');
                   
                   return (
                     <tr key={`operating-${index}`}>
@@ -268,12 +265,12 @@ export function CashFlowTab({
                       </td>
                       <td className="text-center">
                         <Badge 
-                          variant={isPositive ? 'default' : 'destructive'}
+                          variant={flowType === 'IN' ? 'default' : 'destructive'}
                           className={`text-[8px] font-bold px-1 py-0 h-4 ${
-                            isPositive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                            flowType === 'IN' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                           }`}
                         >
-                          {isPositive ? 'IN' : 'OUT'}
+                          {flowType}
                         </Badge>
                       </td>
                       <td className="text-center">

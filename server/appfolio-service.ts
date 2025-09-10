@@ -520,13 +520,27 @@ export class AppfolioService {
       item.AccountCode?.startsWith('3')    // Equity accounts
     );
 
-    // Calculate totals using FiscalYearToDate for annual totals
-    const operatingTotal = operatingActivities.reduce((sum, item) => 
-      sum + this.parseMonetaryValue(item.FiscalYearToDate), 0);
-    const investingTotal = investingActivities.reduce((sum, item) => 
-      sum + this.parseMonetaryValue(item.FiscalYearToDate), 0);
-    const financingTotal = financingActivities.reduce((sum, item) => 
-      sum + this.parseMonetaryValue(item.FiscalYearToDate), 0);
+    // Calculate totals using SelectedPeriod for the filtered date range
+    // Apply proper accounting signs: Revenue = positive, Expenses = negative
+    const operatingTotal = operatingActivities.reduce((sum, item) => {
+      const value = this.parseMonetaryValue(item.SelectedPeriod);
+      // Revenue accounts (4xxx) stay positive, expense accounts (5xxx/6xxx) become negative
+      const adjustedValue = item.AccountCode?.startsWith('4') ? value : -Math.abs(value);
+      return sum + adjustedValue;
+    }, 0);
+    
+    const investingTotal = investingActivities.reduce((sum, item) => {
+      const value = this.parseMonetaryValue(item.SelectedPeriod);
+      // Most investing activities are cash outflows (negative)
+      return sum - Math.abs(value);
+    }, 0);
+    
+    const financingTotal = financingActivities.reduce((sum, item) => {
+      const value = this.parseMonetaryValue(item.SelectedPeriod);
+      // Financing can be inflows or outflows depending on the account
+      const adjustedValue = item.AccountCode?.startsWith('2') ? value : -Math.abs(value);
+      return sum + adjustedValue;
+    }, 0);
 
     const netCashFlow = operatingTotal + investingTotal + financingTotal;
 
@@ -540,22 +554,45 @@ export class AppfolioService {
       item.AccountName?.toLowerCase().includes('ending cash')
     );
 
+    // Process items with correct signs for display
+    const processedOperatingItems = operatingActivities.map(item => ({
+      ...item,
+      CashFlowAmount: item.AccountCode?.startsWith('4') 
+        ? this.parseMonetaryValue(item.SelectedPeriod) 
+        : -Math.abs(this.parseMonetaryValue(item.SelectedPeriod)),
+      CashFlowType: item.AccountCode?.startsWith('4') ? 'IN' : 'OUT'
+    }));
+
+    const processedInvestingItems = investingActivities.map(item => ({
+      ...item,
+      CashFlowAmount: -Math.abs(this.parseMonetaryValue(item.SelectedPeriod)),
+      CashFlowType: 'OUT'
+    }));
+
+    const processedFinancingItems = financingActivities.map(item => ({
+      ...item,
+      CashFlowAmount: item.AccountCode?.startsWith('2') 
+        ? this.parseMonetaryValue(item.SelectedPeriod)
+        : -Math.abs(this.parseMonetaryValue(item.SelectedPeriod)),
+      CashFlowType: item.AccountCode?.startsWith('2') ? 'IN' : 'OUT'
+    }));
+
     return {
       operatingActivities: {
-        items: operatingActivities,
+        items: processedOperatingItems,
         total: operatingTotal
       },
       investingActivities: {
-        items: investingActivities,
+        items: processedInvestingItems,
         total: investingTotal
       },
       financingActivities: {
-        items: financingActivities,
+        items: processedFinancingItems,
         total: financingTotal
       },
       netCashFlow,
-      cashAtBeginning: cashBeginning ? this.parseMonetaryValue(cashBeginning.FiscalYearToDate) : 0,
-      cashAtEnd: cashEnding ? this.parseMonetaryValue(cashEnding.FiscalYearToDate) : netCashFlow,
+      cashAtBeginning: cashBeginning ? this.parseMonetaryValue(cashBeginning.SelectedPeriod) : 0,
+      cashAtEnd: cashEnding ? this.parseMonetaryValue(cashEnding.SelectedPeriod) : netCashFlow,
       rawData
     };
   }

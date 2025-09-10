@@ -47,7 +47,7 @@ export function PortfolioNavigation({
               <div className="text-xs text-gray-600 grid grid-cols-3 gap-2">
                 <span>{portfolio.totalUnits} Units</span>
                 <span>${Math.round(portfolio.totalNOI / 1000).toLocaleString()}K NOI</span>
-                <span>{portfolio.capRate}% Cap</span>
+                <span>{Number(portfolio.capRate.toFixed(2))}% Cap</span>
               </div>
             </button>
           ))}

@@ -132,12 +132,18 @@ export function PropertyDashboard({}: PropertyDashboardProps) {
   });
 
   // Mutations
-  const createNoteMutation = useMutation({
-    mutationFn: async (noteData: { cellId: string; text: string }) => {
-      return apiRequest('POST', '/api/notes', noteData);
+  const createCellCommentMutation = useMutation({
+    mutationFn: async (commentData: { property_id: number; cell_id: string; comment_text: string; cell_value?: string; tab_section?: string }) => {
+      const response = await fetch('/api/supabase-cell-comments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(commentData)
+      });
+      if (!response.ok) throw new Error('Failed to create cell comment');
+      return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/notes'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/supabase-cell-comments'] });
       toast({ title: 'Note added successfully', variant: 'default' });
     },
     onError: () => {
@@ -178,11 +184,21 @@ export function PropertyDashboard({}: PropertyDashboardProps) {
   const handleNoteChange = (cellId: string, value: string) => {
     setCellNotes(prev => ({ ...prev, [cellId]: value }));
     
-    if (value.trim()) {
-      createNoteMutation.mutate({
-        cellId,
-        text: value.trim()
-      });
+    if (value.trim() && selectedProperty) {
+      // Get property ID from the selected property
+      const propertyId = selectedProperty.PropertyId || selectedProperty["Asset ID"];
+      
+      if (propertyId) {
+        createCellCommentMutation.mutate({
+          property_id: Number(propertyId),
+          cell_id: cellId,
+          comment_text: value.trim(),
+          cell_value: '', // You could capture the actual cell value if needed
+          tab_section: activeTab // Use current active tab
+        });
+      } else {
+        toast({ title: 'Property ID not found', variant: 'destructive' });
+      }
     }
   };
 
@@ -190,11 +206,50 @@ export function PropertyDashboard({}: PropertyDashboardProps) {
     const description = `Review flagged item for GL account ${cellId.replace('gl-', '')} - Portfolio: ${selectedPortfolio}`;
     const itemId = `AI-${Date.now()}`;
     
+    // Get property ID - need to find the property in our data
+    const currentProperty = portfolioProperties.find((prop: any) => 
+      prop["Asset ID"] === selectedProperty?.["Asset ID"]
+    );
+    const propertyId = currentProperty?.["Asset ID"] || selectedProperty?.["Asset ID"];
+    
+    if (!propertyId) {
+      toast({ 
+        title: 'Error', 
+        description: 'No property selected. Please select a property first.',
+        variant: 'destructive' 
+      });
+      return;
+    }
+    
+    // Create action item
     createActionItemMutation.mutate({
       itemId,
+      propertyId,
       description,
       priority: 'HIGH'
     });
+    
+    // Create cell comment for the flagged issue
+    if (selectedProperty) {
+      const propertyId = selectedProperty.PropertyId || selectedProperty["Asset ID"];
+      
+      if (propertyId) {
+        createCellCommentMutation.mutate({
+          property_id: Number(propertyId),
+          cell_id: cellId,
+          comment_text: `🚨 FLAGGED ISSUE: ${description}
+
+Analysis needed for: ${cellId}
+Property: ${selectedProperty?.["Asset ID + Name"] || 'N/A'}
+Portfolio: ${selectedPortfolio}
+
+Please review this item and take appropriate action.`,
+          tab_section: activeTab,
+          priority: 'urgent',
+          created_by: 'System'
+        });
+      }
+    }
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -407,7 +462,7 @@ export function PropertyDashboard({}: PropertyDashboardProps) {
 
               {/* Notes & Actions Tab */}
               <TabsContent value="notes" className="mt-0">
-                <NotesTab notes={notes} actionItems={actionItems} />
+                <NotesTab selectedProperty={selectedProperty} />
               </TabsContent>
             </div>
           </Tabs>
