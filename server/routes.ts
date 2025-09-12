@@ -268,6 +268,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Appfolio Rent Roll API
+  app.get("/api/appfolio/rent-roll", async (req, res) => {
+    console.log('🔵 Rent Roll API called');
+    const { properties, from_date, to_date } = req.query;
+    console.log('🔍 Query params:', { properties, from_date, to_date });
+    
+    try {
+      const rentRollData = await AppfolioService.fetchRentRoll(
+        properties as string,
+        from_date as string,
+        to_date as string
+      );
+      res.json(rentRollData);
+    } catch (error) {
+      console.error('❌ Error fetching Rent Roll data:', error);
+      res.status(500).json({ 
+        message: "Failed to fetch Rent Roll data from Appfolio", 
+        error: error instanceof Error ? error.message : String(error) 
+      });
+    }
+  });
+
+  // Appfolio General Ledger API
+  app.get("/api/appfolio/general-ledger", async (req, res) => {
+    console.log('🔵 General Ledger API called');
+    const { properties } = req.query;
+    console.log('🔍 Query params:', { properties });
+    
+    try {
+      const generalLedgerData = await AppfolioService.fetchGeneralLedger(
+        properties as string
+      );
+      res.json(generalLedgerData);
+    } catch (error) {
+      console.error('❌ Error fetching General Ledger data:', error);
+      res.status(500).json({ 
+        message: "Failed to fetch General Ledger data from Appfolio", 
+        error: error instanceof Error ? error.message : String(error) 
+      });
+    }
+  });
+
   // Balance Sheet Routes (MUST be before :assetId routes to avoid conflicts)
   app.get("/api/balance-sheet/:assetId", async (req, res) => {
     console.log(`🔵 Balance Sheet API called for asset: ${req.params.assetId}`);

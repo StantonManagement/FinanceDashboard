@@ -3,7 +3,12 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Flag } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import type { GLAccount, Note } from '@shared/schema';
+import type { GLAccount, Note, ProcessedCashFlowData } from '@shared/schema';
+import { DataUtils } from '@shared/utils';
+import { ErrorBoundary, ErrorFallback } from '@/components/ui/error-boundary';
+import { LoadingState } from '@/components/ui/loading';
+import { validatePropertyData } from '@/utils/portfolio-data-validation';
+import { CalculatedFinancials } from '@/components/dashboard/CalculatedFinancials';
 
 interface CashFlowTabProps {
   portfolioFinancials?: any;
@@ -15,26 +20,9 @@ interface CashFlowTabProps {
   selectedProperty?: any;
 }
 
-interface CashFlowData {
-  operatingActivities: {
-    items: { AccountName: string; AccountCode: string; SelectedPeriod: string; FiscalYearToDate: string; }[];
-    total: number;
-  };
-  investingActivities: {
-    items: { AccountName: string; AccountCode: string; SelectedPeriod: string; FiscalYearToDate: string; }[];
-    total: number;
-  };
-  financingActivities: {
-    items: { AccountName: string; AccountCode: string; SelectedPeriod: string; FiscalYearToDate: string; }[];
-    total: number;
-  };
-  netCashFlow: number;
-  cashAtBeginning: number;
-  cashAtEnd: number;
-  rawData: { AccountName: string; AccountCode: string; SelectedPeriod: string; FiscalYearToDate: string; }[];
-}
+type CashFlowData = ProcessedCashFlowData;
 
-export function CashFlowTab({
+function CashFlowTabContent({
   portfolioFinancials,
   notes,
   clickedElements,
@@ -44,8 +32,10 @@ export function CashFlowTab({
   selectedProperty
 }: CashFlowTabProps) {
   const [cashFlowData, setCashFlowData] = useState<CashFlowData | null>(null);
+  const [previousCashFlowData, setPreviousCashFlowData] = useState<CashFlowData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [dataValidation, setDataValidation] = useState<any>(null);
   
   // Date range state - default to current month
   const [fromDate, setFromDate] = useState(() => {
@@ -58,6 +48,12 @@ export function CashFlowTab({
 
   useEffect(() => {
     fetchCashFlowData();
+    
+    // Validate property data for incomplete scenarios
+    if (selectedProperty) {
+      const validation = validatePropertyData(selectedProperty);
+      setDataValidation(validation);
+    }
   }, [selectedProperty]);
 
   const fetchCashFlowData = async () => {
@@ -83,6 +79,31 @@ export function CashFlowTab({
       
       const data = await response.json();
       setCashFlowData(data);
+
+      // Fetch previous period data for comparison (previous month)
+      const currentDate = new Date(fromDate);
+      const prevMonthStart = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
+      const prevMonthEnd = new Date(currentDate.getFullYear(), currentDate.getMonth(), 0);
+      
+      const prevFromDate = prevMonthStart.toISOString().split('T')[0];
+      const prevToDate = prevMonthEnd.toISOString().split('T')[0];
+      
+      let prevUrl = `/api/appfolio/cash-flow?fromDate=${prevFromDate}&toDate=${prevToDate}`;
+      if (propertyId) {
+        prevUrl += `&propertyId=${propertyId}`;
+      }
+      
+      try {
+        const prevResponse = await fetch(prevUrl);
+        if (prevResponse.ok) {
+          const prevData = await prevResponse.json();
+          setPreviousCashFlowData(prevData);
+        }
+      } catch (prevErr) {
+        console.warn('Could not fetch previous period data for comparison:', prevErr);
+        setPreviousCashFlowData(null);
+      }
+
     } catch (err) {
       console.error('Error fetching cash flow data:', err);
       setError(err instanceof Error ? err.message : 'Failed to load cash flow data');
@@ -91,50 +112,34 @@ export function CashFlowTab({
     }
   };
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(Math.abs(value));
+  const formatCurrency = (value: number) => DataUtils.formatCurrency(value);
+
+  // Helper function to get month-over-month color coding
+  const getComparisonColor = (current: number, previous: number, isExpense: boolean = false) => {
+    if (!previous || previous === 0) return 'text-gray-600';
+    
+    const variance = DataUtils.calculateVariance(current, previous);
+    const isImprovement = isExpense ? variance < 0 : variance > 0;
+    
+    // If change is less than 5%, consider it neutral
+    if (Math.abs(variance) < 5) return 'text-gray-600';
+    return isImprovement ? 'text-success-green' : 'text-red-600';
   };
 
-  const parseAmount = (amount: string): number => {
-    if (!amount || amount === '0.00' || amount === '-') return 0;
-    const cleaned = amount.replace(/[^\d.-]/g, '');
-    const isNegative = amount.includes('(') || amount.startsWith('-');
-    const parsed = parseFloat(cleaned) || 0;
-    return isNegative ? -Math.abs(parsed) : parsed;
-  };
+  const parseAmount = DataUtils.parseCurrency;
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-8">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-institutional-black mx-auto mb-4"></div>
-          <p>Loading cash flow data...</p>
-        </div>
-      </div>
-    );
+    return <LoadingState message="Loading cash flow data..." />;
   }
 
   if (error) {
     return (
-      <div className="bg-red-50 border border-red-200 rounded-md p-4">
-        <div className="flex">
-          <div className="text-red-600">
-            <h3 className="text-sm font-medium">Error loading cash flow data</h3>
-            <p className="text-sm mt-1">{error}</p>
-            <button 
-              onClick={fetchCashFlowData}
-              className="mt-2 text-sm text-red-600 hover:text-red-800 underline"
-            >
-              Try again
-            </button>
-          </div>
-        </div>
-      </div>
+      <ErrorFallback
+        error={new Error(error)}
+        resetError={fetchCashFlowData}
+        title="Error loading cash flow data"
+        description="There was a problem fetching the cash flow information. Please try again."
+      />
     );
   }
   return (
@@ -234,6 +239,16 @@ export function CashFlowTab({
                   const isPositive = amount >= 0;
                   const flowType = item.CashFlowType || (isPositive ? 'IN' : 'OUT');
                   
+                  // Get previous period amount for comparison
+                  const previousItem = previousCashFlowData?.operatingActivities.items.find(
+                    prevItem => prevItem.AccountCode === item.AccountCode
+                  );
+                  const previousAmount = previousItem ? (previousItem.CashFlowAmount || parseAmount(previousItem.SelectedPeriod)) : 0;
+                  
+                  // Determine if this is an expense account (OUT flow typically means expense)
+                  const isExpenseAccount = flowType === 'OUT' || item.AccountCode?.startsWith('6');
+                  const comparisonColor = getComparisonColor(amount, previousAmount, isExpenseAccount);
+                  
                   return (
                     <tr key={`operating-${index}`}>
                       <td 
@@ -255,10 +270,10 @@ export function CashFlowTab({
                       <td 
                         onClick={() => onHandleClick(cellId)}
                         className={`font-mono-data font-bold text-right cursor-pointer transition-all ${
-                          isPositive ? 'text-success-green' : 'text-red-600'
+                          comparisonColor
                         } ${clickedElements.has(cellId) ? 'click-highlight' : ''}`}
                       >
-                        {isPositive ? '+' : '-'}{formatCurrency(amount)}
+                        {formatCurrency(Math.abs(amount))}
                         {hasNote && (
                           <span className="note-indicator ml-2">📝 NOTE</span>
                         )}
@@ -311,9 +326,9 @@ export function CashFlowTab({
                 <tr className="bg-blue-50 border-t-2 border-institutional-black">
                   <td colSpan={2} className="font-bold text-right">NET CASH FROM OPERATING:</td>
                   <td className={`font-mono-data font-bold text-right ${
-                    cashFlowData.operatingActivities.total >= 0 ? 'text-success-green' : 'text-red-600'
+                    previousCashFlowData ? getComparisonColor(cashFlowData.operatingActivities.total, previousCashFlowData.operatingActivities.total, false) : 'text-gray-600'
                   }`}>
-                    {cashFlowData.operatingActivities.total >= 0 ? '+' : '-'}{formatCurrency(cashFlowData.operatingActivities.total)}
+                    {formatCurrency(Math.abs(cashFlowData.operatingActivities.total))}
                   </td>
                   <td colSpan={3}></td>
                 </tr>
@@ -324,6 +339,70 @@ export function CashFlowTab({
       )}
 
       {/* Summary Section */}
+      {/* Operating Income Summary - Compact Version */}
+      {cashFlowData && (
+        <div className="overflow-hidden border-2 border-institutional-black mb-5">
+          <div className="bg-institutional-black text-institutional-white p-2">
+            <h4 className="font-bold text-xs uppercase">Operating Income Summary</h4>
+          </div>
+          <table className="institutional-table">
+            <tbody>
+              {/* Total Revenue */}
+              <tr className="bg-green-50">
+                <td className="font-bold text-right py-2">TOTAL REVENUE:</td>
+                <td className="font-mono-data font-bold text-right text-green-700 py-2">
+                  {formatCurrency(
+                    Math.abs(cashFlowData.operatingActivities.items
+                      .filter(item => {
+                        const flowType = item.CashFlowType || ((item.CashFlowAmount || parseAmount(item.SelectedPeriod)) >= 0 ? 'IN' : 'OUT');
+                        return flowType === 'IN' || item.AccountCode?.startsWith('4');
+                      })
+                      .reduce((sum, item) => sum + Math.abs(item.CashFlowAmount || parseAmount(item.SelectedPeriod)), 0))
+                  )}
+                </td>
+              </tr>
+
+              {/* Separator Row */}
+              <tr className="bg-gray-100">
+                <td colSpan={2} className="py-1 text-center text-sm text-gray-600">
+                  <div className="flex items-center justify-center">
+                    <div className="flex-1 h-px bg-gray-300"></div>
+                    <span className="px-3 font-medium">LESS</span>
+                    <div className="flex-1 h-px bg-gray-300"></div>
+                  </div>
+                </td>
+              </tr>
+
+              {/* Total Expenses */}
+              <tr className="bg-red-50">
+                <td className="font-bold text-right py-2">TOTAL OPERATING EXPENSES:</td>
+                <td className="font-mono-data font-bold text-right text-red-700 py-2">
+                  {formatCurrency(
+                    cashFlowData.operatingActivities.items
+                      .filter(item => {
+                        const flowType = item.CashFlowType || ((item.CashFlowAmount || parseAmount(item.SelectedPeriod)) >= 0 ? 'IN' : 'OUT');
+                        return flowType === 'OUT' || item.AccountCode?.startsWith('6');
+                      })
+                      .reduce((sum, item) => sum + Math.abs(item.CashFlowAmount || parseAmount(item.SelectedPeriod)), 0)
+                  )}
+                </td>
+              </tr>
+
+              {/* Operating Income Total with Heavy Separator */}
+              <tr className="bg-blue-100 border-t-4 border-blue-600">
+                <td className="font-bold text-right text-lg py-3">OPERATING INCOME (NOI):</td>
+                <td className={`font-mono-data font-bold text-right text-xl py-3 ${
+                  previousCashFlowData ? getComparisonColor(cashFlowData.operatingActivities.total, previousCashFlowData.operatingActivities.total, false) : 'text-blue-700'
+                }`}>
+                  {formatCurrency(Math.abs(cashFlowData.operatingActivities.total))}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Cash Flow Summary */}
       {cashFlowData && (
         <div className="overflow-hidden border-2 border-institutional-black">
           <div className="bg-institutional-black text-institutional-white p-2">
@@ -334,50 +413,59 @@ export function CashFlowTab({
               <tr>
                 <td className="font-bold text-right">Cash from Operating Activities:</td>
                 <td className={`font-mono-data font-bold text-right ${
-                  cashFlowData.operatingActivities.total >= 0 ? 'text-success-green' : 'text-red-600'
+                  previousCashFlowData ? getComparisonColor(cashFlowData.operatingActivities.total, previousCashFlowData.operatingActivities.total, false) : 'text-gray-600'
                 }`}>
-                  {formatCurrency(cashFlowData.operatingActivities.total)}
+                  {formatCurrency(Math.abs(cashFlowData.operatingActivities.total))}
                 </td>
               </tr>
               <tr>
                 <td className="font-bold text-right">Cash from Investing Activities:</td>
                 <td className={`font-mono-data font-bold text-right ${
-                  cashFlowData.investingActivities.total >= 0 ? 'text-success-green' : 'text-red-600'
+                  previousCashFlowData ? getComparisonColor(cashFlowData.investingActivities.total, previousCashFlowData.investingActivities.total, false) : 'text-gray-600'
                 }`}>
-                  {formatCurrency(cashFlowData.investingActivities.total)}
+                  {formatCurrency(Math.abs(cashFlowData.investingActivities.total))}
                 </td>
               </tr>
               <tr>
                 <td className="font-bold text-right">Cash from Financing Activities:</td>
                 <td className={`font-mono-data font-bold text-right ${
-                  cashFlowData.financingActivities.total >= 0 ? 'text-success-green' : 'text-red-600'
+                  previousCashFlowData ? getComparisonColor(cashFlowData.financingActivities.total, previousCashFlowData.financingActivities.total, false) : 'text-gray-600'
                 }`}>
-                  {formatCurrency(cashFlowData.financingActivities.total)}
+                  {formatCurrency(Math.abs(cashFlowData.financingActivities.total))}
                 </td>
               </tr>
               <tr className="bg-green-50 border-t-2 border-institutional-black">
                 <td className="font-bold text-right">NET INCREASE IN CASH:</td>
                 <td className={`font-mono-data font-bold text-right ${
-                  cashFlowData.netCashFlow >= 0 ? 'text-success-green' : 'text-red-600'
+                  previousCashFlowData ? getComparisonColor(cashFlowData.netCashFlow, previousCashFlowData.netCashFlow, false) : 'text-gray-600'
                 }`}>
-                  {formatCurrency(cashFlowData.netCashFlow)}
+                  {formatCurrency(Math.abs(cashFlowData.netCashFlow))}
                 </td>
               </tr>
               <tr>
                 <td className="font-bold text-right">Cash at Beginning of Period:</td>
                 <td className="font-mono-data font-bold text-right">
-                  {formatCurrency(cashFlowData.cashAtBeginning)}
+                  {formatCurrency(Math.abs(cashFlowData.cashAtBeginning))}
                 </td>
               </tr>
               <tr className="bg-blue-50 border-t-2 border-institutional-black">
                 <td className="font-bold text-right">CASH AT END OF PERIOD:</td>
                 <td className="font-mono-data font-bold text-institutional-black text-right">
-                  {formatCurrency(cashFlowData.cashAtEnd)}
+                  {formatCurrency(Math.abs(cashFlowData.cashAtEnd))}
                 </td>
               </tr>
             </tbody>
           </table>
         </div>
+      )}
+
+
+      {/* Show calculated financials for Park Portfolio properties */}
+      {!cashFlowData && selectedProperty && (
+        <CalculatedFinancials 
+          selectedProperty={selectedProperty} 
+          formatCurrency={formatCurrency}
+        />
       )}
 
       {/* Fallback to portfolio data if no Appfolio data */}
@@ -432,7 +520,7 @@ export function CashFlowTab({
                         account.type === 'revenue' ? 'text-success-green' : 'text-red-600'
                       } ${clickedElements.has(cellId) ? 'click-highlight' : ''}`}
                     >
-                      {account.type === 'revenue' ? '+' : '-'}${Math.abs(account.amount).toLocaleString()}
+                      ${Math.abs(account.amount).toLocaleString()}
                       {hasNote && (
                         <span className="note-indicator ml-2">📝 NOTE</span>
                       )}
@@ -493,5 +581,19 @@ export function CashFlowTab({
         </div>
       )}
     </div>
+  );
+}
+
+// Main export with error boundary
+export function CashFlowTab(props: CashFlowTabProps) {
+  return (
+    <ErrorBoundary
+      onError={(error, errorInfo) => {
+        console.error('CashFlowTab Error:', error, errorInfo);
+        // Could send to error reporting service here
+      }}
+    >
+      <CashFlowTabContent {...props} />
+    </ErrorBoundary>
   );
 }

@@ -1,103 +1,12 @@
 // Environment variables are automatically loaded in this project
-
-interface AppfolioT12Item {
-  AccountName: string;
-  AccountCode: string | null;
-  SliceTotal: string;
-  Slice00?: string;
-  Slice01?: string;
-  Slice02?: string;
-  Slice03?: string;
-  Slice04?: string;
-  Slice05?: string;
-  Slice06?: string;
-  Slice07?: string;
-  Slice08?: string;
-  Slice09?: string;
-  Slice10?: string;
-  Slice11?: string;
-}
-
-interface ProcessedT12Data {
-  revenue: {
-    monthlyData: number[];
-    total: number;
-    average: number;
-    volatility: number;
-  };
-  expenses: {
-    monthlyData: number[];
-    total: number;
-    average: number;
-    volatility: number;
-  };
-  netIncome: {
-    monthlyData: number[];
-    total: number;
-    average: number;
-    volatility: number;
-  };
-  occupancyAnalysis: {
-    averageOccupancy: number;
-    volatility: number;
-    trend: string;
-  };
-  rawData: AppfolioT12Item[];
-}
-
-interface AppfolioBalanceSheetItem {
-  AccountName: string;
-  AccountNumber: string;
-  Balance: string;
-  [key: string]: any;
-}
-
-interface ProcessedBalanceSheetData {
-  assets: {
-    current: AppfolioBalanceSheetItem[];
-    fixed: AppfolioBalanceSheetItem[];
-    total: number;
-  };
-  liabilities: {
-    current: AppfolioBalanceSheetItem[];
-    longTerm: AppfolioBalanceSheetItem[];
-    total: number;
-  };
-  equity: {
-    items: AppfolioBalanceSheetItem[];
-    total: number;
-  };
-  rawData: AppfolioBalanceSheetItem[];
-}
-
-interface AppfolioCashFlowItem {
-  AccountName: string;
-  AccountCode: string;
-  SelectedPeriod: string;
-  SelectedPeriodPercent: string;
-  FiscalYearToDate: string;
-  FiscalYearToDatePercent: string;
-  [key: string]: any;
-}
-
-interface ProcessedCashFlowData {
-  operatingActivities: {
-    items: AppfolioCashFlowItem[];
-    total: number;
-  };
-  investingActivities: {
-    items: AppfolioCashFlowItem[];
-    total: number;
-  };
-  financingActivities: {
-    items: AppfolioCashFlowItem[];
-    total: number;
-  };
-  netCashFlow: number;
-  cashAtBeginning: number;
-  cashAtEnd: number;
-  rawData: AppfolioCashFlowItem[];
-}
+import type { 
+  AppfolioT12Item, 
+  ProcessedT12Data, 
+  AppfolioBalanceSheetItem, 
+  ProcessedBalanceSheetData, 
+  AppfolioCashFlowItem, 
+  ProcessedCashFlowData 
+} from '@shared/schema';
 
 export class AppfolioService {
   private static readonly BASE_URL_V0 = 'https://stantonmgmt.appfolio.com/api/v0';
@@ -595,5 +504,103 @@ export class AppfolioService {
       cashAtEnd: cashEnding ? this.parseMonetaryValue(cashEnding.SelectedPeriod) : netCashFlow,
       rawData
     };
+  }
+
+  /**
+   * Fetch rent roll data from Appfolio API
+   */
+  static async fetchRentRoll(propertyId?: string, fromDate?: string, toDate?: string): Promise<any[]> {
+    try {
+      console.log('🔵 Fetching rent roll data from Appfolio API...');
+      console.log('🏢 Property ID filter:', propertyId || 'All properties');
+      console.log('📅 Date range:', fromDate, 'to', toDate);
+      
+      // Build URL with parameters - using v0 rent_roll endpoint
+      let url = `${this.BASE_URL_V0}/reports/rent_roll.json`;
+      const params = new URLSearchParams();
+      
+      if (fromDate) params.append('from_date', fromDate);
+      if (toDate) params.append('to_date', toDate);
+      if (propertyId) params.append('properties', propertyId);
+      
+      if (params.toString()) {
+        url += `?${params.toString()}`;
+      }
+      
+      console.log('📡 API URL:', url);
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Authorization': this.getAuthHeader(),
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      });
+
+      console.log('📊 Rent Roll Response status:', response.status);
+      console.log('📊 Rent Roll Response headers:', response.headers);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Rent Roll API Error Response:', errorText);
+        throw new Error(`Appfolio Rent Roll API returned ${response.status}: ${errorText}`);
+      }
+
+      const data = await response.json();
+      console.log('✅ Rent Roll Raw API Response:', JSON.stringify(data, null, 2));
+      
+      return Array.isArray(data) ? data : [data];
+      
+    } catch (error) {
+      console.error('❌ Error in fetchRentRoll:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Fetch general ledger data from Appfolio API
+   */
+  static async fetchGeneralLedger(propertyId?: string): Promise<any[]> {
+    try {
+      console.log('🔵 Fetching general ledger data from Appfolio API...');
+      console.log('🏢 Property ID filter:', propertyId || 'All properties');
+      
+      // Build URL with parameters - using v0 general_ledger endpoint
+      let url = `${this.BASE_URL_V0}/reports/general_ledger.json`;
+      
+      if (propertyId) {
+        url += `?properties=${propertyId}`;
+      }
+      
+      console.log('📡 API URL:', url);
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Authorization': this.getAuthHeader(),
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      });
+
+      console.log('📊 General Ledger Response status:', response.status);
+      console.log('📊 General Ledger Response headers:', response.headers);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ General Ledger API Error Response:', errorText);
+        throw new Error(`Appfolio General Ledger API returned ${response.status}: ${errorText}`);
+      }
+
+      const data = await response.json();
+      console.log('✅ General Ledger Raw API Response:', JSON.stringify(data, null, 2));
+      
+      return Array.isArray(data) ? data : [data];
+      
+    } catch (error) {
+      console.error('❌ Error in fetchGeneralLedger:', error);
+      throw error;
+    }
   }
 }

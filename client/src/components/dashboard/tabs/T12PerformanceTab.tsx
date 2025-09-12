@@ -2,6 +2,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Flag, RefreshCw } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { validatePropertyData } from '@/utils/portfolio-data-validation';
+import { CalculatedFinancials } from '@/components/dashboard/CalculatedFinancials';
 
 interface T12PerformanceTabProps {
   onFlagIssue: (cellId: string) => void;
@@ -39,6 +41,7 @@ export function T12PerformanceTab({ onFlagIssue, selectedProperty }: T12Performa
   const [t12Data, setT12Data] = useState<T12Data | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [dataValidation, setDataValidation] = useState<any>(null);
 
   // Date range state for T12 analysis - from Jan 1, 2025 to today
   const [fromDate, setFromDate] = useState(() => {
@@ -50,6 +53,12 @@ export function T12PerformanceTab({ onFlagIssue, selectedProperty }: T12Performa
 
   useEffect(() => {
     fetchT12Data();
+    
+    // Validate property data for incomplete scenarios
+    if (selectedProperty) {
+      const validation = validatePropertyData(selectedProperty);
+      setDataValidation(validation);
+    }
   }, [selectedProperty]);
 
   const fetchT12Data = async () => {
@@ -97,7 +106,7 @@ export function T12PerformanceTab({ onFlagIssue, selectedProperty }: T12Performa
       currency: 'USD',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
-    }).format(value);
+    }).format(Math.abs(value));
   };
 
   const getVolatilityScore = (volatility: number) => {
@@ -155,14 +164,6 @@ export function T12PerformanceTab({ onFlagIssue, selectedProperty }: T12Performa
           <h3 className="text-lg font-bold uppercase text-institutional-black">
             Trailing 12-Month Performance Analysis
           </h3>
-          <Button
-            onClick={fetchT12Data}
-            disabled={loading}
-            className="btn-institutional flex items-center gap-2"
-          >
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            Update
-          </Button>
         </div>
         
         <div className="flex items-center gap-4">
@@ -222,6 +223,15 @@ export function T12PerformanceTab({ onFlagIssue, selectedProperty }: T12Performa
           </Button>
         </div>
       </div>
+
+
+      {/* Show calculated T12 estimates for Park Portfolio properties */}
+      {!t12Data && selectedProperty && (
+        <CalculatedFinancials 
+          selectedProperty={selectedProperty} 
+          formatCurrency={formatCurrency}
+        />
+      )}
       
       <div className="grid grid-cols-2 gap-5 mb-5">
         <div className="overflow-hidden border-2 border-institutional-black">

@@ -149,3 +149,105 @@ export type InsertExcelFile = z.infer<typeof insertExcelFileSchema>;
 
 export type CellComment = typeof cellComments.$inferSelect;
 export type InsertCellComment = z.infer<typeof insertCellCommentSchema>;
+
+// AppFolio API Types - Shared across client and server
+export interface AppfolioT12Item {
+  AccountName: string;
+  AccountCode: string | null;
+  SliceTotal: string;
+  Slice00?: string;
+  Slice01?: string;
+  Slice02?: string;
+  Slice03?: string;
+  Slice04?: string;
+  Slice05?: string;
+  Slice06?: string;
+  Slice07?: string;
+  Slice08?: string;
+  Slice09?: string;
+  Slice10?: string;
+  Slice11?: string;
+}
+
+export interface ProcessedT12Data {
+  revenue: {
+    monthlyData: number[];
+    total: number;
+    average: number;
+    volatility: number;
+  };
+  expenses: {
+    monthlyData: number[];
+    total: number;
+    average: number;
+    volatility: number;
+  };
+  netIncome: {
+    monthlyData: number[];
+    total: number;
+    average: number;
+    volatility: number;
+  };
+  occupancyAnalysis: {
+    averageOccupancy: number;
+    volatility: number;
+    trend: string;
+  };
+  rawData: AppfolioT12Item[];
+}
+
+export interface AppfolioBalanceSheetItem {
+  AccountName: string;
+  AccountNumber: string;
+  Balance: string;
+  [key: string]: any;
+}
+
+export interface ProcessedBalanceSheetData {
+  assets: {
+    current: AppfolioBalanceSheetItem[];
+    fixed: AppfolioBalanceSheetItem[];
+    total: number;
+  };
+  liabilities: {
+    current: AppfolioBalanceSheetItem[];
+    longTerm: AppfolioBalanceSheetItem[];
+    total: number;
+  };
+  equity: {
+    items: AppfolioBalanceSheetItem[];
+    total: number;
+  };
+  rawData: AppfolioBalanceSheetItem[];
+}
+
+export interface AppfolioCashFlowItem {
+  AccountName: string;
+  AccountCode: string;
+  SelectedPeriod: string;
+  SelectedPeriodPercent: string;
+  FiscalYearToDate: string;
+  FiscalYearToDatePercent: string;
+  CashFlowAmount?: number;
+  CashFlowType?: 'IN' | 'OUT';
+  [key: string]: any;
+}
+
+export interface ProcessedCashFlowData {
+  operatingActivities: {
+    items: AppfolioCashFlowItem[];
+    total: number;
+  };
+  investingActivities: {
+    items: AppfolioCashFlowItem[];
+    total: number;
+  };
+  financingActivities: {
+    items: AppfolioCashFlowItem[];
+    total: number;
+  };
+  netCashFlow: number;
+  cashAtBeginning: number;
+  cashAtEnd: number;
+  rawData: AppfolioCashFlowItem[];
+}

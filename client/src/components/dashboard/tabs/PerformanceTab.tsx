@@ -4,6 +4,8 @@ import { Badge } from '@/components/ui/badge';
 import { MessageSquare, Flag, AlertTriangle, TrendingUp, TrendingDown } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import type { GLAccount, Note } from '@shared/schema';
+import { validatePropertyData } from '@/utils/portfolio-data-validation';
+import { CalculatedFinancials } from '@/components/dashboard/CalculatedFinancials';
 
 interface PerformanceTabProps {
   portfolioFinancials: any;
@@ -46,14 +48,20 @@ export function PerformanceTab({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [analysisType, setAnalysisType] = useState<'portfolio' | 'property'>('portfolio');
+  const [dataValidation, setDataValidation] = useState<any>(null);
 
   useEffect(() => {
     if (selectedProperty) {
       setAnalysisType('property');
       fetchPropertyFinancials();
+      
+      // Validate property data for incomplete scenarios
+      const validation = validatePropertyData(selectedProperty);
+      setDataValidation(validation);
     } else {
       setAnalysisType('portfolio');
       setPropertyData(null);
+      setDataValidation(null);
     }
   }, [selectedProperty]);
 
@@ -145,7 +153,7 @@ export function PerformanceTab({
           propertyId: selectedProperty.PropertyId,
           propertyIdType: typeof selectedProperty.PropertyId
         });
-        console.log('📋 Available properties:', allInvestments.slice(0, 10).map(inv => ({
+        console.log('📋 Available properties:', allInvestments.slice(0, 10).map((inv: any) => ({
           assetId: inv["Asset ID"],
           propertyId: inv.PropertyId,
           propertyIdType: typeof inv.PropertyId,
@@ -253,6 +261,17 @@ export function PerformanceTab({
           </Button>
         )}
       </div>
+
+
+      {/* Show calculated performance metrics for Park Portfolio properties */}
+      {analysisType === 'property' && !propertyData && selectedProperty && (
+        <div className="mb-5">
+          <CalculatedFinancials 
+            selectedProperty={selectedProperty} 
+            formatCurrency={formatCurrency}
+          />
+        </div>
+      )}
 
       {/* Property-specific performance metrics */}
       {analysisType === 'property' && propertyData && analysis && (
@@ -381,7 +400,7 @@ export function PerformanceTab({
                   <td className="font-mono-data font-semibold">6000</td>
                   <td>{analysisType === 'property' ? 'Operating Expenses' : 'Total Operating Expenses'}</td>
                   <td className="font-mono-data font-semibold text-red-600">
-                    -{formatCurrency(
+                    {formatCurrency(
                       analysisType === 'property' ? propertyData?.operatingExpenses || 0 :
                       currentData.total_operating_expenses || 0
                     )}
@@ -426,7 +445,7 @@ export function PerformanceTab({
                   <td className="font-mono-data font-semibold">6100</td>
                   <td>Property Tax</td>
                   <td className="font-mono-data font-semibold text-red-600">
-                    -{formatCurrency(
+                    {formatCurrency(
                       analysisType === 'property' ? propertyData?.propertyTax || 0 :
                       currentData.total_property_tax || 0
                     )}
@@ -471,7 +490,7 @@ export function PerformanceTab({
                   <td className="font-mono-data font-semibold">6200</td>
                   <td>Property Insurance</td>
                   <td className="font-mono-data font-semibold text-red-600">
-                    -{formatCurrency(
+                    {formatCurrency(
                       analysisType === 'property' ? propertyData?.insurance || 0 :
                       currentData.total_insurance || 0
                     )}
@@ -516,7 +535,7 @@ export function PerformanceTab({
                   <td className="font-mono-data font-semibold">6300</td>
                   <td>Repair & Maintenance</td>
                   <td className="font-mono-data font-semibold text-red-600">
-                    -{formatCurrency(
+                    {formatCurrency(
                       analysisType === 'property' ? propertyData?.maintenance || 0 :
                       currentData.total_maintenance || 0
                     )}
@@ -561,7 +580,7 @@ export function PerformanceTab({
                   <td className="font-mono-data font-semibold">6400</td>
                   <td>Debt Service</td>
                   <td className="font-mono-data font-semibold text-red-600">
-                    -{formatCurrency(
+                    {formatCurrency(
                       analysisType === 'property' ? propertyData?.debtService || 0 :
                       currentData.total_debt_service || 0
                     )}
@@ -631,8 +650,8 @@ export function PerformanceTab({
                   <td>Net Cash Flow</td>
                   <td className="font-mono-data font-semibold text-green-700">
                     {formatCurrency(
-                      analysisType === 'property' ? propertyData?.netCashFlow || 0 :
-                      ((currentData.total_noi || 0) - (currentData.total_debt_service || 0))
+                      Math.abs(analysisType === 'property' ? propertyData?.netCashFlow || 0 :
+                      ((currentData.total_noi || 0) - (currentData.total_debt_service || 0)))
                     )}
                   </td>
                   {analysisType === 'property' && (
