@@ -84,7 +84,7 @@ export function OperationsTab({
 
   useEffect(() => {
     fetchOperationalData();
-  }, [selectedProperty]);
+  }, [selectedProperty, currentMonth, previousMonth]);
 
   const fetchOperationalData = async () => {
     setLoading(true);

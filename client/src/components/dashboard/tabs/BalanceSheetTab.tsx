@@ -48,6 +48,13 @@ export function BalanceSheetTab({ getCellComments, handleCommentAdded, selectedP
     return () => clearTimeout(timeoutId);
   }, [hasInitialLoad, selectedMonth, selectedProperty]);
 
+  // Auto-refresh when month selection changes
+  useEffect(() => {
+    if (hasInitialLoad) {
+      debouncedFetch();
+    }
+  }, [selectedMonth, debouncedFetch]);
+
   const fetchBalanceSheetData = async () => {
     if (!selectedProperty) {
       setError('No property selected');

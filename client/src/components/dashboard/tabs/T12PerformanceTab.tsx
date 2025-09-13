@@ -366,7 +366,7 @@ export function T12PerformanceTab({ onFlagIssue, selectedProperty }: T12Performa
           <div className="bg-institutional-black text-institutional-white p-2">
             <h4 className="font-bold text-xs uppercase">12-Month Cash Flow Analysis</h4>
           </div>
-          <div className="overflow-x-auto max-h-96">
+          <div className="overflow-x-auto max-h-[32rem]">
             <table className="institutional-table min-w-full">
               <thead className="sticky top-0 z-20">
                 <tr className="bg-white">

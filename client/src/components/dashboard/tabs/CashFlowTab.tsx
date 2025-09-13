@@ -52,7 +52,7 @@ function CashFlowTabContent({
       const validation = validatePropertyData(selectedProperty);
       setDataValidation(validation);
     }
-  }, [selectedProperty]);
+  }, [selectedProperty, selectedMonth]);
 
   const fetchCashFlowData = async () => {
     setLoading(true);
