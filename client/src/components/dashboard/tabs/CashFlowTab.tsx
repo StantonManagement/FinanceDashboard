@@ -1,3 +1,4 @@
+import React from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -37,13 +38,10 @@ function CashFlowTabContent({
   const [error, setError] = useState<string | null>(null);
   const [dataValidation, setDataValidation] = useState<any>(null);
   
-  // Date range state - default to current month
-  const [fromDate, setFromDate] = useState(() => {
+  // Month picker state - default to current month
+  const [selectedMonth, setSelectedMonth] = useState(() => {
     const date = new Date();
-    return new Date(date.getFullYear(), date.getMonth(), 1).toISOString().split('T')[0];
-  });
-  const [toDate, setToDate] = useState(() => {
-    return new Date().toISOString().split('T')[0];
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
   });
 
   useEffect(() => {
@@ -63,6 +61,13 @@ function CashFlowTabContent({
       const propertyId = selectedProperty?.PropertyId;
       console.log('🏢 Selected property:', selectedProperty);
       console.log('🆔 Property ID for Cash Flow fetch:', propertyId);
+      console.log('📅 Selected month:', selectedMonth);
+      
+      // Convert selectedMonth (YYYY-MM) to from/to dates
+      const [year, month] = selectedMonth.split('-').map(Number);
+      const fromDate = new Date(year, month - 1, 1).toISOString().split('T')[0];
+      const toDate = new Date(year, month, 0).toISOString().split('T')[0]; // Last day of month
+      
       console.log('📅 Date range:', `${fromDate} to ${toDate}`);
       
       let url = `/api/appfolio/cash-flow?fromDate=${fromDate}&toDate=${toDate}`;
@@ -81,12 +86,10 @@ function CashFlowTabContent({
       setCashFlowData(data);
 
       // Fetch previous period data for comparison (previous month)
-      const currentDate = new Date(fromDate);
-      const prevMonthStart = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
-      const prevMonthEnd = new Date(currentDate.getFullYear(), currentDate.getMonth(), 0);
-      
-      const prevFromDate = prevMonthStart.toISOString().split('T')[0];
-      const prevToDate = prevMonthEnd.toISOString().split('T')[0];
+      const prevMonth = month === 1 ? 12 : month - 1;
+      const prevYear = month === 1 ? year - 1 : year;
+      const prevFromDate = new Date(prevYear, prevMonth - 1, 1).toISOString().split('T')[0];
+      const prevToDate = new Date(prevYear, prevMonth, 0).toISOString().split('T')[0];
       
       let prevUrl = `/api/appfolio/cash-flow?fromDate=${prevFromDate}&toDate=${prevToDate}`;
       if (propertyId) {
@@ -149,24 +152,15 @@ function CashFlowTabContent({
           {selectedProperty ? `Cash Flow Analysis - ${selectedProperty["Asset ID + Name"] || 'Selected Property'}` : 'Portfolio Cash Flow Analysis'}
         </h3>
         
-        {/* Date Range Controls */}
+        {/* Month Picker Controls */}
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
-            <label className="text-sm font-medium text-gray-700">From:</label>
+            <label className="text-sm font-medium text-gray-700">Month:</label>
             <Input
-              type="date"
-              value={fromDate}
-              onChange={(e) => setFromDate(e.target.value)}
-              className="w-36 text-sm"
-            />
-          </div>
-          <div className="flex items-center gap-2">
-            <label className="text-sm font-medium text-gray-700">To:</label>
-            <Input
-              type="date"
-              value={toDate}
-              onChange={(e) => setToDate(e.target.value)}
-              className="w-36 text-sm"
+              type="month"
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+              className="w-40 text-sm"
             />
           </div>
           <Button 
@@ -182,10 +176,8 @@ function CashFlowTabContent({
             onClick={() => {
               // Quick preset: Current month
               const date = new Date();
-              const newFromDate = new Date(date.getFullYear(), date.getMonth(), 1).toISOString().split('T')[0];
-              const newToDate = new Date().toISOString().split('T')[0];
-              setFromDate(newFromDate);
-              setToDate(newToDate);
+              const currentMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+              setSelectedMonth(currentMonth);
             }}
             variant="outline"
             size="sm"
@@ -195,20 +187,18 @@ function CashFlowTabContent({
           </Button>
           <Button 
             onClick={() => {
-              // Quick preset: Last 30 days
-              const today = new Date();
-              const thirtyDaysAgo = new Date(today);
-              thirtyDaysAgo.setDate(today.getDate() - 30);
-              const newFromDate = thirtyDaysAgo.toISOString().split('T')[0];
-              const newToDate = today.toISOString().split('T')[0];
-              setFromDate(newFromDate);
-              setToDate(newToDate);
+              // Quick preset: Previous month
+              const date = new Date();
+              const prevMonth = date.getMonth() === 0 ? 11 : date.getMonth() - 1;
+              const prevYear = date.getMonth() === 0 ? date.getFullYear() - 1 : date.getFullYear();
+              const previousMonth = `${prevYear}-${String(prevMonth + 1).padStart(2, '0')}`;
+              setSelectedMonth(previousMonth);
             }}
             variant="outline"
             size="sm"
             className="text-xs"
           >
-            Last 30 Days
+            Previous Month
           </Button>
         </div>
       </div>
@@ -232,106 +222,262 @@ function CashFlowTabContent({
                 </tr>
               </thead>
               <tbody>
-                {cashFlowData.operatingActivities.items.map((item, index) => {
-                  const amount = item.CashFlowAmount || parseAmount(item.SelectedPeriod);
-                  const cellId = `cashflow-operating-${item.AccountCode || index}`;
-                  const hasNote = notes.some((note: Note) => note.cellId === cellId);
-                  const isPositive = amount >= 0;
-                  const flowType = item.CashFlowType || (isPositive ? 'IN' : 'OUT');
-                  
-                  // Get previous period amount for comparison
-                  const previousItem = previousCashFlowData?.operatingActivities.items.find(
-                    prevItem => prevItem.AccountCode === item.AccountCode
-                  );
-                  const previousAmount = previousItem ? (previousItem.CashFlowAmount || parseAmount(previousItem.SelectedPeriod)) : 0;
-                  
-                  // Determine if this is an expense account (OUT flow typically means expense)
-                  const isExpenseAccount = flowType === 'OUT' || item.AccountCode?.startsWith('6');
-                  const comparisonColor = getComparisonColor(amount, previousAmount, isExpenseAccount);
-                  
-                  return (
-                    <tr key={`operating-${index}`}>
-                      <td 
-                        onClick={() => onHandleClick(`${cellId}-code`)}
-                        className={`font-mono-data font-bold text-center cursor-pointer transition-all ${
-                          clickedElements.has(`${cellId}-code`) ? 'click-highlight' : ''
-                        }`}
-                      >
-                        {item.AccountCode || 'N/A'}
-                      </td>
-                      <td 
-                        onClick={() => onHandleClick(`${cellId}-desc`)}
-                        className={`cursor-pointer transition-all ${
-                          clickedElements.has(`${cellId}-desc`) ? 'click-highlight' : ''
-                        }`}
-                      >
-                        {item.AccountName}
-                      </td>
-                      <td 
-                        onClick={() => onHandleClick(cellId)}
-                        className={`font-mono-data font-bold text-right cursor-pointer transition-all ${
-                          comparisonColor
-                        } ${clickedElements.has(cellId) ? 'click-highlight' : ''}`}
-                      >
-                        {formatCurrency(Math.abs(amount))}
-                        {hasNote && (
-                          <span className="note-indicator ml-2">📝 NOTE</span>
-                        )}
-                      </td>
-                      <td className="text-center">
-                        <Badge 
-                          variant={flowType === 'IN' ? 'default' : 'destructive'}
-                          className={`text-[8px] font-bold px-1 py-0 h-4 ${
-                            flowType === 'IN' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                          }`}
-                        >
-                          {flowType}
-                        </Badge>
-                      </td>
-                      <td className="text-center">
-                        <Input
-                          placeholder="Add note..."
-                          className="text-xs border-institutional-border h-6 px-2"
-                          onBlur={(e) => {
-                            if (e.target.value.trim()) {
-                              onHandleNoteChange(cellId, e.target.value);
-                              e.target.value = '';
-                            }
-                          }}
-                          onKeyPress={(e) => {
-                            if (e.key === 'Enter') {
-                              const input = e.target as HTMLInputElement;
-                              if (input.value.trim()) {
-                                onHandleNoteChange(cellId, input.value);
-                                input.value = '';
+                {(() => {
+                  // Helper function to render an individual item
+                  const renderItem = (item: any, index: number, isRevenue: boolean = false) => {
+                    const amount = item.CashFlowAmount || parseAmount(item.SelectedPeriod);
+                    const cellId = `cashflow-${isRevenue ? 'revenue' : 'expense'}-${item.AccountCode || index}`;
+                    const hasNote = notes.some((note: Note) => note.cellId === cellId);
+                    
+                    return (
+                      <tr key={`item-${item.AccountCode || index}`} className="pl-4">
+                        <td className="font-mono-data font-bold text-center">{item.AccountCode || 'N/A'}</td>
+                        <td className="pl-4">{item.AccountName}</td>
+                        <td className={`font-mono-data font-bold text-right ${
+                          amount < 0 ? 'text-red-700' : (isRevenue ? 'text-green-700' : 'text-red-700')
+                        }`}>
+                          {formatCurrency(Math.abs(amount))}
+                          {hasNote && <span className="note-indicator ml-2">📝 NOTE</span>}
+                        </td>
+                        <td className="text-center">
+                          <Badge className={`text-[8px] font-bold px-1 py-0 h-4 ${
+                            isRevenue ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                          }`}>
+                            {isRevenue ? 'IN' : 'OUT'}
+                          </Badge>
+                        </td>
+                        <td className="text-center">
+                          <Input placeholder="Add note..." className="text-xs border-institutional-border h-6 px-2" 
+                            onBlur={(e) => {
+                              if (e.target.value.trim()) {
+                                onHandleNoteChange(cellId, e.target.value);
+                                e.target.value = '';
                               }
-                            }
-                          }}
-                        />
-                      </td>
-                      <td className="text-center">
-                        <Button
-                          onClick={() => onFlagIssue(cellId)}
-                          variant="destructive"
-                          size="sm"
-                          className="bg-orange-500 hover:bg-orange-600 text-white text-[8px] font-bold px-1.5 py-0 h-5"
-                        >
-                          <Flag className="w-2 h-2 mr-0.5" />
-                          FLAG
-                        </Button>
-                      </td>
-                    </tr>
+                            }}
+                          />
+                        </td>
+                        <td className="text-center">
+                          <Button onClick={() => onFlagIssue(cellId)} variant="destructive" size="sm" 
+                            className="bg-orange-500 hover:bg-orange-600 text-white text-[8px] font-bold px-1.5 py-0 h-5">
+                            <Flag className="w-2 h-2 mr-0.5" />FLAG
+                          </Button>
+                        </td>
+                      </tr>
+                    );
+                  };
+
+                  // Helper function to render category totals
+                  const renderCategoryTotal = (title: string, items: any[], bgColor: string = 'bg-gray-50') => {
+                    const total = items.reduce((sum, item) => {
+                      const rawAmount = item.CashFlowAmount || parseAmount(item.SelectedPeriod);
+                      // If negative, subtract it; if positive, add it
+                      return sum + rawAmount;
+                    }, 0);
+
+                    return (
+                      <tr className={`${bgColor} border-t border-b border-gray-300`}>
+                        <td></td>
+                        <td className="font-bold text-right">{title}:</td>
+                        <td className={`font-mono-data font-bold text-right ${total < 0 ? 'text-red-700' : ''}`}>
+                          {formatCurrency(Math.abs(total))}
+                        </td>
+                        <td className="text-center">
+                          <Badge className="text-[8px] font-bold px-1 py-0 h-4 bg-blue-100 text-blue-800">
+                            TOTAL
+                          </Badge>
+                        </td>
+                        <td colSpan={2}></td>
+                      </tr>
+                    );
+                  };
+
+                  // Find AppFolio totals
+                  const totalIncomeItem = cashFlowData.operatingActivities.items.find(item => 
+                    item.AccountName?.toLowerCase() === 'total income'
                   );
-                })}
-                <tr className="bg-blue-50 border-t-2 border-institutional-black">
-                  <td colSpan={2} className="font-bold text-right">NET CASH FROM OPERATING:</td>
-                  <td className={`font-mono-data font-bold text-right ${
-                    previousCashFlowData ? getComparisonColor(cashFlowData.operatingActivities.total, previousCashFlowData.operatingActivities.total, false) : 'text-gray-600'
-                  }`}>
-                    {formatCurrency(Math.abs(cashFlowData.operatingActivities.total))}
-                  </td>
-                  <td colSpan={3}></td>
-                </tr>
+                  const totalExpenseItem = cashFlowData.operatingActivities.items.find(item => 
+                    item.AccountName?.toLowerCase() === 'total expense'
+                  );
+                  
+                  // Categorize items (exclude AppFolio summary rows)
+                  const revenueItems = cashFlowData.operatingActivities.items.filter(item => {
+                    const accountCode = item.AccountCode?.toString() || '';
+                    const accountName = item.AccountName?.toLowerCase() || '';
+                    
+                    // Exclude AppFolio summary rows
+                    if (accountName.startsWith('total ')) return false;
+                    
+                    return accountCode.startsWith('4') || 
+                           accountName.includes('income') ||
+                           accountName.includes('rent');
+                  });
+
+                  const expenseItems = cashFlowData.operatingActivities.items.filter(item => {
+                    const accountCode = item.AccountCode?.toString() || '';
+                    const accountName = item.AccountName?.toLowerCase() || '';
+                    
+                    // Exclude AppFolio summary rows
+                    if (accountName.startsWith('total ')) return false;
+                    
+                    return accountCode.startsWith('6') || accountCode.startsWith('5') ||
+                           accountName.includes('expense') ||
+                           (item.CashFlowType === 'OUT' && !accountCode.startsWith('4'));
+                  });
+
+                  // Categorize expenses by type
+                  const expenseCategories = {
+                    'CLEANING AND MAINTENANCE': expenseItems.filter(item => 
+                      item.AccountName?.toLowerCase().includes('cleaning') ||
+                      item.AccountName?.toLowerCase().includes('maintenance') ||
+                      item.AccountName?.toLowerCase().includes('supplies')
+                    ),
+                    'UTILITIES': expenseItems.filter(item =>
+                      item.AccountName?.toLowerCase().includes('electric') ||
+                      item.AccountName?.toLowerCase().includes('gas') ||
+                      item.AccountName?.toLowerCase().includes('water') ||
+                      item.AccountName?.toLowerCase().includes('utilities') ||
+                      item.AccountName?.toLowerCase().includes('garbage')
+                    ),
+                    'REPAIRS AND MAINTENANCE': expenseItems.filter(item =>
+                      item.AccountName?.toLowerCase().includes('r&m') ||
+                      item.AccountName?.toLowerCase().includes('repair') ||
+                      item.AccountName?.toLowerCase().includes('plumbing') ||
+                      item.AccountName?.toLowerCase().includes('flooring') ||
+                      item.AccountName?.toLowerCase().includes('hvac') ||
+                      item.AccountName?.toLowerCase().includes('roof') ||
+                      item.AccountName?.toLowerCase().includes('electrical') ||
+                      item.AccountName?.toLowerCase().includes('landscaping')
+                    ),
+                    'MANAGEMENT FEES': expenseItems.filter(item =>
+                      item.AccountName?.toLowerCase().includes('management') ||
+                      item.AccountName?.toLowerCase().includes('property management')
+                    ),
+                    'TAXES AND LICENSES': expenseItems.filter(item =>
+                      item.AccountName?.toLowerCase().includes('tax') ||
+                      item.AccountName?.toLowerCase().includes('license')
+                    ),
+                    'DUES AND SUBSCRIPTIONS': expenseItems.filter(item =>
+                      item.AccountName?.toLowerCase().includes('dues') ||
+                      item.AccountName?.toLowerCase().includes('subscription') ||
+                      item.AccountName?.toLowerCase().includes('software')
+                    ),
+                    'PAYROLL': expenseItems.filter(item =>
+                      item.AccountName?.toLowerCase().includes('payroll') ||
+                      item.AccountName?.toLowerCase().includes('employee') ||
+                      item.AccountName?.toLowerCase().includes('benefits')
+                    ),
+                    'AUTO AND TRAVEL': expenseItems.filter(item =>
+                      item.AccountName?.toLowerCase().includes('auto') ||
+                      item.AccountName?.toLowerCase().includes('travel') ||
+                      item.AccountName?.toLowerCase().includes('fuel') ||
+                      item.AccountName?.toLowerCase().includes('mileage')
+                    ),
+                    'GENERAL AND ADMINISTRATIVE': expenseItems.filter(item =>
+                      item.AccountName?.toLowerCase().includes('office') ||
+                      item.AccountName?.toLowerCase().includes('administrative') ||
+                      item.AccountName?.toLowerCase().includes('general') ||
+                      item.AccountName?.toLowerCase().includes('supplies')
+                    ),
+                    'MORTGAGE': expenseItems.filter(item =>
+                      item.AccountName?.toLowerCase().includes('mortgage') ||
+                      item.AccountName?.toLowerCase().includes('interest')
+                    ),
+                    'OTHER': expenseItems.filter(item => {
+                      // Items that don't fit in other categories
+                      const name = item.AccountName?.toLowerCase() || '';
+                      return !['cleaning', 'maintenance', 'supplies', 'electric', 'gas', 'water', 'utilities', 'garbage',
+                              'repair', 'plumbing', 'flooring', 'hvac', 'roof', 'electrical', 'landscaping', 'r&m',
+                              'management', 'property management', 'tax', 'license', 'dues', 'subscription', 'software',
+                              'payroll', 'employee', 'benefits', 'auto', 'travel', 'fuel', 'mileage', 'office',
+                              'administrative', 'general', 'mortgage', 'interest'].some(keyword => name.includes(keyword));
+                    })
+                  };
+
+                  return (
+                    <>
+                      {/* Income Section */}
+                      <tr className="bg-blue-50">
+                        <td colSpan={6} className="font-bold text-left py-1 px-2 text-sm uppercase">Income</td>
+                      </tr>
+                      {revenueItems.map((item, index) => renderItem(item, index, true))}
+                      
+                      {/* Use AppFolio's Total Income if available, otherwise calculate */}
+                      <tr className="bg-green-50 border-t border-b border-gray-300">
+                        <td></td>
+                        <td className="font-bold text-right">Total Operating Income:</td>
+                        <td className="font-mono-data font-bold text-right">
+                          {totalIncomeItem ? 
+                            formatCurrency(Math.abs(totalIncomeItem.CashFlowAmount || parseAmount(totalIncomeItem.SelectedPeriod))) :
+                            formatCurrency(Math.abs(revenueItems.reduce((sum, item) => sum + (item.CashFlowAmount || parseAmount(item.SelectedPeriod)), 0)))
+                          }
+                        </td>
+                        <td className="text-center">
+                          <Badge className="text-[8px] font-bold px-1 py-0 h-4 bg-blue-100 text-blue-800">TOTAL</Badge>
+                        </td>
+                        <td colSpan={2}></td>
+                      </tr>
+
+                      {/* Expense Section */}
+                      <tr className="bg-blue-50">
+                        <td colSpan={6} className="font-bold text-left py-1 px-2 text-sm uppercase">Expense</td>
+                      </tr>
+                      
+                      {Object.entries(expenseCategories).map(([categoryName, categoryItems]) => {
+                        if (categoryItems.length === 0) return null;
+                        
+                        return (
+                          <React.Fragment key={categoryName}>
+                            <tr className="bg-gray-100">
+                              <td colSpan={6} className="font-bold text-left py-1 px-4 text-xs uppercase text-gray-700">
+                                {categoryName}
+                              </td>
+                            </tr>
+                            {categoryItems.map((item, index) => renderItem(item, index, false))}
+                            {renderCategoryTotal(`Total ${categoryName}`, categoryItems, 'bg-red-50')}
+                          </React.Fragment>
+                        );
+                      })}
+
+                      {/* Final Totals */}
+                      <tr className="bg-red-100 border-t border-b border-gray-300">
+                        <td></td>
+                        <td className="font-bold text-right">Total Operating Expense:</td>
+                        <td className="font-mono-data font-bold text-right">
+                          {totalExpenseItem ? 
+                            formatCurrency(Math.abs(totalExpenseItem.CashFlowAmount || parseAmount(totalExpenseItem.SelectedPeriod))) :
+                            formatCurrency(Math.abs(expenseItems.reduce((sum, item) => sum + Math.abs(item.CashFlowAmount || parseAmount(item.SelectedPeriod)), 0)))
+                          }
+                        </td>
+                        <td className="text-center">
+                          <Badge className="text-[8px] font-bold px-1 py-0 h-4 bg-blue-100 text-blue-800">TOTAL</Badge>
+                        </td>
+                        <td colSpan={2}></td>
+                      </tr>
+                      
+                      <tr className="bg-blue-100 border-t-2 border-institutional-black">
+                        <td colSpan={2} className="font-bold text-right py-2">NOI - Net Operating Income:</td>
+                        <td className="font-mono-data font-bold text-right text-blue-700 py-2">
+                          {(() => {
+                            const totalRevenue = totalIncomeItem ? 
+                              Math.abs(totalIncomeItem.CashFlowAmount || parseAmount(totalIncomeItem.SelectedPeriod)) :
+                              Math.abs(revenueItems.reduce((sum, item) => sum + (item.CashFlowAmount || parseAmount(item.SelectedPeriod)), 0));
+                            
+                            const totalExpenses = totalExpenseItem ? 
+                              Math.abs(totalExpenseItem.CashFlowAmount || parseAmount(totalExpenseItem.SelectedPeriod)) :
+                              Math.abs(expenseItems.reduce((sum, item) => sum + Math.abs(item.CashFlowAmount || parseAmount(item.SelectedPeriod)), 0));
+                            
+                            const noi = totalRevenue - totalExpenses;
+                            return formatCurrency(Math.abs(noi));
+                          })()}
+                        </td>
+                        <td className="text-center">
+                          <Badge className="text-[8px] font-bold px-1 py-0 h-4 bg-blue-100 text-blue-800">NOI</Badge>
+                        </td>
+                        <td colSpan={2}></td>
+                      </tr>
+                    </>
+                  );
+                })()}
               </tbody>
             </table>
           </div>
@@ -352,12 +498,13 @@ function CashFlowTabContent({
                 <td className="font-bold text-right py-2">TOTAL REVENUE:</td>
                 <td className="font-mono-data font-bold text-right text-green-700 py-2">
                   {formatCurrency(
-                    Math.abs(cashFlowData.operatingActivities.items
+                    cashFlowData.operatingActivities.items
                       .filter(item => {
-                        const flowType = item.CashFlowType || ((item.CashFlowAmount || parseAmount(item.SelectedPeriod)) >= 0 ? 'IN' : 'OUT');
-                        return flowType === 'IN' || item.AccountCode?.startsWith('4');
+                        // Revenue accounts typically start with 4 (4105, 4110, 4150, 4415, etc.)
+                        const accountCode = item.AccountCode?.toString() || '';
+                        return accountCode.startsWith('4');
                       })
-                      .reduce((sum, item) => sum + Math.abs(item.CashFlowAmount || parseAmount(item.SelectedPeriod)), 0))
+                      .reduce((sum, item) => sum + Math.abs(item.CashFlowAmount || parseAmount(item.SelectedPeriod)), 0)
                   )}
                 </td>
               </tr>
@@ -380,8 +527,9 @@ function CashFlowTabContent({
                   {formatCurrency(
                     cashFlowData.operatingActivities.items
                       .filter(item => {
-                        const flowType = item.CashFlowType || ((item.CashFlowAmount || parseAmount(item.SelectedPeriod)) >= 0 ? 'IN' : 'OUT');
-                        return flowType === 'OUT' || item.AccountCode?.startsWith('6');
+                        // Expense accounts typically start with 6 (6074, 6076, etc.)
+                        const accountCode = item.AccountCode?.toString() || '';
+                        return accountCode.startsWith('6');
                       })
                       .reduce((sum, item) => sum + Math.abs(item.CashFlowAmount || parseAmount(item.SelectedPeriod)), 0)
                   )}

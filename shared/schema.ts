@@ -170,28 +170,18 @@ export interface AppfolioT12Item {
 }
 
 export interface ProcessedT12Data {
-  revenue: {
-    monthlyData: number[];
+  months: string[]; // Month names like "Jan 2025", "Feb 2025"
+  accounts: {
+    accountCode: string;
+    accountName: string;
+    monthlyAmounts: number[]; // 12 monthly amounts
     total: number;
-    average: number;
-    volatility: number;
-  };
-  expenses: {
-    monthlyData: number[];
-    total: number;
-    average: number;
-    volatility: number;
-  };
-  netIncome: {
-    monthlyData: number[];
-    total: number;
-    average: number;
-    volatility: number;
-  };
-  occupancyAnalysis: {
-    averageOccupancy: number;
-    volatility: number;
-    trend: string;
+    isRevenue: boolean;
+  }[];
+  totals: {
+    revenue: number[]; // Monthly revenue totals
+    expenses: number[]; // Monthly expense totals
+    netIncome: number[]; // Monthly net income
   };
   rawData: AppfolioT12Item[];
 }

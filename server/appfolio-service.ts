@@ -63,7 +63,7 @@ export class AppfolioService {
       const rawData: AppfolioT12Item[] = await response.json();
       console.log(`📊 Retrieved ${rawData.length} T12 items from Appfolio`);
 
-      return this.processT12Data(rawData);
+      return this.processT12Data(rawData, fromDate!, toDate!);
     } catch (error) {
       console.error('❌ Error fetching T12 data from Appfolio:', error);
       throw error;
@@ -150,96 +150,172 @@ export class AppfolioService {
     }
   }
 
-  private static processT12Data(rawData: AppfolioT12Item[]): ProcessedT12Data {
-    // Find the total income and total expense items
-    const totalIncomeItem = rawData.find(item => item.AccountName === 'Total Income');
-    const totalExpenseItem = rawData.find(item => item.AccountName === 'Total Expense');
+  private static processT12Data(rawData: AppfolioT12Item[], fromDate: string, toDate: string): ProcessedT12Data {
+    console.log('🔄 Processing T12 data into dashboard format...');
+    console.log('📊 Raw data items:', rawData.length);
+
+    // Determine how many months of data we have by checking available slices
+    const availableMonths = this.detectAvailableMonths(rawData, fromDate, toDate);
+    console.log('📅 Available months detected:', availableMonths);
+
+    // Generate month names dynamically based on date range
+    const months = this.generateMonthNames(availableMonths, fromDate);
     
-    const totalIncome = totalIncomeItem ? this.parseMonetaryValue(totalIncomeItem.SliceTotal) : 0;
-    const totalExpenses = totalExpenseItem ? this.parseMonetaryValue(totalExpenseItem.SliceTotal) : 0;
-    const netIncome = totalIncome - totalExpenses;
+    // Extract account-level data matching AppFolio format
+    const accounts = rawData
+      .filter(item => {
+        // Skip total rows and empty accounts
+        if (!item.AccountName || item.AccountName.toLowerCase().includes('total')) return false;
+        // Include individual account line items
+        return item.AccountCode && item.AccountCode.length > 0;
+      })
+      .map(item => ({
+        accountCode: item.AccountCode || '',
+        accountName: item.AccountName || '',
+        monthlyAmounts: this.extractMonthlyAmounts(item, availableMonths),
+        total: this.parseMonetaryValue(item.SliceTotal || '0'),
+        isRevenue: item.AccountCode?.startsWith('4') || false
+      }));
 
-    // Separate income and expense items (excluding totals)
-    const incomeItems = rawData.filter(item => 
-      item.AccountCode?.startsWith('4') && 
-      item.AccountName !== 'Total Income'
-    );
+    console.log('📋 Processed accounts:', accounts.length);
 
-    const expenseItems = rawData.filter(item => 
-      (item.AccountCode?.startsWith('5') || item.AccountCode?.startsWith('6')) &&
-      item.AccountName !== 'Total Expense'
-    );
+    // Calculate totals by month (dynamic based on available data)
+    const totals = {
+      revenue: new Array(availableMonths).fill(0),
+      expenses: new Array(availableMonths).fill(0),
+      netIncome: new Array(availableMonths).fill(0)
+    };
 
-    // Check if we have monthly slice data (Slice00, Slice01, etc.)
-    const hasMonthlyData = rawData.some(item => item.Slice00 !== undefined);
+    accounts.forEach(account => {
+      account.monthlyAmounts.forEach((amount, monthIndex) => {
+        if (account.isRevenue) {
+          totals.revenue[monthIndex] += amount;
+        } else {
+          totals.expenses[monthIndex] += Math.abs(amount); // Expenses as positive numbers
+        }
+      });
+    });
 
-    let revenueMonthly: number[];
-    let expenseMonthly: number[];
-    let netIncomeMonthly: number[];
-    let rentMonthly: number[];
-
-    if (hasMonthlyData) {
-      // Process actual monthly data from slices
-      revenueMonthly = this.calculateMonthlyTotals(incomeItems);
-      expenseMonthly = this.calculateMonthlyTotals(expenseItems);
-      netIncomeMonthly = revenueMonthly.map((rev, i) => rev - expenseMonthly[i]);
-
-      // Calculate rent income for occupancy analysis
-      const rentItems = incomeItems.filter(item => 
-        item.AccountName?.toLowerCase().includes('rent') && 
-        !item.AccountName?.toLowerCase().includes('prepaid')
-      );
-      rentMonthly = this.calculateMonthlyTotals(rentItems);
-    } else {
-      // Fallback: create mock monthly data from totals
-      const monthlyRevenue = totalIncome / 12;
-      const monthlyExpenses = totalExpenses / 12;
-      
-      revenueMonthly = Array(12).fill(0).map(() => 
-        monthlyRevenue * (0.9 + Math.random() * 0.2)); // ±10% variation
-      expenseMonthly = Array(12).fill(0).map(() => 
-        monthlyExpenses * (0.9 + Math.random() * 0.2)); // ±10% variation
-      netIncomeMonthly = revenueMonthly.map((rev, i) => rev - expenseMonthly[i]);
-
-      // Calculate rent income for occupancy analysis
-      const totalRentIncome = incomeItems
-        .filter(item => item.AccountName?.toLowerCase().includes('rent') && 
-                       !item.AccountName?.toLowerCase().includes('prepaid'))
-        .reduce((sum, item) => sum + this.parseMonetaryValue(item.SliceTotal), 0);
-      
-      rentMonthly = Array(12).fill(totalRentIncome / 12);
-    }
-
-    // Calculate statistics
-    const revenueStats = this.calculateStats(revenueMonthly);
-    const expenseStats = this.calculateStats(expenseMonthly);
-    const netIncomeStats = this.calculateStats(netIncomeMonthly);
-
-    // Calculate occupancy analysis
-    const occupancyAnalysis = this.calculateOccupancyAnalysis(rentMonthly);
+    // Calculate net income for each month
+    totals.netIncome = totals.revenue.map((rev, i) => rev - totals.expenses[i]);
 
     return {
-      revenue: {
-        monthlyData: revenueMonthly,
-        total: totalIncome,
-        average: revenueStats.average,
-        volatility: revenueStats.volatility
-      },
-      expenses: {
-        monthlyData: expenseMonthly,
-        total: totalExpenses,
-        average: expenseStats.average,
-        volatility: expenseStats.volatility
-      },
-      netIncome: {
-        monthlyData: netIncomeMonthly,
-        total: netIncome,
-        average: netIncomeStats.average,
-        volatility: netIncomeStats.volatility
-      },
-      occupancyAnalysis,
+      months,
+      accounts,
+      totals,
       rawData
     };
+  }
+
+  private static detectAvailableMonths(rawData: AppfolioT12Item[], fromDate: string, toDate: string): number {
+    // Calculate expected months based on date range
+    const startDate = new Date(fromDate);
+    const endDate = new Date(toDate);
+    const monthsDiff = (endDate.getFullYear() - startDate.getFullYear()) * 12 + 
+                      (endDate.getMonth() - startDate.getMonth()) + 1;
+    
+    console.log(`📅 Expected months from date range (${fromDate} to ${toDate}): ${monthsDiff}`);
+    
+    // Check the first item to see how many slices have actual data
+    const firstItem = rawData.find(item => item.AccountCode);
+    if (!firstItem) {
+      console.log('⚠️ No item with AccountCode found, using expected months:', monthsDiff);
+      return monthsDiff;
+    }
+    
+    console.log('🔍 Detecting months from first item:', firstItem.AccountName, firstItem.AccountCode);
+    
+    const sliceKeys = ['Slice00', 'Slice01', 'Slice02', 'Slice03', 'Slice04', 'Slice05', 
+                      'Slice06', 'Slice07', 'Slice08', 'Slice09', 'Slice10', 'Slice11'] as const;
+    
+    let lastNonZeroMonth = -1;
+    
+    // Find the last month with any meaningful data
+    for (let i = 0; i < sliceKeys.length && i < monthsDiff; i++) {
+      const key = sliceKeys[i];
+      const value = firstItem[key];
+      console.log(`  ${key}: ${value} (${value !== undefined ? 'defined' : 'undefined'})`);
+      
+      if (value !== undefined && value !== '' && value !== null) {
+        // Check if this slice has any non-zero data across all accounts
+        const hasData = rawData.some(item => {
+          const sliceVal = item[key];
+          return sliceVal && sliceVal !== '0.00' && sliceVal !== '0' && sliceVal !== '';
+        });
+        
+        if (hasData) {
+          lastNonZeroMonth = i;
+          console.log(`  ✅ ${key}: Found meaningful data`);
+        }
+      } else {
+        console.log(`  ⚠️ ${key}: No data (${value})`);
+      }
+    }
+    
+    // Always use the expected month count from the date range
+    // This ensures we show full 12 months when December is requested, even if some are zero
+    console.log(`📊 Last meaningful data in month ${lastNonZeroMonth}, but using expected ${monthsDiff} months`);
+    console.log(`📊 Detected ${monthsDiff} available months (based on date range)`);
+    return monthsDiff;
+  }
+
+  private static generateMonthNames(monthCount: number, fromDate: string): string[] {
+    // Generate month names starting from the fromDate
+    const months = [];
+    const startDate = new Date(fromDate);
+    
+    for (let i = 0; i < monthCount; i++) {
+      const date = new Date(startDate.getFullYear(), startDate.getMonth() + i, 1);
+      const monthName = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+      months.push(monthName);
+    }
+    
+    console.log(`📅 Generated ${monthCount} month names starting from ${fromDate}:`, months);
+    return months;
+  }
+
+  private static extractMonthlyAmounts(item: AppfolioT12Item, monthCount: number): number[] {
+    // Extract the available months dynamically
+    const sliceKeys = ['Slice00', 'Slice01', 'Slice02', 'Slice03', 'Slice04', 'Slice05', 
+                      'Slice06', 'Slice07', 'Slice08', 'Slice09', 'Slice10', 'Slice11'] as const;
+    
+    const amounts = [];
+    
+    // Debug: Log extraction for specific accounts
+    if (item.AccountCode === '4105') {
+      console.log(`🔍 DEBUG: Extracting monthly amounts for ${item.AccountName} (${item.AccountCode})`);
+      console.log(`🔍 monthCount: ${monthCount}`);
+    }
+    
+    for (let i = 0; i < monthCount && i < sliceKeys.length; i++) {
+      const key = sliceKeys[i];
+      const rawValue = item[key];
+      
+      // Fix: Ensure we handle undefined values properly and don't default to '0'
+      if (rawValue !== undefined && rawValue !== null && rawValue !== '') {
+        const parsedValue = this.parseMonetaryValue(rawValue);
+        amounts.push(parsedValue);
+        
+        // Debug: Log each slice extraction for Rent Income
+        if (item.AccountCode === '4105') {
+          console.log(`🔍   ${key}: "${rawValue}" -> ${parsedValue}`);
+        }
+      } else {
+        // Only push 0 if the slice truly has no data
+        amounts.push(0);
+        
+        if (item.AccountCode === '4105') {
+          console.log(`🔍   ${key}: undefined/null -> 0`);
+        }
+      }
+    }
+    
+    if (item.AccountCode === '4105') {
+      console.log(`🔍 Final amounts array for ${item.AccountName}:`, amounts);
+      console.log(`🔍 Total from SliceTotal: ${this.parseMonetaryValue(item.SliceTotal || '0')}`);
+    }
+    
+    return amounts;
   }
 
   private static calculateMonthlyTotals(items: AppfolioT12Item[]): number[] {
@@ -277,7 +353,14 @@ export class AppfolioService {
     const numericString = cleaned.replace(/[(),\-\$]/g, '');
     const parsed = parseFloat(numericString) || 0;
     
-    return isNegative ? -Math.abs(parsed) : parsed;
+    const result = isNegative ? -Math.abs(parsed) : parsed;
+    
+    // Debug logging for non-zero values
+    if (result !== 0) {
+      console.log(`💰 parseMonetaryValue: "${value}" -> ${result}`);
+    }
+    
+    return result;
   }
 
   private static calculateStats(monthlyData: number[]) {

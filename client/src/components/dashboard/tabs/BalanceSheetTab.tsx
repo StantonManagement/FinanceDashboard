@@ -24,13 +24,10 @@ export function BalanceSheetTab({ getCellComments, handleCommentAdded, selectedP
   const [error, setError] = useState<string | null>(null);
   const [hasInitialLoad, setHasInitialLoad] = useState(false);
   
-  // Date range state - default to current month
-  const [fromDate, setFromDate] = useState(() => {
-    const now = new Date();
-    return new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-  });
-  const [toDate, setToDate] = useState(() => {
-    return new Date().toISOString().split('T')[0];
+  // Month picker state - default to current month
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const date = new Date();
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
   });
 
   // Lazy loading - only fetch when property changes, not on initial mount
@@ -49,7 +46,7 @@ export function BalanceSheetTab({ getCellComments, handleCommentAdded, selectedP
     }, 500); // 500ms delay for lazy loading
     
     return () => clearTimeout(timeoutId);
-  }, [hasInitialLoad, fromDate, toDate, selectedProperty]);
+  }, [hasInitialLoad, selectedMonth, selectedProperty]);
 
   const fetchBalanceSheetData = async () => {
     if (!selectedProperty) {
@@ -63,6 +60,13 @@ export function BalanceSheetTab({ getCellComments, handleCommentAdded, selectedP
       const propertyId = selectedProperty?.PropertyId;
       console.log('🏢 Selected property for Balance Sheet:', selectedProperty);
       console.log('🆔 Property ID for Balance Sheet fetch:', propertyId);
+      console.log('📅 Selected month:', selectedMonth);
+      
+      // Convert selectedMonth (YYYY-MM) to from/to dates
+      const [year, month] = selectedMonth.split('-').map(Number);
+      const fromDate = new Date(year, month - 1, 1).toISOString().split('T')[0];
+      const toDate = new Date(year, month, 0).toISOString().split('T')[0]; // Last day of month
+      
       console.log('📅 Date range:', fromDate, 'to', toDate);
       
       let url = `/api/appfolio/balance-sheet?from_date=${fromDate}&to_date=${toDate}`;
@@ -249,23 +253,14 @@ export function BalanceSheetTab({ getCellComments, handleCommentAdded, selectedP
           {selectedProperty ? `Balance Sheet - ${selectedProperty["Asset ID + Name"] || 'Selected Property'}` : 'Balance Sheet Analysis & DSCR Calculations'}
         </h3>
         
-        {/* Date Range Picker Controls */}
+        {/* Month Picker Controls */}
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
-            <label className="text-sm font-medium text-gray-700">From:</label>
+            <label className="text-sm font-medium text-gray-700">Month:</label>
             <Input
-              type="date"
-              value={fromDate}
-              onChange={(e) => setFromDate(e.target.value)}
-              className="w-40 text-sm"
-            />
-          </div>
-          <div className="flex items-center gap-2">
-            <label className="text-sm font-medium text-gray-700">To:</label>
-            <Input
-              type="date"
-              value={toDate}
-              onChange={(e) => setToDate(e.target.value)}
+              type="month"
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
               className="w-40 text-sm"
             />
           </div>
@@ -280,11 +275,9 @@ export function BalanceSheetTab({ getCellComments, handleCommentAdded, selectedP
           </Button>
           <Button 
             onClick={() => {
-              const now = new Date();
-              const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-              const today = new Date().toISOString().split('T')[0];
-              setFromDate(firstDayOfMonth);
-              setToDate(today);
+              const date = new Date();
+              const currentMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+              setSelectedMonth(currentMonth);
               setTimeout(() => fetchBalanceSheetData(), 100);
             }}
             variant="outline"
@@ -292,6 +285,21 @@ export function BalanceSheetTab({ getCellComments, handleCommentAdded, selectedP
             className="text-xs"
           >
             Current Month
+          </Button>
+          <Button 
+            onClick={() => {
+              const date = new Date();
+              const prevMonth = date.getMonth() === 0 ? 11 : date.getMonth() - 1;
+              const prevYear = date.getMonth() === 0 ? date.getFullYear() - 1 : date.getFullYear();
+              const previousMonth = `${prevYear}-${String(prevMonth + 1).padStart(2, '0')}`;
+              setSelectedMonth(previousMonth);
+              setTimeout(() => fetchBalanceSheetData(), 100);
+            }}
+            variant="outline"
+            size="sm"
+            className="text-xs"
+          >
+            Previous Month
           </Button>
         </div>
       </div>

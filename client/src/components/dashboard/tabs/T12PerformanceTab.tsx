@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Flag, RefreshCw } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import React from 'react';
 import { validatePropertyData } from '@/utils/portfolio-data-validation';
 import { CalculatedFinancials } from '@/components/dashboard/CalculatedFinancials';
 
@@ -11,28 +12,18 @@ interface T12PerformanceTabProps {
 }
 
 interface T12Data {
-  revenue: {
-    monthlyData: number[];
+  months: string[]; // Month names like "Jan 2024", "Feb 2024"
+  accounts: {
+    accountCode: string;
+    accountName: string;
+    monthlyAmounts: number[]; // 12 monthly amounts
     total: number;
-    average: number;
-    volatility: number;
-  };
-  expenses: {
-    monthlyData: number[];
-    total: number;
-    average: number;
-    volatility: number;
-  };
-  netIncome: {
-    monthlyData: number[];
-    total: number;
-    average: number;
-    volatility: number;
-  };
-  occupancyAnalysis: {
-    averageOccupancy: number;
-    volatility: number;
-    trend: string;
+    isRevenue: boolean;
+  }[];
+  totals: {
+    revenue: number[];
+    expenses: number[];
+    netIncome: number[];
   };
   rawData: any[];
 }
@@ -42,14 +33,35 @@ export function T12PerformanceTab({ onFlagIssue, selectedProperty }: T12Performa
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dataValidation, setDataValidation] = useState<any>(null);
+  
+  // Month picker state - default to September 2025 (last month with available data)
+  // Note: December 2025 would work but would show zeros for Oct-Dec since those months haven't occurred yet
+  const [selectedMonth, setSelectedMonth] = useState('2025-09');
 
-  // Date range state for T12 analysis - from Jan 1, 2025 to today
-  const [fromDate, setFromDate] = useState(() => {
-    return '2025-01-01';
-  });
-  const [toDate, setToDate] = useState(() => {
-    return new Date().toISOString().split('T')[0];
-  });
+  // Convert selectedMonth to date range for T12 (12 months ending with selected month)
+  const getT12DateRange = (monthString: string) => {
+    const [year, month] = monthString.split('-').map(Number);
+    
+    // Create the last day of the selected month
+    // new Date(year, month, 0) gets the last day of month (month-1)
+    // For "2025-12": new Date(2025, 12, 0) = December 31, 2025
+    const endDate = new Date(year, month, 0);
+    
+    // For T12 data starting from January of the selected year
+    // If selected month is September 2025, show Jan 2025 - Sep 2025
+    // If selected month is December 2025, show Jan 2025 - Dec 2025
+    const startDate = new Date(`${year}-01-01`);
+    
+    console.log(`📅 Date calculation for ${monthString}:`);
+    console.log(`  Start: ${startDate.toISOString().split('T')[0]} (Jan 1st)`);
+    console.log(`  End: ${endDate.toISOString().split('T')[0]} (last day of ${monthString})`);
+    
+    return {
+      fromDate: startDate.toISOString().split('T')[0],
+      toDate: endDate.toISOString().split('T')[0]
+    };
+  };
+
 
   useEffect(() => {
     fetchT12Data();
@@ -59,16 +71,19 @@ export function T12PerformanceTab({ onFlagIssue, selectedProperty }: T12Performa
       const validation = validatePropertyData(selectedProperty);
       setDataValidation(validation);
     }
-  }, [selectedProperty]);
+  }, [selectedProperty, selectedMonth]);
 
   const fetchT12Data = async () => {
     setLoading(true);
     setError(null);
     try {
       const propertyId = selectedProperty?.PropertyId;
+      const { fromDate, toDate } = getT12DateRange(selectedMonth);
+      
       console.log('🏢 Selected property:', selectedProperty);
       console.log('🆔 Property ID for T12 fetch:', propertyId);
-      console.log('📅 Date range for T12:', `${fromDate} to ${toDate}`);
+      console.log('📅 Selected month:', selectedMonth);
+      console.log('📅 T12 date range:', `${fromDate} to ${toDate}`);
       
       const params = new URLSearchParams();
       if (propertyId) params.append('propertyId', propertyId.toString());
@@ -84,7 +99,54 @@ export function T12PerformanceTab({ onFlagIssue, selectedProperty }: T12Performa
       }
       
       const data = await response.json();
-      setT12Data(data);
+      console.log('🔍 T12 API Response:', data);
+      console.log('🔍 Raw data keys:', Object.keys(data));
+      console.log('🔍 T12 Months received from API:', data.months);
+      console.log('🔍 T12 First account monthly amounts:', data.accounts?.[0]?.monthlyAmounts);
+      console.log('🔍 Data structure check:', {
+        hasMonths: !!data.months,
+        hasAccounts: !!data.accounts,
+        hasTotals: !!data.totals,
+        hasRawData: !!data.rawData
+      });
+      
+      // The server should now return the properly formatted T12Data
+      if (data && data.months && data.accounts && data.totals) {
+        console.log('✅ Received properly formatted T12 data');
+        console.log('📊 Months:', data.months.length, data.months);
+        console.log('📋 Accounts:', data.accounts.length);
+        console.log('💰 Revenue accounts:', data.accounts.filter((a: any) => a.isRevenue).length);
+        console.log('💸 Expense accounts:', data.accounts.filter((a: any) => !a.isRevenue).length);
+        console.log('📊 Sample account data:', data.accounts[0]);
+        console.log('💰 Sample monthly amounts:', data.accounts[0]?.monthlyAmounts);
+        console.log('💲 Sample totals:', {
+          revenue: data.totals.revenue?.slice(0, 3),
+          expenses: data.totals.expenses?.slice(0, 3),
+          netIncome: data.totals.netIncome?.slice(0, 3)
+        });
+        setT12Data(data);
+      } else {
+        console.log('⚠️ Unexpected data format - creating fallback structure');
+        console.log('⚠️ Data received:', data);
+        // Create fallback structure with proper month count
+        const monthCount = data.months?.length || 9;
+        const fallbackData: T12Data = {
+          months: data.months || Array.from({length: monthCount}, (_, i) => {
+            const date = new Date();
+            date.setMonth(date.getMonth() - monthCount + 1 + i);
+            return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+          }),
+          accounts: data.accounts || [],
+          totals: data.totals || {
+            revenue: Array(monthCount).fill(0),
+            expenses: Array(monthCount).fill(0),
+            netIncome: Array(monthCount).fill(0)
+          },
+          rawData: data.rawData || []
+        };
+        console.log('🔧 Using fallback data:', fallbackData);
+        setT12Data(fallbackData);
+      }
     } catch (err) {
       console.error('Error fetching T12 data:', err);
       setError(err instanceof Error ? err.message : 'Failed to load T12 data');
@@ -93,38 +155,92 @@ export function T12PerformanceTab({ onFlagIssue, selectedProperty }: T12Performa
     }
   };
 
-  const setPresetDateRange = (monthsBack: number) => {
-    const now = new Date();
-    const pastDate = new Date(now.getFullYear(), now.getMonth() - monthsBack, now.getDate());
-    setFromDate(pastDate.toISOString().split('T')[0]);
-    setToDate(now.toISOString().split('T')[0]);
-  };
-
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
-    }).format(Math.abs(value));
+    }).format(value);
   };
 
-  const getVolatilityScore = (volatility: number) => {
-    if (volatility < 5) return { label: 'LOW', color: 'text-success-green' };
-    if (volatility < 15) return { label: 'MEDIUM', color: 'text-orange-600' };
-    return { label: 'HIGH', color: 'text-red-600' };
+  const formatCurrencyWithNegativeStyle = (value: number) => {
+    const isNegative = value < 0;
+    const absoluteValue = Math.abs(value);
+    const formattedValue = new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(absoluteValue);
+    
+    return {
+      value: formattedValue,
+      isNegative: isNegative,
+      className: isNegative ? 'text-red-600' : ''
+    };
   };
 
-  const getTrendIcon = (trend: string) => {
-    if (trend === 'improving') return '↗';
-    if (trend === 'declining') return '↘';
-    return '→';
+  // Function to categorize expense accounts
+  const categorizeExpenses = (accounts: any[]) => {
+    const categories = {
+      'CLEANING AND MAINTENANCE': [] as any[],
+      'UTILITIES': [] as any[],
+      'REPAIRS AND MAINTENANCE': [] as any[],
+      'MANAGEMENT FEES': [] as any[],
+      'TAXES AND LICENSES': [] as any[],
+      'DUES AND SUBSCRIPTIONS': [] as any[],
+      'PAYROLL': [] as any[],
+      'AUTO AND TRAVEL': [] as any[],
+      'GENERAL AND ADMINISTRATIVE': [] as any[],
+      'OTHER': [] as any[]
+    };
+
+    accounts.filter(account => !account.isRevenue).forEach(account => {
+      const name = account.accountName.toUpperCase();
+      
+      if (name.includes('CLEANING') || name.includes('MAINTENANCE') && !name.includes('REPAIR')) {
+        categories['CLEANING AND MAINTENANCE'].push(account);
+      } else if (name.includes('UTILITIES') || name.includes('ELECTRIC') || name.includes('GAS') || 
+                 name.includes('WATER') || name.includes('SEWER') || name.includes('GARBAGE')) {
+        categories['UTILITIES'].push(account);
+      } else if (name.includes('REPAIR') || name.includes('R&M') || name.includes('MAINTENANCE')) {
+        categories['REPAIRS AND MAINTENANCE'].push(account);
+      } else if (name.includes('MANAGEMENT') && name.includes('FEE')) {
+        categories['MANAGEMENT FEES'].push(account);
+      } else if (name.includes('TAX') || name.includes('LICENSE') || name.includes('PERMIT')) {
+        categories['TAXES AND LICENSES'].push(account);
+      } else if (name.includes('DUES') || name.includes('SUBSCRIPTION') || name.includes('MEMBERSHIP')) {
+        categories['DUES AND SUBSCRIPTIONS'].push(account);
+      } else if (name.includes('PAYROLL') || name.includes('SALARY') || name.includes('WAGE')) {
+        categories['PAYROLL'].push(account);
+      } else if (name.includes('AUTO') || name.includes('TRAVEL') || name.includes('VEHICLE') || name.includes('MILEAGE')) {
+        categories['AUTO AND TRAVEL'].push(account);
+      } else if (name.includes('ADMIN') || name.includes('OFFICE') || name.includes('GENERAL')) {
+        categories['GENERAL AND ADMINISTRATIVE'].push(account);
+      } else {
+        categories['OTHER'].push(account);
+      }
+    });
+
+    return categories;
   };
 
-  const getTrendColor = (trend: string) => {
-    if (trend === 'improving') return 'text-success-green';
-    if (trend === 'declining') return 'text-red-600';
-    return 'text-gray-600';
+  // Function to calculate category totals
+  const calculateCategoryTotals = (categoryAccounts: any[], monthCount: number) => {
+    const monthlyTotals = Array(monthCount).fill(0);
+    let total = 0;
+
+    categoryAccounts.forEach(account => {
+      total += account.total || 0;
+      account.monthlyAmounts?.forEach((amount: number, index: number) => {
+        if (index < monthCount) {
+          monthlyTotals[index] += amount || 0;
+        }
+      });
+    });
+
+    return { monthlyTotals, total };
   };
 
   if (loading) {
@@ -158,370 +274,271 @@ export function T12PerformanceTab({ onFlagIssue, selectedProperty }: T12Performa
   }
   return (
     <div>
-      {/* Date Range Controls */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-bold uppercase text-institutional-black">
-            Trailing 12-Month Performance Analysis
-          </h3>
-        </div>
+      {/* Header */}
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-lg font-bold uppercase text-institutional-black">
+          {selectedProperty ? `T12 Cash Flow - ${selectedProperty["Asset ID + Name"] || 'Selected Property'}` : 'T12 Cash Flow Report'}
+        </h3>
         
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <label className="text-sm font-medium text-gray-700">From:</label>
+        <Button 
+          onClick={fetchT12Data}
+          variant="outline"
+          size="sm"
+          className="text-xs"
+          disabled={loading}
+        >
+          <RefreshCw className={`w-3 h-3 mr-1 ${loading ? 'animate-spin' : ''}`} />
+          {loading ? 'Refreshing...' : 'Update T12'}
+        </Button>
+      </div>
+
+      {/* Month Selection Controls */}
+      <div className="mb-6 p-4 bg-gray-50 rounded-lg border">
+        <h4 className="text-sm font-semibold mb-3 text-institutional-black">T12 Period Selection</h4>
+        
+        <div className="flex flex-wrap items-center gap-4">
+          {/* Month Picker */}
+          <div className="flex flex-col">
+            <label className="text-xs font-medium text-gray-700 mb-1">Ending Month</label>
             <Input
-              type="date"
-              value={fromDate}
-              onChange={(e) => setFromDate(e.target.value)}
-              className="w-40 text-sm"
+              type="month"
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+              className="text-xs w-40"
             />
           </div>
-          <div className="flex items-center gap-2">
-            <label className="text-sm font-medium text-gray-700">To:</label>
-            <Input
-              type="date"
-              value={toDate}
-              onChange={(e) => setToDate(e.target.value)}
-              className="w-40 text-sm"
-            />
+
+          {/* Preset Buttons */}
+          <div className="flex flex-col">
+            <label className="text-xs font-medium text-gray-700 mb-1">Quick Select</label>
+            <div className="flex gap-2">
+              <Button
+                onClick={() => {
+                  const now = new Date();
+                  setSelectedMonth(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`);
+                }}
+                variant="outline"
+                size="sm"
+                className="text-xs px-2 py-1"
+              >
+                Current Month
+              </Button>
+              <Button
+                onClick={() => {
+                  const now = new Date();
+                  const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                  setSelectedMonth(`${lastMonth.getFullYear()}-${String(lastMonth.getMonth() + 1).padStart(2, '0')}`);
+                }}
+                variant="outline"
+                size="sm"
+                className="text-xs px-2 py-1"
+              >
+                Previous Month
+              </Button>
+            </div>
           </div>
-          <Button 
-            onClick={fetchT12Data}
-            variant="outline"
-            size="sm"
-            className="text-xs"
-            disabled={loading}
-          >
-            {loading ? 'Loading...' : 'Update Report'}
-          </Button>
+
+          {/* Update Button */}
+          <div className="flex flex-col justify-end">
+            <Button
+              onClick={fetchT12Data}
+              className="text-xs px-4 py-2"
+              disabled={loading}
+            >
+              {loading ? 'Loading...' : 'Update T12'}
+            </Button>
+          </div>
         </div>
-        
-        <div className="flex gap-2 mt-3">
-          <Button 
-            onClick={() => setPresetDateRange(12)} 
-            variant="outline" 
-            size="sm" 
-            className="text-xs"
-          >
-            Last 12 Months
-          </Button>
-          <Button 
-            onClick={() => setPresetDateRange(6)} 
-            variant="outline" 
-            size="sm" 
-            className="text-xs"
-          >
-            Last 6 Months
-          </Button>
-          <Button 
-            onClick={() => setPresetDateRange(3)} 
-            variant="outline" 
-            size="sm" 
-            className="text-xs"
-          >
-            Last 3 Months
-          </Button>
+
+        {/* Period display */}
+        <div className="mt-2 text-xs text-gray-600">
+          {(() => {
+            const { fromDate, toDate } = getT12DateRange(selectedMonth);
+            const selectedMonthName = new Date(selectedMonth + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+            return `Showing 12 months ending ${selectedMonthName} (${new Date(fromDate).toLocaleDateString()} - ${new Date(toDate).toLocaleDateString()})`;
+          })()}
         </div>
       </div>
 
+      {/* T12 Cash Flow Table */}
+      {t12Data && (
+        <div className="overflow-hidden border-2 border-institutional-black">
+          <div className="bg-institutional-black text-institutional-white p-2">
+            <h4 className="font-bold text-xs uppercase">12-Month Cash Flow Analysis</h4>
+          </div>
+          <div className="overflow-x-auto max-h-96">
+            <table className="institutional-table min-w-full">
+              <thead className="sticky top-0 z-20">
+                <tr className="bg-white">
+                  <th className="sticky left-0 bg-white z-30 min-w-[200px] border-b border-gray-300">Account</th>
+                  {(() => {
+                    const months = t12Data.months || [];
+                    console.log(`📊 Total months in t12Data.months:`, months.length);
+                    console.log(`📊 Full months array:`, months);
+                    return months.map((month, index) => {
+                      console.log(`🗓️ Rendering month header ${index}: ${month}`);
+                      return (
+                        <th key={index} className="min-w-[80px] text-xs bg-white border-b border-gray-300 sticky top-0 z-20">{month}</th>
+                      );
+                    });
+                  })()}
+                  <th className="min-w-[100px] font-bold bg-white border-b border-gray-300 sticky top-0 z-20">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {/* Revenue Section */}
+                <tr className="bg-blue-50">
+                  <td className="sticky left-0 bg-blue-50 z-10 font-bold text-sm uppercase" colSpan={(t12Data.months?.length || 0) + 2}>
+                    OPERATING INCOME
+                  </td>
+                </tr>
+                
+                {(t12Data.accounts || [])
+                  .filter(account => account.isRevenue)
+                  .map((account, index) => (
+                    <tr key={`revenue-${index}`}>
+                      <td className="sticky left-0 bg-white z-10 font-medium">{account.accountName}</td>
+                      {(account.monthlyAmounts || Array(t12Data.months?.length || 0).fill(0)).map((amount, monthIndex) => {
+                        const formatted = formatCurrencyWithNegativeStyle(amount || 0);
+                        return (
+                          <td key={monthIndex} className={`font-mono-data text-right text-xs ${formatted.className || 'text-green-700'}`}>
+                            {formatted.value}
+                          </td>
+                        );
+                      })}
+                      <td className={`font-mono-data text-right font-bold ${formatCurrencyWithNegativeStyle(account.total || 0).className || 'text-green-700'}`}>
+                        {formatCurrencyWithNegativeStyle(account.total || 0).value}
+                      </td>
+                    </tr>
+                  ))}
+                
+                {/* Total Revenue Row */}
+                <tr className="bg-green-50 border-t-2 border-gray-300">
+                  <td className="sticky left-0 bg-green-50 z-10 font-bold">TOTAL OPERATING INCOME</td>
+                  {(t12Data.totals?.revenue || Array(t12Data.months?.length || 0).fill(0)).map((amount, monthIndex) => {
+                    const formatted = formatCurrencyWithNegativeStyle(amount);
+                    return (
+                      <td key={monthIndex} className={`font-mono-data text-right font-bold text-xs ${formatted.className || 'text-green-700'}`}>
+                        {formatted.value}
+                      </td>
+                    );
+                  })}
+                  <td className={`font-mono-data text-right font-bold ${formatCurrencyWithNegativeStyle((t12Data.totals?.revenue || []).reduce((sum, amount) => sum + amount, 0)).className || 'text-green-700'}`}>
+                    {formatCurrencyWithNegativeStyle((t12Data.totals?.revenue || []).reduce((sum, amount) => sum + amount, 0)).value}
+                  </td>
+                </tr>
 
-      {/* Show calculated T12 estimates for Park Portfolio properties */}
+                {/* Expenses Section */}
+                <tr className="bg-blue-50">
+                  <td className="sticky left-0 bg-blue-50 z-10 font-bold text-sm uppercase" colSpan={(t12Data.months?.length || 0) + 2}>
+                    OPERATING EXPENSES
+                  </td>
+                </tr>
+                
+                {(() => {
+                  const expenseCategories = categorizeExpenses(t12Data.accounts || []);
+                  const monthCount = t12Data.months?.length || 0;
+                  
+                  return Object.entries(expenseCategories).map(([categoryName, categoryAccounts]) => {
+                    if (categoryAccounts.length === 0) return null;
+                    
+                    const categoryTotals = calculateCategoryTotals(categoryAccounts, monthCount);
+                    
+                    return (
+                      <React.Fragment key={categoryName}>
+                        {/* Individual accounts in this category */}
+                        {categoryAccounts.map((account, index) => (
+                          <tr key={`${categoryName}-${index}`}>
+                            <td className="sticky left-0 bg-white z-10 font-medium pl-4">{account.accountName}</td>
+                            {(account.monthlyAmounts || Array(monthCount).fill(0)).map((amount, monthIndex) => {
+                              const formatted = formatCurrencyWithNegativeStyle(amount || 0);
+                              return (
+                                <td key={monthIndex} className={`font-mono-data text-right text-xs ${formatted.className || 'text-red-700'}`}>
+                                  {formatted.value}
+                                </td>
+                              );
+                            })}
+                            <td className={`font-mono-data text-right font-bold ${formatCurrencyWithNegativeStyle(account.total || 0).className || 'text-red-700'}`}>
+                              {formatCurrencyWithNegativeStyle(account.total || 0).value}
+                            </td>
+                          </tr>
+                        ))}
+                        
+                        {/* Category subtotal row */}
+                        <tr className="bg-orange-50 border-t border-gray-200">
+                          <td className="sticky left-0 bg-orange-50 z-10 font-bold text-orange-800">TOTAL {categoryName}:</td>
+                          {categoryTotals.monthlyTotals.map((amount, monthIndex) => {
+                            const formatted = formatCurrencyWithNegativeStyle(amount);
+                            return (
+                              <td key={monthIndex} className={`font-mono-data text-right font-bold text-xs ${formatted.className || 'text-orange-700'}`}>
+                                {formatted.value}
+                              </td>
+                            );
+                          })}
+                          <td className={`font-mono-data text-right font-bold ${formatCurrencyWithNegativeStyle(categoryTotals.total).className || 'text-orange-700'}`}>
+                            {formatCurrencyWithNegativeStyle(categoryTotals.total).value}
+                          </td>
+                        </tr>
+                      </React.Fragment>
+                    );
+                  }).filter(Boolean);
+                })()}
+                
+                {/* Total Expenses Row */}
+                <tr className="bg-red-50 border-t-2 border-gray-300">
+                  <td className="sticky left-0 bg-red-50 z-10 font-bold">TOTAL OPERATING EXPENSES</td>
+                  {(t12Data.totals?.expenses || Array(t12Data.months?.length || 0).fill(0)).map((amount, monthIndex) => {
+                    const formatted = formatCurrencyWithNegativeStyle(amount);
+                    return (
+                      <td key={monthIndex} className={`font-mono-data text-right font-bold text-xs ${formatted.className || 'text-red-700'}`}>
+                        {formatted.value}
+                      </td>
+                    );
+                  })}
+                  <td className={`font-mono-data text-right font-bold ${formatCurrencyWithNegativeStyle((t12Data.totals?.expenses || []).reduce((sum, amount) => sum + amount, 0)).className || 'text-red-700'}`}>
+                    {formatCurrencyWithNegativeStyle((t12Data.totals?.expenses || []).reduce((sum, amount) => sum + amount, 0)).value}
+                  </td>
+                </tr>
+
+                {/* Net Operating Income Row */}
+                <tr className="bg-blue-100 border-t-4 border-institutional-black">
+                  <td className="sticky left-0 bg-blue-100 z-10 font-bold text-lg">NET OPERATING INCOME (NOI)</td>
+                  {(t12Data.totals?.netIncome || Array(t12Data.months?.length || 0).fill(0)).map((noi, monthIndex) => {
+                    const formatted = formatCurrencyWithNegativeStyle(noi);
+                    return (
+                      <td key={monthIndex} className={`font-mono-data text-right font-bold text-xs ${
+                        formatted.className || (noi >= 0 ? 'text-blue-700' : 'text-red-700')
+                      }`}>
+                        {formatted.value}
+                      </td>
+                    );
+                  })}
+                  <td className={`font-mono-data text-right font-bold text-lg ${
+                    formatCurrencyWithNegativeStyle((t12Data.totals?.netIncome || []).reduce((sum, noi) => sum + noi, 0)).className || 
+                    ((t12Data.totals?.netIncome || []).reduce((sum, noi) => sum + noi, 0) >= 0 ? 'text-blue-700' : 'text-red-700')
+                  }`}>
+                    {formatCurrencyWithNegativeStyle((t12Data.totals?.netIncome || []).reduce((sum, noi) => sum + noi, 0)).value}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Show calculated T12 estimates for Park Portfolio properties when no data */}
       {!t12Data && selectedProperty && (
         <CalculatedFinancials 
           selectedProperty={selectedProperty} 
           formatCurrency={formatCurrency}
         />
       )}
-      
-      <div className="grid grid-cols-2 gap-5 mb-5">
-        <div className="overflow-hidden border-2 border-institutional-black">
-          <div className="bg-institutional-black text-institutional-white p-2">
-            <h4 className="font-bold text-xs uppercase">Revenue Volatility Analysis</h4>
-          </div>
-          <table className="institutional-table">
-            <thead>
-              <tr>
-                <th>Revenue Metric</th>
-                <th>T12 Average</th>
-                <th>Std Dev</th>
-                <th>Volatility Score</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>Monthly Gross Revenue</td>
-                <td className="font-mono-data">
-                  {t12Data ? formatCurrency(t12Data.revenue.average) : '$--'}
-                </td>
-                <td className="font-mono-data">
-                  {t12Data ? formatCurrency(Math.sqrt(t12Data.revenue.monthlyData.reduce((sum, val) => sum + Math.pow(val - t12Data.revenue.average, 2), 0) / 12)) : '$--'}
-                </td>
-                <td>
-                  {t12Data && (
-                    <span className={`${getVolatilityScore(t12Data.revenue.volatility).color} font-bold`}>
-                      {getVolatilityScore(t12Data.revenue.volatility).label} ({t12Data.revenue.volatility.toFixed(1)}%)
-                    </span>
-                  )}
-                </td>
-              </tr>
-              <tr>
-                <td>Occupancy Rate</td>
-                <td className="font-mono-data">
-                  {t12Data ? `${t12Data.occupancyAnalysis.averageOccupancy.toFixed(1)}%` : '--%'}
-                </td>
-                <td className="font-mono-data">
-                  {t12Data ? `${t12Data.occupancyAnalysis.volatility.toFixed(1)}pp` : '--pp'}
-                </td>
-                <td>
-                  {t12Data && (
-                    <span className={`${getVolatilityScore(t12Data.occupancyAnalysis.volatility).color} font-bold`}>
-                      {getVolatilityScore(t12Data.occupancyAnalysis.volatility).label} ({t12Data.occupancyAnalysis.volatility.toFixed(1)}%)
-                    </span>
-                  )}
-                </td>
-              </tr>
-              <tr>
-                <td>Monthly Net Income</td>
-                <td className="font-mono-data">
-                  {t12Data ? formatCurrency(t12Data.netIncome.average) : '$--'}
-                </td>
-                <td className="font-mono-data">
-                  {t12Data ? formatCurrency(Math.sqrt(t12Data.netIncome.monthlyData.reduce((sum, val) => sum + Math.pow(val - t12Data.netIncome.average, 2), 0) / 12)) : '$--'}
-                </td>
-                <td>
-                  {t12Data && (
-                    <span className={`${getVolatilityScore(t12Data.netIncome.volatility).color} font-bold`}>
-                      {getVolatilityScore(t12Data.netIncome.volatility).label} ({t12Data.netIncome.volatility.toFixed(1)}%)
-                    </span>
-                  )}
-                </td>
-              </tr>
-            </tbody>
-          </table>
+
+      {!t12Data && !selectedProperty && (
+        <div className="text-center py-8 text-gray-500">
+          Select a property to view its trailing 12-month cash flow data.
         </div>
-        
-        <div className="overflow-hidden border-2 border-institutional-black">
-          <div className="bg-institutional-black text-institutional-white p-2">
-            <h4 className="font-bold text-xs uppercase">Seasonal Performance</h4>
-          </div>
-          <table className="institutional-table">
-            <thead>
-              <tr>
-                <th>Quarter</th>
-                <th>Avg NOI</th>
-                <th>vs Annual Avg</th>
-                <th>Pattern</th>
-              </tr>
-            </thead>
-            <tbody>
-              {t12Data && (() => {
-                const monthlyData = t12Data.netIncome.monthlyData;
-                const totalMonths = monthlyData.length;
-                const annualAvg = t12Data.netIncome.average;
-                
-                // Dynamically create periods based on available data
-                const periods = [];
-                
-                if (totalMonths >= 3) {
-                  // First period (first 3 months)
-                  const period1Avg = monthlyData.slice(0, 3).reduce((sum, val) => sum + val, 0) / 3;
-                  const period1VsAnnual = ((period1Avg - annualAvg) / annualAvg) * 100;
-                  periods.push({
-                    name: 'Period 1 (Months 1-3)',
-                    avg: period1Avg,
-                    vsAnnual: period1VsAnnual
-                  });
-                }
-                
-                if (totalMonths >= 6) {
-                  // Second period (months 4-6)
-                  const period2Avg = monthlyData.slice(3, 6).reduce((sum, val) => sum + val, 0) / 3;
-                  const period2VsAnnual = ((period2Avg - annualAvg) / annualAvg) * 100;
-                  periods.push({
-                    name: 'Period 2 (Months 4-6)',
-                    avg: period2Avg,
-                    vsAnnual: period2VsAnnual
-                  });
-                }
-                
-                if (totalMonths >= 9) {
-                  // Third period (months 7-9)
-                  const period3Avg = monthlyData.slice(6, 9).reduce((sum, val) => sum + val, 0) / 3;
-                  const period3VsAnnual = ((period3Avg - annualAvg) / annualAvg) * 100;
-                  periods.push({
-                    name: 'Period 3 (Months 7-9)',
-                    avg: period3Avg,
-                    vsAnnual: period3VsAnnual
-                  });
-                }
-                
-                if (totalMonths >= 12) {
-                  // Fourth period (months 10-12)
-                  const period4Avg = monthlyData.slice(9, 12).reduce((sum, val) => sum + val, 0) / 3;
-                  const period4VsAnnual = ((period4Avg - annualAvg) / annualAvg) * 100;
-                  periods.push({
-                    name: 'Period 4 (Months 10-12)',
-                    avg: period4Avg,
-                    vsAnnual: period4VsAnnual
-                  });
-                }
-                
-                return periods.map((period, index) => {
-                  const pattern = Math.abs(period.vsAnnual) < 2 ? 'NORMAL' : 
-                                 period.vsAnnual > 5 ? 'PEAK SEASON' : 
-                                 period.vsAnnual < -5 ? 'HIGH EXPENSES' : 'STABLE';
-                  const patternColor = Math.abs(period.vsAnnual) < 2 ? 'text-success-green' :
-                                     period.vsAnnual > 0 ? 'text-success-green' : 'text-orange-600';
-                  
-                  return (
-                    <tr key={index}>
-                      <td>{period.name}</td>
-                      <td className="font-mono-data">{formatCurrency(period.avg)}</td>
-                      <td className={`font-mono-data ${period.vsAnnual >= 0 ? 'text-success-green' : 'text-red-600'}`}>
-                        {period.vsAnnual >= 0 ? '+' : ''}{period.vsAnnual.toFixed(1)}%
-                      </td>
-                      <td><span className={`${patternColor} font-bold`}>{pattern}</span></td>
-                    </tr>
-                  );
-                });
-              })()}
-              {!t12Data && (
-                <tr>
-                  <td colSpan={4} className="text-center text-gray-500 py-4">
-                    Loading quarterly data...
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-      
-      <div className="overflow-hidden border-2 border-institutional-black">
-        <div className="bg-institutional-black text-institutional-white p-2">
-          <h4 className="font-bold text-xs uppercase">Advanced Performance Statistics</h4>
-        </div>
-        <table className="institutional-table">
-          <thead>
-            <tr>
-              <th>Analysis Type</th>
-              <th>Metric</th>
-              <th>Value</th>
-              <th>Market Percentile</th>
-              <th>Risk Assessment</th>
-              <th>Action Items</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>Revenue Consistency</td>
-              <td>CV (Coefficient of Variation)</td>
-              <td className="font-mono-data font-bold">
-                {t12Data ? (t12Data.revenue.volatility / 100).toFixed(2) : '--'}
-              </td>
-              <td className="font-mono-data text-success-green">
-                {t12Data && t12Data.revenue.volatility < 10 ? '75th+' : t12Data && t12Data.revenue.volatility < 20 ? '50th' : '25th'}
-              </td>
-              <td>
-                {t12Data && (
-                  <span className={`${getVolatilityScore(t12Data.revenue.volatility).color} font-bold`}>
-                    {getVolatilityScore(t12Data.revenue.volatility).label}
-                  </span>
-                )}
-              </td>
-              <td>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-[8px] font-bold px-1.5 py-0 h-5"
-                  onClick={() => onFlagIssue('t12-revenue-consistency')}
-                >
-                  MONITOR
-                </Button>
-              </td>
-            </tr>
-            <tr>
-              <td>Occupancy Stability</td>
-              <td>Occupancy Trend</td>
-              <td className="font-mono-data font-bold">
-                {t12Data ? `${getTrendIcon(t12Data.occupancyAnalysis.trend)} ${t12Data.occupancyAnalysis.trend.toUpperCase()}` : '--'}
-              </td>
-              <td className="font-mono-data">
-                {t12Data && t12Data.occupancyAnalysis.averageOccupancy > 90 ? '85th' : 
-                 t12Data && t12Data.occupancyAnalysis.averageOccupancy > 80 ? '60th' : '35th'}
-              </td>
-              <td>
-                {t12Data && (
-                  <span className={`${getTrendColor(t12Data.occupancyAnalysis.trend)} font-bold`}>
-                    {t12Data.occupancyAnalysis.trend === 'improving' ? 'LOW' : 
-                     t12Data.occupancyAnalysis.trend === 'declining' ? 'HIGH' : 'MEDIUM'}
-                  </span>
-                )}
-              </td>
-              <td>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-[8px] font-bold px-1.5 py-0 h-5"
-                  onClick={() => onFlagIssue('t12-occupancy-stability')}
-                >
-                  {t12Data && t12Data.occupancyAnalysis.trend === 'declining' ? 'ACTION' : 'MONITOR'}
-                </Button>
-              </td>
-            </tr>
-            <tr>
-              <td>Net Income Analysis</td>
-              <td>T12 Net Income</td>
-              <td className="font-mono-data font-bold">
-                {t12Data ? formatCurrency(t12Data.netIncome.total) : '$--'}
-              </td>
-              <td className="font-mono-data">
-                {t12Data && t12Data.netIncome.total > 0 ? '65th+' : '25th'}
-              </td>
-              <td>
-                {t12Data && (
-                  <span className={`${t12Data.netIncome.total > 0 ? 'text-success-green' : 'text-red-600'} font-bold`}>
-                    {t12Data.netIncome.total > 0 ? 'POSITIVE' : 'NEGATIVE'}
-                  </span>
-                )}
-              </td>
-              <td>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-[8px] font-bold px-1.5 py-0 h-5"
-                  onClick={() => onFlagIssue('t12-net-income')}
-                >
-                  {t12Data && t12Data.netIncome.total <= 0 ? (
-                    <>
-                      <Flag className="mr-1 h-2 w-2" />
-                      ACTION
-                    </>
-                  ) : 'MONITOR'}
-                </Button>
-              </td>
-            </tr>
-            <tr>
-              <td>Maintenance Correlation</td>
-              <td>Weather Sensitivity</td>
-              <td className="font-mono-data font-bold">0.73</td>
-              <td className="font-mono-data text-orange-600">91st</td>
-              <td><span className="text-orange-600 font-bold">MEDIUM</span></td>
-              <td>
-                <Button
-                  onClick={() => onFlagIssue('weather-correlation')}
-                  variant="destructive"
-                  size="sm"
-                  className="bg-orange-500 hover:bg-orange-600 text-white text-[8px] font-bold px-1.5 py-0 h-5"
-                >
-                  <Flag className="w-2 h-2 mr-0.5" />
-                  REVIEW
-                </Button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      )}
     </div>
   );
 }

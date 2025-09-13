@@ -59,26 +59,28 @@ export function OperationsTab({
   const [error, setError] = useState<string | null>(null);
   const [operationalMetrics, setOperationalMetrics] = useState<OperationalMetric[]>([]);
   
-  // Current period date range state - default to current month
-  const [currentFromDate, setCurrentFromDate] = useState(() => {
+  // Month picker state - default to current and previous months
+  const [currentMonth, setCurrentMonth] = useState(() => {
     const date = new Date();
-    return new Date(date.getFullYear(), date.getMonth(), 1).toISOString().split('T')[0];
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
   });
-  const [currentToDate, setCurrentToDate] = useState(() => {
-    return new Date().toISOString().split('T')[0];
-  });
-
-  // Previous period date range state - default to previous month
-  const [previousFromDate, setPreviousFromDate] = useState(() => {
+  const [previousMonth, setPreviousMonth] = useState(() => {
     const date = new Date();
     const prevMonth = new Date(date.getFullYear(), date.getMonth() - 1, 1);
-    return prevMonth.toISOString().split('T')[0];
+    return `${prevMonth.getFullYear()}-${String(prevMonth.getMonth() + 1).padStart(2, '0')}`;
   });
-  const [previousToDate, setPreviousToDate] = useState(() => {
-    const date = new Date();
-    const lastDayPrevMonth = new Date(date.getFullYear(), date.getMonth(), 0);
-    return lastDayPrevMonth.toISOString().split('T')[0];
-  });
+
+  // Convert month selections to date ranges
+  const getMonthDateRange = (monthString: string) => {
+    const [year, month] = monthString.split('-').map(Number);
+    const firstDay = new Date(year, month - 1, 1);
+    const lastDay = new Date(year, month, 0);
+    
+    return {
+      fromDate: firstDay.toISOString().split('T')[0],
+      toDate: lastDay.toISOString().split('T')[0]
+    };
+  };
 
   useEffect(() => {
     fetchOperationalData();
@@ -91,17 +93,20 @@ export function OperationsTab({
       const propertyId = selectedProperty?.PropertyId;
       console.log('🏢 Selected property for Operations:', selectedProperty);
       console.log('🆔 Property ID for Operations fetch:', propertyId);
-      console.log('📅 Current period:', `${currentFromDate} to ${currentToDate}`);
-      console.log('📅 Previous period:', `${previousFromDate} to ${previousToDate}`);
+      const currentDateRange = getMonthDateRange(currentMonth);
+      const previousDateRange = getMonthDateRange(previousMonth);
+      
+      console.log('📅 Current period:', `${currentDateRange.fromDate} to ${currentDateRange.toDate} (${currentMonth})`);
+      console.log('📅 Previous period:', `${previousDateRange.fromDate} to ${previousDateRange.toDate} (${previousMonth})`);
       
       // Get current period data
-      let currentUrl = `/api/appfolio/cash-flow?fromDate=${currentFromDate}&toDate=${currentToDate}`;
+      let currentUrl = `/api/appfolio/cash-flow?fromDate=${currentDateRange.fromDate}&toDate=${currentDateRange.toDate}`;
       if (propertyId) {
         currentUrl += `&propertyId=${propertyId}`;
       }
       
       // Get previous period data
-      let previousUrl = `/api/appfolio/cash-flow?fromDate=${previousFromDate}&toDate=${previousToDate}`;
+      let previousUrl = `/api/appfolio/cash-flow?fromDate=${previousDateRange.fromDate}&toDate=${previousDateRange.toDate}`;
       if (propertyId) {
         previousUrl += `&propertyId=${propertyId}`;
       }
@@ -259,47 +264,41 @@ export function OperationsTab({
         <div className="flex flex-col gap-3">
           {/* Current Period */}
           <div className="flex items-center gap-4 p-3 bg-blue-50 rounded-lg border">
-            <span className="text-sm font-bold text-blue-800 min-w-[100px]">Current Period:</span>
+            <span className="text-sm font-bold text-blue-800 min-w-[100px]">Current Month:</span>
             <div className="flex items-center gap-2">
-              <label className="text-sm font-medium text-gray-700">From:</label>
+              <label className="text-sm font-medium text-gray-700">Month:</label>
               <Input
-                type="date"
-                value={currentFromDate}
-                onChange={(e) => setCurrentFromDate(e.target.value)}
-                className="w-36 text-sm"
+                type="month"
+                value={currentMonth}
+                onChange={(e) => setCurrentMonth(e.target.value)}
+                className="w-40 text-sm"
               />
             </div>
-            <div className="flex items-center gap-2">
-              <label className="text-sm font-medium text-gray-700">To:</label>
-              <Input
-                type="date"
-                value={currentToDate}
-                onChange={(e) => setCurrentToDate(e.target.value)}
-                className="w-36 text-sm"
-              />
+            <div className="text-xs text-blue-600">
+              {(() => {
+                const range = getMonthDateRange(currentMonth);
+                return `(${new Date(range.fromDate).toLocaleDateString()} - ${new Date(range.toDate).toLocaleDateString()})`;
+              })()}
             </div>
           </div>
 
           {/* Previous Period */}
           <div className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg border">
-            <span className="text-sm font-bold text-gray-800 min-w-[100px]">Previous Period:</span>
+            <span className="text-sm font-bold text-gray-800 min-w-[100px]">Previous Month:</span>
             <div className="flex items-center gap-2">
-              <label className="text-sm font-medium text-gray-700">From:</label>
+              <label className="text-sm font-medium text-gray-700">Month:</label>
               <Input
-                type="date"
-                value={previousFromDate}
-                onChange={(e) => setPreviousFromDate(e.target.value)}
-                className="w-36 text-sm"
+                type="month"
+                value={previousMonth}
+                onChange={(e) => setPreviousMonth(e.target.value)}
+                className="w-40 text-sm"
               />
             </div>
-            <div className="flex items-center gap-2">
-              <label className="text-sm font-medium text-gray-700">To:</label>
-              <Input
-                type="date"
-                value={previousToDate}
-                onChange={(e) => setPreviousToDate(e.target.value)}
-                className="w-36 text-sm"
-              />
+            <div className="text-xs text-gray-600">
+              {(() => {
+                const range = getMonthDateRange(previousMonth);
+                return `(${new Date(range.fromDate).toLocaleDateString()} - ${new Date(range.toDate).toLocaleDateString()})`;
+              })()}
             </div>
           </div>
 
@@ -317,17 +316,12 @@ export function OperationsTab({
             <Button 
               onClick={() => {
                 const date = new Date();
-                // Current month
-                const newCurrentFromDate = new Date(date.getFullYear(), date.getMonth(), 1).toISOString().split('T')[0];
-                const newCurrentToDate = new Date().toISOString().split('T')[0];
-                setCurrentFromDate(newCurrentFromDate);
-                setCurrentToDate(newCurrentToDate);
-                
-                // Previous month
+                const currentMonthStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
                 const prevMonth = new Date(date.getFullYear(), date.getMonth() - 1, 1);
-                const lastDayPrevMonth = new Date(date.getFullYear(), date.getMonth(), 0);
-                setPreviousFromDate(prevMonth.toISOString().split('T')[0]);
-                setPreviousToDate(lastDayPrevMonth.toISOString().split('T')[0]);
+                const prevMonthStr = `${prevMonth.getFullYear()}-${String(prevMonth.getMonth() + 1).padStart(2, '0')}`;
+                
+                setCurrentMonth(currentMonthStr);
+                setPreviousMonth(prevMonthStr);
                 
                 setTimeout(() => fetchOperationalData(), 100);
               }}
@@ -340,19 +334,11 @@ export function OperationsTab({
             <Button 
               onClick={() => {
                 const today = new Date();
-                // Last 30 days
-                const thirtyDaysAgo = new Date(today);
-                thirtyDaysAgo.setDate(today.getDate() - 30);
-                setCurrentFromDate(thirtyDaysAgo.toISOString().split('T')[0]);
-                setCurrentToDate(today.toISOString().split('T')[0]);
+                const currentMonthStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+                const lastYearSameMonth = `${today.getFullYear() - 1}-${String(today.getMonth() + 1).padStart(2, '0')}`;
                 
-                // 30 days before that (days 31-60 ago)
-                const sixtyDaysAgo = new Date(today);
-                sixtyDaysAgo.setDate(today.getDate() - 60);
-                const thirtyOneDaysAgo = new Date(today);
-                thirtyOneDaysAgo.setDate(today.getDate() - 31);
-                setPreviousFromDate(sixtyDaysAgo.toISOString().split('T')[0]);
-                setPreviousToDate(thirtyOneDaysAgo.toISOString().split('T')[0]);
+                setCurrentMonth(currentMonthStr);
+                setPreviousMonth(lastYearSameMonth);
                 
                 setTimeout(() => fetchOperationalData(), 100);
               }}
@@ -360,7 +346,7 @@ export function OperationsTab({
               size="sm"
               className="text-xs"
             >
-              Last 30 vs Prior 30 Days
+              This Month vs Last Year
             </Button>
           </div>
         </div>

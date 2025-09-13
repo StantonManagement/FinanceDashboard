@@ -363,42 +363,42 @@ Please review this item and take appropriate action.`,
             <TabsList className="flex bg-institutional-accent border-b border-institutional-border w-full h-auto p-0 rounded-none">
               <TabsTrigger 
                 value="performance" 
-                className="flex-1 bg-institutional-black text-institutional-white border-r border-institutional-border p-4 font-bold text-xs uppercase data-[state=active]:bg-institutional-black data-[state=active]:text-institutional-white data-[state=inactive]:bg-transparent data-[state=inactive]:text-gray-700"
+                className="flex-1 bg-transparent text-gray-700 border-r border-institutional-border p-4 font-bold text-xs uppercase hover:bg-institutional-accent data-[state=active]:bg-yellow-100 data-[state=active]:text-yellow-800"
                 onClick={() => handleClick('tab-performance')}
               >
                 Performance Analysis
               </TabsTrigger>
               <TabsTrigger 
                 value="operations" 
-                className="flex-1 bg-transparent text-gray-700 border-r border-institutional-border p-4 font-bold text-xs uppercase hover:bg-institutional-accent data-[state=active]:bg-institutional-black data-[state=active]:text-institutional-white"
+                className="flex-1 bg-transparent text-gray-700 border-r border-institutional-border p-4 font-bold text-xs uppercase hover:bg-institutional-accent data-[state=active]:bg-yellow-100 data-[state=active]:text-yellow-800"
                 onClick={() => handleClick('tab-operations')}
               >
                 Operational Review
               </TabsTrigger>
               <TabsTrigger 
                 value="cashflow" 
-                className="flex-1 bg-transparent text-gray-700 border-r border-institutional-border p-4 font-bold text-xs uppercase hover:bg-institutional-accent data-[state=active]:bg-institutional-black data-[state=active]:text-institutional-white"
+                className="flex-1 bg-transparent text-gray-700 border-r border-institutional-border p-4 font-bold text-xs uppercase hover:bg-institutional-accent data-[state=active]:bg-yellow-100 data-[state=active]:text-yellow-800"
                 onClick={() => handleClick('tab-cashflow')}
               >
                 Cash Flow Detail
               </TabsTrigger>
               <TabsTrigger 
                 value="balance" 
-                className="flex-1 bg-transparent text-gray-700 border-r border-institutional-border p-4 font-bold text-xs uppercase hover:bg-institutional-accent data-[state=active]:bg-institutional-black data-[state=active]:text-institutional-white"
+                className="flex-1 bg-transparent text-gray-700 border-r border-institutional-border p-4 font-bold text-xs uppercase hover:bg-institutional-accent data-[state=active]:bg-yellow-100 data-[state=active]:text-yellow-800"
                 onClick={() => handleClick('tab-balance')}
               >
                 Balance Sheet
               </TabsTrigger>
               <TabsTrigger 
                 value="t12" 
-                className="flex-1 bg-transparent text-gray-700 border-r border-institutional-border p-4 font-bold text-xs uppercase hover:bg-institutional-accent data-[state=active]:bg-institutional-black data-[state=active]:text-institutional-white"
+                className="flex-1 bg-transparent text-gray-700 border-r border-institutional-border p-4 font-bold text-xs uppercase hover:bg-institutional-accent data-[state=active]:bg-yellow-100 data-[state=active]:text-yellow-800"
                 onClick={() => handleClick('tab-t12')}
               >
                 T12 Performance
               </TabsTrigger>
               <TabsTrigger 
                 value="notes" 
-                className="flex-1 bg-transparent text-gray-700 p-4 font-bold text-xs uppercase hover:bg-institutional-accent data-[state=active]:bg-institutional-black data-[state=active]:text-institutional-white"
+                className="flex-1 bg-transparent text-gray-700 p-4 font-bold text-xs uppercase hover:bg-institutional-accent data-[state=active]:bg-yellow-100 data-[state=active]:text-yellow-800"
                 onClick={() => handleClick('tab-notes')}
               >
                 Notes & Actions
